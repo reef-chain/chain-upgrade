@@ -7,15 +7,15 @@
 use frame_support::weights::{constants::RocksDbWeight as DbWeight, Weight};
 
 impl crate::WeightInfo for () {
-	fn claim_account() -> Weight {
-		(1_253_760_000 as Weight)
-			.saturating_add(DbWeight::get().reads(3 as Weight))
-			.saturating_add(DbWeight::get().writes(4 as Weight))
-	}
+    fn claim_account() -> Weight {
+        Weight::from_parts(1_253_760_000, 0)
+            .saturating_add(DbWeight::get().reads(3 as u64))
+            .saturating_add(DbWeight::get().writes(4 as u64))
+    }
 
-	fn claim_default_account() -> Weight {
-		(304_000_000 as Weight)
-			.saturating_add(DbWeight::get().reads(1 as Weight))
-			.saturating_add(DbWeight::get().writes(2 as Weight))
-	}
+    fn claim_default_account() -> Weight {
+        Weight::from_parts(304_000_000, 0)
+            .saturating_add(DbWeight::get().reads(1 as u64))
+            .saturating_add(DbWeight::get().writes(2 as u64))
+    }
 }

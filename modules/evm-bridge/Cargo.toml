@@ -2,32 +2,33 @@
 name = "module-evm-bridge"
 version = "0.7.3"
 authors = ["Reef Developers"]
-edition = "2018"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+scale-info = { version = "2.2.0", default-features = false, features = ["derive"] }
+frame-support = { workspace = true, default-features = false} 
+frame-system = { workspace = true, default-features = false} 
+sp-core = { workspace = true, default-features = false} 
+sp-runtime = { workspace = true, default-features = false} 
+sp-std = { workspace = true, default-features = false} 
+sp-io = { workspace = true, default-features = false} 
 primitive-types = { version = "0.10", default-features = false, features = ["rlp", "byteorder"] }
 sha3 = { version = "0.8", default-features = false }
 impl-trait-for-tuples = "0.2.1"
-ethereum-types = { version = "0.12.0", default-features = false }
+ethereum-types = { version = "0.14.0", default-features = false }
 primitives = { package = "reef-primitives", path = "../../primitives", default-features = false }
 support = { package = "module-support", path = "../support", default-features = false }
 module-evm = { path = "../evm", default-features = false }
 hex-literal = { version = "0.3.1" }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
+pallet-balances = { workspace = true, default-features = false} 
+pallet-timestamp = { workspace = true, default-features = false} 
 
 [features]
 default = ["std"]
@@ -36,6 +37,7 @@ std = [
 	"codec/std",
 	"sp-core/std",
 	"sp-runtime/std",
+	"scale-info/std",
 	"frame-support/std",
 	"frame-system/std",
 	"sp-io/std",
