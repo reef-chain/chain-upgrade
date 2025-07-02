@@ -2,16 +2,18 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
+use scale_info::TypeInfo;
 pub mod evm;
-pub mod mocks;
+use codec::MaxEncodedLen;
+// pub mod mocks;
 
 use crate::evm::EvmAddress;
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-	generic,
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, RuntimeDebug,
+    generic,
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    MultiSignature, RuntimeDebug,
 };
 use sp_std::convert::{Into, TryFrom, TryInto};
 
@@ -41,46 +43,45 @@ pub const MIRRORED_TOKENS_ADDRESS_START: u64 = 0x01000000;
 
 /// Amounts
 pub mod currency {
-	use super::Balance;
+    use super::Balance;
 
-	pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
-	pub const CENTS: Balance = DOLLARS / 100;
+    pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
+    pub const CENTS: Balance = DOLLARS / 100;
 
-	pub const REEF: Balance = DOLLARS;
-	pub const MILLI_REEF: Balance = REEF / 1_000;
-	pub const MICRO_REEF: Balance = REEF / 1_000_000;
+    pub const REEF: Balance = DOLLARS;
+    pub const MILLI_REEF: Balance = REEF / 1_000;
+    pub const MICRO_REEF: Balance = REEF / 1_000_000;
 
-	pub const fn deposit(items: u32, bytes: u32) -> Balance {
-		items as Balance * 20 * REEF + (bytes as Balance) * 10 * MILLI_REEF
-	}
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 20 * REEF + (bytes as Balance) * 10 * MILLI_REEF
+    }
 }
 
 /// Time and blocks.
 pub mod time {
-	use super::{BlockNumber, Moment};
+    use super::{BlockNumber, Moment};
 
-	/// 10 second block times
-	pub const SECS_PER_BLOCK: Moment = 10;
-	pub const MILLISECS_PER_BLOCK: Moment = SECS_PER_BLOCK * 1000;
+    /// 10 second block times
+    pub const SECS_PER_BLOCK: Moment = 10;
+    pub const MILLISECS_PER_BLOCK: Moment = SECS_PER_BLOCK * 1000;
 
-	// These time units are defined in number of blocks.
-	pub const MINUTES: BlockNumber = 60 / (SECS_PER_BLOCK as BlockNumber);
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
+    // These time units are defined in number of blocks.
+    pub const MINUTES: BlockNumber = 60 / (SECS_PER_BLOCK as BlockNumber);
+    pub const HOURS: BlockNumber = MINUTES * 60;
+    pub const DAYS: BlockNumber = HOURS * 24;
 
-	pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
+    pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
-	// 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
-	pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
+    // 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
+    pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-	pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 1 * HOURS;
-	pub const EPOCH_DURATION_IN_SLOTS: u64 = {
-		const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;
+    pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 1 * HOURS;
+    pub const EPOCH_DURATION_IN_SLOTS: u64 = {
+        const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;
 
-		(EPOCH_DURATION_IN_BLOCKS as f64 * SLOT_FILL_RATE) as u64
-	};
+        (EPOCH_DURATION_IN_BLOCKS as f64 * SLOT_FILL_RATE) as u64
+    };
 }
-
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -132,110 +133,134 @@ pub type BlockId = generic::BlockId<Block>;
 /// Opaque, encoded, unchecked extrinsic.
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenSymbol {
-	REEF = 0,
-	RUSD = 1,
+    REEF = 0,
+    RUSD = 1,
 }
 
 impl TryFrom<u8> for TokenSymbol {
-	type Error = ();
+    type Error = ();
 
-	fn try_from(v: u8) -> Result<Self, Self::Error> {
-		match v {
-			0 => Ok(TokenSymbol::REEF),
-			1 => Ok(TokenSymbol::RUSD),
-			_ => Err(()),
-		}
-	}
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            0 => Ok(TokenSymbol::REEF),
+            1 => Ok(TokenSymbol::RUSD),
+            _ => Err(()),
+        }
+    }
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
-	Token(TokenSymbol),
-	DEXShare(TokenSymbol, TokenSymbol),
-	ERC20(EvmAddress),
+    Token(TokenSymbol),
+    DEXShare(TokenSymbol, TokenSymbol),
+    ERC20(EvmAddress),
 }
 
 impl CurrencyId {
-	pub fn is_token_currency_id(&self) -> bool {
-		matches!(self, CurrencyId::Token(_))
-	}
+    pub fn is_token_currency_id(&self) -> bool {
+        matches!(self, CurrencyId::Token(_))
+    }
 
-	pub fn is_dex_share_currency_id(&self) -> bool {
-		matches!(self, CurrencyId::DEXShare(_, _))
-	}
+    pub fn is_dex_share_currency_id(&self) -> bool {
+        matches!(self, CurrencyId::DEXShare(_, _))
+    }
 
-	pub fn split_dex_share_currency_id(&self) -> Option<(Self, Self)> {
-		match self {
-			CurrencyId::DEXShare(token_symbol_0, token_symbol_1) => {
-				Some((CurrencyId::Token(*token_symbol_0), CurrencyId::Token(*token_symbol_1)))
-			}
-			_ => None,
-		}
-	}
+    pub fn split_dex_share_currency_id(&self) -> Option<(Self, Self)> {
+        match self {
+            CurrencyId::DEXShare(token_symbol_0, token_symbol_1) => Some((
+                CurrencyId::Token(*token_symbol_0),
+                CurrencyId::Token(*token_symbol_1),
+            )),
+            _ => None,
+        }
+    }
 
-	pub fn join_dex_share_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
-		match (currency_id_0, currency_id_1) {
-			(CurrencyId::Token(token_symbol_0), CurrencyId::Token(token_symbol_1)) => {
-				Some(CurrencyId::DEXShare(token_symbol_0, token_symbol_1))
-			}
-			_ => None,
-		}
-	}
+    pub fn join_dex_share_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
+        match (currency_id_0, currency_id_1) {
+            (CurrencyId::Token(token_symbol_0), CurrencyId::Token(token_symbol_1)) => {
+                Some(CurrencyId::DEXShare(token_symbol_0, token_symbol_1))
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Note the pre-deployed ERC20 contracts depend on `CurrencyId` implementation,
 /// and need to be updated if any change.
 impl TryFrom<[u8; 32]> for CurrencyId {
-	type Error = ();
+    type Error = ();
 
-	fn try_from(v: [u8; 32]) -> Result<Self, Self::Error> {
-		if !v.starts_with(&[0u8; 29][..]) {
-			return Err(());
-		}
+    fn try_from(v: [u8; 32]) -> Result<Self, Self::Error> {
+        if !v.starts_with(&[0u8; 29][..]) {
+            return Err(());
+        }
 
-		// token
-		if v[29] == 0 && v[31] == 0 {
-			return v[30].try_into().map(CurrencyId::Token);
-		}
+        // token
+        if v[29] == 0 && v[31] == 0 {
+            return v[30].try_into().map(CurrencyId::Token);
+        }
 
-		// DEX share
-		if v[29] == 1 {
-			let left = v[30].try_into()?;
-			let right = v[31].try_into()?;
-			return Ok(CurrencyId::DEXShare(left, right));
-		}
+        // DEX share
+        if v[29] == 1 {
+            let left = v[30].try_into()?;
+            let right = v[31].try_into()?;
+            return Ok(CurrencyId::DEXShare(left, right));
+        }
 
-		Err(())
-	}
+        Err(())
+    }
 }
 
 /// Note the pre-deployed ERC20 contracts depend on `CurrencyId` implementation,
 /// and need to be updated if any change.
 impl From<CurrencyId> for [u8; 32] {
-	fn from(val: CurrencyId) -> Self {
-		let mut bytes = [0u8; 32];
-		match val {
-			CurrencyId::Token(token) => {
-				bytes[30] = token as u8;
-			}
-			CurrencyId::DEXShare(left, right) => {
-				bytes[29] = 1;
-				bytes[30] = left as u8;
-				bytes[31] = right as u8;
-			}
-			_ => {}
-		}
-		bytes
-	}
+    fn from(val: CurrencyId) -> Self {
+        let mut bytes = [0u8; 32];
+        match val {
+            CurrencyId::Token(token) => {
+                bytes[30] = token as u8;
+            }
+            CurrencyId::DEXShare(left, right) => {
+                bytes[29] = 1;
+                bytes[30] = left as u8;
+                bytes[31] = right as u8;
+            }
+            _ => {}
+        }
+        bytes
+    }
 }
 
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, TypeInfo, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum AuthoritysOriginId {
-	Root,
+    Root,
+}
+
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+#[repr(u8)]
+pub enum ReserveIdentifier {
+    EvmStorageDeposit,
+    EvmDeveloperDeposit,
+    TransactionPayment,
+    TransactionPaymentDeposit,
+
+    // always the last, indicate number of variants
+    Count,
 }
