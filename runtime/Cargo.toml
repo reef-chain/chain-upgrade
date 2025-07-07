@@ -23,7 +23,6 @@ smallvec = "1.8.0"
 hex-literal = { optional = true, version = '0.3.4' }
 serde = { features = ['derive'], optional = true, version = '1.0.136' }
 serde_json = "1.0.85"
-# # evm = { version = "0.30.1", optional = true, default-features = false }
 log = { workspace = true, default-features = false }
 
 # Substrate dependencies
@@ -76,10 +75,13 @@ pallet-identity = { workspace = true ,default-features = false }
 pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
 pallet-treasury = { workspace = true ,default-features = false }
 pallet-assets = { workspace = true ,default-features = false }
+pallet-referenda = { workspace = true ,default-features = false }
+pallet-conviction-voting = { workspace = true ,default-features = false }
 pallet-nomination-pools = { workspace = true ,default-features = false }
 # pallet-nomination-pools-benchmarking = { workspace = true ,default-features = false,optional = true }
 pallet-nomination-pools-runtime-api = { workspace = true ,default-features = false }
 pallet-bags-list = { workspace = true ,default-features = false }
+pallet-ranked-collective = { workspace = true ,default-features = false }
 
 # PoC
 pallet-collective  = { workspace = true ,default-features = false }
@@ -133,6 +135,8 @@ std = [
 	"pallet-preimage/std",
 	"pallet-treasury/std",
 	"pallet-assets/std",
+	"pallet-referenda/std",
+	"pallet-conviction-voting/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -148,6 +152,7 @@ std = [
 	"pallet-election-provider-multi-phase/std",
 	"pallet-offences/std",
  	"pallet-identity/std",
+	"pallet-ranked-collective/std",
 	"pallet-nomination-pools/std",
 	"pallet-nomination-pools-runtime-api/std",
 	# "pallet-nomination-pools-benchmarking?/std",
