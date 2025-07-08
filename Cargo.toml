@@ -3,7 +3,6 @@ resolver = "2"
 
 members = [
     'node',
-    'modules/stable-evm',
     # 'modules/*',
     # 'runtime/common',
     # 'modules/evm/rpc'
