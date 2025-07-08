@@ -1,55 +1,16 @@
 use crate::Balance;
 use codec::{Decode, Encode};
-use module_evm_utility::evm::ExitReason;
+use evm::ExitReason;
 use scale_info::TypeInfo;
-use sp_core::{H160, U256};
+use ethereum_types::{H160, U256};
 use sp_runtime::RuntimeDebug;
-use module_evm_utility::ethereum::AccessListItem;
 use sp_std::vec::Vec;
 
-pub use module_evm_utility::evm::backend::{Basic as Account, Log};
-pub use module_evm_utility::evm::Config;
+pub use evm::backend::{Basic as Account, Log};
+pub use evm::Config;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-
-// #[derive(
-//     Eq, Serialize, Deserialize, PartialEq, PartialOrd, Default, Ord, Copy, Clone, Debug, TypeInfo,
-// )]
-// pub struct CodecH160(pub H160);
-
-// impl Encode for CodecH160 {
-//     fn encode(&self) -> Vec<u8> {
-//         self.0.as_bytes().encode()
-//     }
-// }
-
-// impl Decode for CodecH160 {
-//     fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
-//         let bytes: [u8; 20] = Decode::decode(input)?;
-//         Ok(CodecH160(H160::from(bytes)))
-//     }
-// }
-
-// #[derive(Eq, Serialize,Deserialize,PartialEq,PartialOrd,Default, Ord,Copy, Clone, Debug)]
-// pub struct U256Wrapper(pub U256);
-
-// impl Encode for U256Wrapper {
-//     fn encode(&self) -> Vec<u8> {
-//         let mut bytes = [0u8; 32];
-//         self.0.to_big_endian(&mut bytes);
-//         bytes.encode()
-//     }
-// }
-
-// impl Decode for U256Wrapper {
-//     fn decode<I: codec::Input>(
-//         input: &mut I,
-//     ) -> Result<Self, codec::Error> {
-//         let bytes: [u8; 32] = Decode::decode(input)?;
-//         Ok(U256Wrapper(U256::from_big_endian(&bytes)))
-//     }
-// }
 
 /// Evm Address.
 pub type EvmAddress = H160;
@@ -108,6 +69,4 @@ pub struct EstimateResourcesRequest {
     pub value: Option<Balance>,
     /// Data
     pub data: Option<Vec<u8>>,
-    /// AccessList
-	pub access_list: Option<Vec<AccessListItem>>,
 }

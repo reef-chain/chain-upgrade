@@ -15,7 +15,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentifyAccount, Verify},
     MultiSignature, RuntimeDebug,
 };
-use sp_std::convert::{Into, TryFrom, TryInto};
+use sp_std::convert::{TryFrom, TryInto};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -75,7 +75,7 @@ pub mod time {
     // 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
     pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-    pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 1 * HOURS;
+    pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 1 * MINUTES;
     pub const EPOCH_DURATION_IN_SLOTS: u64 = {
         const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;
 

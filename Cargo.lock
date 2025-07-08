@@ -2005,7 +2005,7 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 [[package]]
 name = "evm"
 version = "0.30.1"
-source = "git+https://github.com/arunjot12/Evm-30?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
+source = "git+https://github.com/reef-chain/reef-chain-evm-pallet?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
 dependencies = [
  "environmental",
  "ethereum",
@@ -2024,7 +2024,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.30.0"
-source = "git+https://github.com/arunjot12/Evm-30?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
+source = "git+https://github.com/reef-chain/reef-chain-evm-pallet?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
 dependencies = [
  "funty 1.1.0",
  "parity-scale-codec 3.5.0",
@@ -2036,7 +2036,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.30.0"
-source = "git+https://github.com/arunjot12/Evm-30?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
+source = "git+https://github.com/reef-chain/reef-chain-evm-pallet?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
 dependencies = [
  "environmental",
  "evm-core",
@@ -2073,7 +2073,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.30.0"
-source = "git+https://github.com/arunjot12/Evm-30?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
+source = "git+https://github.com/reef-chain/reef-chain-evm-pallet?branch=main#65872251c7721307a09c0648086a922ef2ed5cc0"
 dependencies = [
  "environmental",
  "evm-core",
@@ -6578,6 +6578,8 @@ name = "reef-primitives"
 version = "0.7.3"
 dependencies = [
  "ethereum-types 0.14.1",
+ "evm",
+ "frame-support",
  "parity-scale-codec 3.5.0",
  "scale-info 2.6.0",
  "serde",
