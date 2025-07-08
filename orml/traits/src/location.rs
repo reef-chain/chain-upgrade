@@ -1,5 +1,5 @@
-use sp_std::prelude::*;
-use xcm::latest::prelude::*;
+use sp_core::{bounded::BoundedVec, ConstU32};
+use xcm::v3::prelude::*;
 
 pub trait Parse {
 	/// Returns the "chain" location part. It could be parent, sibling
@@ -27,7 +27,7 @@ impl Parse for MultiLocation {
 	}
 
 	fn non_chain_part(&self) -> Option<MultiLocation> {
-		let mut junctions = self.interior().clone();
+		let mut junctions = *self.interior();
 		while is_chain_junction(junctions.first()) {
 			let _ = junctions.take_first();
 		}
@@ -42,12 +42,15 @@ impl Parse for MultiLocation {
 
 pub trait Reserve {
 	/// Returns assets reserve location.
-	fn reserve(&self) -> Option<MultiLocation>;
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation>;
 }
 
-impl Reserve for MultiAsset {
-	fn reserve(&self) -> Option<MultiLocation> {
-		if let Concrete(location) = &self.id {
+// Provide reserve in absolute path view
+pub struct AbsoluteReserveProvider;
+
+impl Reserve for AbsoluteReserveProvider {
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation> {
+		if let Concrete(location) = &asset.id {
 			location.chain_part()
 		} else {
 			None
@@ -55,13 +58,31 @@ impl Reserve for MultiAsset {
 	}
 }
 
+// Provide reserve in relative path view
+// Self tokens are represeneted as Here
+pub struct RelativeReserveProvider;
+
+impl Reserve for RelativeReserveProvider {
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation> {
+		if let Concrete(location) = &asset.id {
+			if location.parents == 0 && !is_chain_junction(location.first_interior()) {
+				Some(MultiLocation::here())
+			} else {
+				location.chain_part()
+			}
+		} else {
+			None
+		}
+	}
+}
+
 pub trait RelativeLocations {
-	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation;
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation;
 }
 
 impl RelativeLocations for MultiLocation {
-	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation {
-		MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(general_key)))
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation {
+		return MultiLocation::new(1, X2(Parachain(para_id), general_key.as_bounded_slice().into()));
 	}
 }
 
@@ -79,7 +100,11 @@ mod tests {
 	#[test]
 	fn parent_as_reserve_chain() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX))).reserve(),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
+			Some(MultiLocation::parent())
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
 			Some(MultiLocation::parent())
 		);
 	}
@@ -87,7 +112,11 @@ mod tests {
 	#[test]
 	fn sibling_parachain_as_reserve_chain() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX))).reserve(),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
+			Some(MultiLocation::new(1, X1(PARACHAIN)))
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(MultiLocation::new(1, X1(PARACHAIN)))
 		);
 	}
@@ -95,16 +124,30 @@ mod tests {
 	#[test]
 	fn child_parachain_as_reserve_chain() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX))).reserve(),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
+			Some(PARACHAIN.into())
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(PARACHAIN.into())
 		);
 	}
 
 	#[test]
-	fn no_reserve_chain() {
+	fn no_reserve_chain_for_absolute_self_for_relative() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into())))).reserve(),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
+				0,
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
+			))),
 			None
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
+				0,
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
+			))),
+			Some(MultiLocation::here())
 		);
 	}
 

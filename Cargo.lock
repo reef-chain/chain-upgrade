@@ -4582,25 +4582,12 @@ name = "module-evm-rpc-runtime-api"
 version = "0.1.0"
 dependencies = [
  "ethereum-types 0.14.1",
- "module-evm-utility",
  "parity-scale-codec 3.5.0",
  "reef-primitives",
  "scale-info 2.6.0",
  "sp-api",
  "sp-core",
  "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "module-evm-utility"
-version = "2.19.0"
-dependencies = [
- "ethereum 0.14.0",
- "evm 0.30.1 (git+https://github.com/arunjot12/Evm-30?branch=main)",
- "evm-gasometer 0.30.0 (git+https://github.com/arunjot12/Evm-30?branch=main)",
- "evm-runtime 0.30.0 (git+https://github.com/arunjot12/Evm-30?branch=main)",
- "sha3 0.10.8",
  "sp-std",
 ]
 
@@ -6632,6 +6619,7 @@ version = "0.7.3"
 dependencies = [
  "ethereum-types 0.14.1",
  "evm 0.30.1 (git+https://github.com/arunjot12/Evm-30?branch=main)",
+ "frame-support",
  "parity-scale-codec 3.5.0",
  "scale-info 2.6.0",
  "serde",

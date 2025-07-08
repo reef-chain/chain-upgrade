@@ -1,9 +1,7 @@
 .PHONY: configure-rust
 configure-rust:
-	rustup install 1.59.0
-	rustup default 1.59.0
-	rustup toolchain install nightly-2022-04-02
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-04-02
+	rustup toolchain install nightly-2023-01-01
+	rustup target add wasm32-unknown-unknown --toolchain nightly-2023-01-01
 	rustup component add clippy
 
 .PHONY: init
