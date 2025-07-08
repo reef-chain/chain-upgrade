@@ -3,11 +3,8 @@ resolver = "2"
 
 members = [
     'node',
-    # 'modules/*',
-    # 'runtime/common',
-    # 'modules/evm/rpc'
+    'modules/*',
     'runtime',
-    # 'primitives'
 ]
 
 [profile.dev.package]
@@ -134,13 +131,16 @@ sp-arithmetic = { git = "https://github.com/paritytech/substrate", default-featu
 sp-blockchain = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
+sp-keyring = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-keystore  = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
-# libsecp256k1 = { version = "0.7", default-features = false, features = ["static-context"], optional = true }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 kitchensink-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
-# libsecp256k1 = { version = "0.7", default-features = false, features = ["static-context"], optional = true }
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 
-
+sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+grandpa = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43", package = "sc-consensus-grandpa" }
 sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-babe = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false }
@@ -157,8 +157,10 @@ sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false }
 sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-babe-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-consensus-manual-seal = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-consensus-manual-seal = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-executor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-slots = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-consensus-grandpa-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.43", default-features = false }

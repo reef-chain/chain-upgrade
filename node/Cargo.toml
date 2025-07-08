@@ -13,7 +13,7 @@ version = '4.0.0'
 name = 'reef-node'
 
 [build-dependencies]
-substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+substrate-build-script-utils = { workspace = true }
 
 [dependencies]
 hex-literal = "0.3.1"
@@ -29,14 +29,14 @@ futures = { version = "0.3.21", features = ["thread-pool"]}
 frame-benchmarking = { workspace = true ,default-features = false }
 frame-benchmarking-cli = { workspace = true ,default-features = false }
 pallet-transaction-payment-rpc = { workspace = true ,default-features = false }
-sc-chain-spec=  { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-chain-spec = { workspace = true }
 sc-basic-authorship = { workspace = true ,default-features = false }
-sc-cli =  { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-client-api =  { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-executor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-rpc-api=  { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-service = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-cli = { workspace = true }
+sc-client-api = { workspace = true }
+sc-executor = { workspace = true }
+sc-rpc = { workspace = true }
+sc-rpc-api = { workspace = true }
+sc-service = { workspace = true }
 sc-transaction-pool = { workspace = true ,default-features = false }
 sc-transaction-pool-api = { workspace = true ,default-features = false }
 sc-telemetry = { workspace = true ,default-features = false }
@@ -46,34 +46,31 @@ sp-block-builder = { workspace = true ,default-features = false }
 sp-blockchain = { workspace = true ,default-features = false }
 sp-core  = { workspace = true ,default-features = false }
 sp-inherents = { workspace = true ,default-features = false }
-sc-network = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-network = { workspace = true ,default-features = false }
 sp-runtime  = { workspace = true ,default-features = false }
 sp-transaction-pool  = { workspace = true ,default-features = false }
+log = { workspace = true, default-features = false }
 sp-timestamp = { workspace = true ,default-features = false }
-substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+substrate-frame-rpc-system = { workspace = true ,default-features = false }
 
 sc-keystore = { workspace = true ,default-features = false }
 sp-keystore = { workspace = true ,default-features = false }
-# sp-finality-grandpa = { workspace = true ,default-features = false }
-grandpa = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",package = "sc-consensus-grandpa"}
-sc-consensus-grandpa-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+grandpa = {  workspace = true ,package = "sc-consensus-grandpa"}
+sc-consensus-grandpa-rpc = { workspace = true }
 
 sp-consensus = { workspace = true }
 sp-consensus-babe = { workspace = true }
-sp-consensus-grandpa = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" ,default-features=false }
+sp-consensus-grandpa = { version = "4.0.0-dev", workspace = true ,default-features=false }
 sc-consensus = { workspace = true }
-sc-consensus-babe = { workspace = true ,default-features = false }
-sc-consensus-babe-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sp-keyring = {git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" ,default-features=false }
-frame-system = {git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" ,default-features=false }
-pallet-transaction-payment = {git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" ,default-features=false }
-# sc-consensus-manual-seal = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
-sc-consensus-slots = {workspace = true,default-features = false}
-
-# kitchensink-runtime = { workspace = true ,default-features = false }
+sc-consensus-babe = { workspace = true }
+sc-consensus-babe-rpc = { workspace = true }
+sp-keyring = { workspace = true, default-features=false }
+frame-system = { workspace = true, default-features=false }
+pallet-transaction-payment = { workspace = true, default-features=false }
+sc-consensus-slots = { workspace = true }
 
 module-evm = { path = "../modules/evm" }
-# module-evm-rpc-runtime-api = { path = "../modules/evm/rpc/runtime_api" }
+module-transaction-payment = { path = "../modules/transaction_payment" }
 evm-rpc = { path = "../modules/evm/rpc" }
 
 reef-primitives = { path = "../primitives" }
@@ -83,7 +80,7 @@ reef-runtime = { path = '../runtime', version = '4.0.0' }
 
 [features]
 default = []
-# runtime-benchmarks = ['reef-runtime/runtime-benchmarks', 'kitchensink-runtime/runtime-benchmarks']
+runtime-benchmarks = ['reef-runtime/runtime-benchmarks']
 with-ethereum-compatibility = [
 	"reef-runtime/with-ethereum-compatibility"
 ]

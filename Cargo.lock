@@ -4531,6 +4531,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "module-example"
+version = "0.7.3"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec 3.5.0",
+ "scale-info 2.6.0",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "module-poc"
 version = "1.0.0"
 dependencies = [
@@ -6512,7 +6526,9 @@ dependencies = [
  "hex-literal",
  "jsonrpc-core 15.1.0",
  "jsonrpsee",
+ "log",
  "module-evm",
+ "module-transaction-payment",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "reef-primitives",
