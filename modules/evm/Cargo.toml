@@ -2,35 +2,36 @@
 name = "module-evm"
 version = "0.7.3"
 authors = ["Reef Developers"]
-edition = "2018"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 impl-trait-for-tuples = "0.1"
-primitive-types = { version = "0.10", default-features = false, features = ["rlp", "byteorder"] }
+scale-info = { version = "2.2.0", default-features = false, features = ["derive"] }
+primitive-types = { version = "0.12.0", default-features = false, features = ["rlp", "byteorder","scale-info"] }
 ripemd160 = { version = "0.9", default-features = false }
-rlp = { version = "0.5", default-features = false }
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
+rlp = { version = "0.5.2", default-features = false }
+serde = { version = "1.0.145", optional = true, features = ["derive"] }
 sha3 = { version = "0.8", default-features = false }
 tiny-keccak = { version = "2.0", features = ["fips202"] }
 log = { version = "0.4.14", default-features = false }
 
-evm = { version = "0.30.1", default-features = false, features = ["with-codec"] }
-evm-gasometer = { version = "0.30.0", default-features = false }
-evm-runtime = { version = "0.30.0", default-features = false }
+evm = { git = "https://github.com/arunjot12/Evm-30",branch = "main",default-features = false, features = ["with-codec"] }
+evm-gasometer = { git = "https://github.com/arunjot12/Evm-30",branch = "main",default-features = false }
+evm-runtime = {  git = "https://github.com/arunjot12/Evm-30",branch = "main", default-features = false }
 
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
+frame-support= { workspace = true ,default-features = false }
+frame-system = { workspace = true ,default-features = false }
+pallet-balances = { workspace = true ,default-features = false }
+pallet-timestamp = { workspace = true ,default-features = false }
 
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
+sp-core = { workspace = true ,default-features = false }
+sp-io = { workspace = true ,default-features = false }
+sp-runtime = { workspace = true ,default-features = false }
+sp-std = { workspace = true ,default-features = false }
 orml-traits = { path = "../../orml/traits", default-features = false }
 
 support = { package = "module-support", path = "../support", default-features = false }
@@ -38,8 +39,6 @@ primitives = { package = "reef-primitives", path = "../../primitives", default-f
 
 [dev-dependencies]
 env_logger = "0.7"
-orml-currencies = { path = "../../orml/currencies" }
-orml-tokens = { path = "../../orml/tokens" }
 
 [features]
 default = ["std"]
@@ -47,6 +46,7 @@ std = [
 	"serde",
 	"codec/std",
 	"sp-core/std",
+	"scale-info/std",
 	"sp-runtime/std",
 	"frame-support/std",
 	"frame-system/std",
@@ -56,13 +56,13 @@ std = [
 	"sha3/std",
 	"rlp/std",
 	"primitive-types/std",
+	"pallet-timestamp/std",
+	"ripemd160/std",
+	"primitives/std",
 	"evm/std",
 	"evm/with-serde",
 	"evm-runtime/std",
 	"evm-gasometer/std",
-	"pallet-timestamp/std",
-	"ripemd160/std",
-	"primitives/std",
 	"orml-traits/std",
 	"support/std",
 	"log/std"
