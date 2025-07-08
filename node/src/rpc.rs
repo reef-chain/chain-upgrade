@@ -6,40 +6,38 @@
 #![warn(missing_docs)]
 
 use std::sync::Arc;
-
+use jsonrpsee::RpcModule;
+use sc_rpc::SubscriptionTaskExecutor;
+use sp_keystore::KeystorePtr;
+pub use sc_rpc_api::DenyUnsafe;
+use sc_consensus_babe::BabeWorkerHandle;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderMetadata, HeaderBackend};
 use sp_block_builder::BlockBuilder;
-pub use sc_rpc_api::DenyUnsafe;
+// pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
+use evm_rpc::evm_api::EVMApiServer;
 
 use reef_runtime::{
 	AccountId, Balance, Nonce, BlockNumber, Hash,
 	opaque::Block,
 };
-
-use sc_consensus_babe::{Config, Epoch};
-use sp_keystore::SyncCryptoStorePtr;
-use sc_consensus_epochs::SharedEpochChanges;
-use sc_finality_grandpa::{
+use grandpa::{
 	FinalityProofProvider,
 	GrandpaJustificationStream,
 	SharedAuthoritySet,
 	SharedVoterState
 };
-pub use evm_rpc::{EVMApi, EVMApiServer, EVMRuntimeRPCApi};
-pub use sc_rpc::SubscriptionTaskExecutor;
+pub use evm_rpc::{EVM, EVMRuntimeRPCApi};
+// pub use sc_rpc::SubscriptionTaskExecutor;
 
 /// Extra dependencies for BABE.
 pub struct BabeDeps {
-	/// BABE protocol config.
-	pub babe_config: Config,
-	/// BABE pending epoch changes.
-	pub shared_epoch_changes: SharedEpochChanges<Block, Epoch>,
+	/// A handle to the BABE worker for issuing requests.
+	pub babe_worker_handle: BabeWorkerHandle<Block>,
 	/// The keystore that manages the keys of the node.
-	pub keystore: SyncCryptoStorePtr,
+	pub keystore: KeystorePtr,
 }
-
 /// Extra dependencies for GRANDPA
 pub struct GrandpaDeps<B> {
 	/// Voting round info.
@@ -73,7 +71,7 @@ pub struct FullDeps<C, P, SC, B> {
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P, SC, B>(
 	deps: FullDeps<C, P, SC, B>,
-) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, Box<dyn std::error::Error + Send + Sync>> where
+) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>> where
 	C: ProvideRuntimeApi<Block>,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error=BlockChainError> + 'static,
 	C: Send + Sync + 'static,
@@ -87,14 +85,12 @@ pub fn create_full<C, P, SC, B>(
 	B: sc_client_api::Backend<Block> + Send + Sync + 'static,
 	B::State: sc_client_api::StateBackend<sp_runtime::traits::HashFor<Block>>,
 {
-	use substrate_frame_rpc_system::{FullSystem, SystemApi};
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+	use substrate_frame_rpc_system::{System, SystemApiServer};
+	use sc_consensus_babe_rpc::{Babe, BabeApiServer};
+	use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
+	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 
-	use sc_consensus_babe_rpc::BabeRpcHandler;
-	use sc_finality_grandpa_rpc::{GrandpaApi, GrandpaRpcHandler};
-
-
-	let mut io = jsonrpc_core::IoHandler::default();
+	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
@@ -103,11 +99,7 @@ pub fn create_full<C, P, SC, B>(
 		babe,
 		grandpa,
 	} = deps;
-	let BabeDeps {
-		keystore,
-		babe_config,
-		shared_epoch_changes,
-	} = babe;
+	let BabeDeps { keystore, babe_worker_handle } = babe;
 	let GrandpaDeps {
 		shared_voter_state,
 		shared_authority_set,
@@ -116,36 +108,30 @@ pub fn create_full<C, P, SC, B>(
 		finality_provider,
 	} = grandpa;
 
+	io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
 
-	io.extend_with(
-		SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
-	);
-
-	io.extend_with(
-		TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
-	);
+	io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
 
-	io.extend_with(sc_consensus_babe_rpc::BabeApi::to_delegate(BabeRpcHandler::new(
-		client.clone(),
-		shared_epoch_changes,
-		keystore,
-		babe_config,
-		select_chain,
-		deny_unsafe,
-	)));
-	io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
-		shared_authority_set,
-		shared_voter_state,
-		justification_stream,
-		subscription_executor,
-		finality_provider,
-	)));
-	io.extend_with(EVMApiServer::to_delegate(EVMApi::new(client)));
+	io.merge(
+		Babe::new(client.clone(), babe_worker_handle.clone(), keystore, select_chain, deny_unsafe)
+			.into_rpc(),
+	)?;
+	io.merge(
+		Grandpa::new(
+			subscription_executor,
+			shared_authority_set.clone(),
+			shared_voter_state,
+			justification_stream,
+			finality_provider,
+		)
+		.into_rpc(),
+	)?;
+	io.merge(EVM::new(client.clone(), deny_unsafe).into_rpc())?;
 
 	Ok(io)
 }
