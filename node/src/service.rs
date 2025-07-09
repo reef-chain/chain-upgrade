@@ -1,27 +1,36 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
-
 use std::sync::Arc;
 use std::time::Duration;
-use sc_client_api::{ExecutorProvider, RemoteBackend};
 use reef_runtime::{self, opaque::Block, RuntimeApi};
+use sc_consensus_babe::BabeWorkerHandle;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
-use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
-use sc_finality_grandpa::SharedVoterState;
-use sc_keystore::LocalKeystore;
+use grandpa::SharedVoterState;
+use sc_service::WarpSyncParams;
+use sc_client_api::BlockBackend;
+use sc_executor::NativeElseWasmExecutor;
 use sc_telemetry::{Telemetry, TelemetryWorker};
-
-use sc_finality_grandpa::FinalityProofProvider;
+use grandpa::FinalityProofProvider;
 
 // Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	reef_runtime::api::dispatch,
-	reef_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub struct ExecutorDispatch;
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	/// Only enable the benchmarking host functions when we actually want to benchmark.
+	#[cfg(feature = "runtime-benchmarks")]
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+	/// Otherwise we only use the default Substrate host functions.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type ExtendHostFunctions = ();
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		reef_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		reef_runtime::native_version()
+	}
+}
+
+pub type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type PartialResult = Result<sc_service::PartialComponents<
@@ -34,18 +43,16 @@ type PartialResult = Result<sc_service::PartialComponents<
 		sc_consensus_babe::BabeBlockImport<
 			Block,
 			FullClient,
-			sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+			grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
 		>,
-		sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+		grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
 		sc_consensus_babe::BabeLink<Block>,
+		BabeWorkerHandle<Block>,
 		Option<Telemetry>
 	)
 >, ServiceError>;
 
 pub fn new_partial(config: &Configuration) -> PartialResult {
-	if config.keystore_remote.is_some() {
-		return Err(ServiceError::Other("Remote Keystores are not supported.".to_string()))
-	}
 
 	let telemetry = config
 		.telemetry_endpoints
@@ -57,13 +64,13 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 			Ok((worker, telemetry))
 		})
 		.transpose()?;
-
+	let executor = sc_service::new_native_or_wasm_executor(&config);
 	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(config, telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()))?;
+		sc_service::new_full_parts::<Block, RuntimeApi, _>(config, telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),executor)?;
 	let client = Arc::new(client);
 
 	let telemetry = telemetry.map(|(worker, telemetry)| {
-		task_manager.spawn_handle().spawn("telemetry", worker.run());
+		task_manager.spawn_handle().spawn("telemetry",None, worker.run());
 		telemetry
 	});
 
@@ -77,18 +84,18 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 		client.clone(),
 	);
 
-	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
+	let (grandpa_block_import, grandpa_link) = grandpa::block_import(
 		client.clone(), &(client.clone() as Arc<_>), select_chain.clone(), telemetry.as_ref().map(|x| x.handle())
 	)?;
 
 	let (block_import, babe_link) = sc_consensus_babe::block_import(
-		sc_consensus_babe::Config::get_or_compute(&*client)?,
+	sc_consensus_babe::configuration(&*client)?,
 		grandpa_block_import.clone(),
 		client.clone(),
 	)?;
 
 	let slot_duration = babe_link.config().slot_duration();
-	let import_queue =
+	let (import_queue,babe_worker_handler) =
 		sc_consensus_babe::import_queue(
 			babe_link.clone(),
 			block_import.clone(),
@@ -99,16 +106,15 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 				let slot =
-					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
+					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 						*timestamp,
 						slot_duration,
 					);
 
-				Ok((timestamp, slot))
+				Ok((slot,timestamp))
 			},
 			&task_manager.spawn_essential_handle(),
 			config.prometheus_registry(),
-			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
 			telemetry.as_ref().map(|x| x.handle())
 		)?;
 
@@ -120,57 +126,49 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (block_import, grandpa_link, babe_link, telemetry),
+		other: (block_import, grandpa_link, babe_link, babe_worker_handler,telemetry),
 	})
 }
 
-fn remote_keystore(_url: &str) -> Result<Arc<LocalKeystore>, &'static str> {
-	// FIXME: here would the concrete keystore be built,
-	//        must return a concrete type (NOT `LocalKeystore`) that
-	//        implements `CryptoStore` and `SyncCryptoStore`
-	Err("Remote Keystore not supported.")
-}
-
 /// Builds a new service for a full client.
-pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
 		mut task_manager,
 		import_queue,
-		mut keystore_container,
+		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (block_import, grandpa_link, babe_link, mut telemetry),
+		other: (block_import, grandpa_link, babe_link,babe_worker_handler, mut telemetry),
 	} = new_partial(&config)?;
 
-	if let Some(url) = &config.keystore_remote {
-		match remote_keystore(url) {
-			Ok(k) => keystore_container.set_remote_keystore(k),
-			Err(e) => {
-				return Err(ServiceError::Other(
-						format!("Error hooking up remote keystore for {}: {}", url, e)))
-			}
-		};
-	}
+	let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
-	config.network.extra_sets.push(sc_finality_grandpa::grandpa_peers_set_config());
-
-	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
-		backend.clone(),
-		grandpa_link.shared_authority_set().clone(),
+	let grandpa_protocol_name = grandpa::protocol_standard_name(
+		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
+		&config.chain_spec,
+	);
+	net_config.add_notification_protocol(grandpa::grandpa_peers_set_config(
+		grandpa_protocol_name.clone(),
 	));
 
-	let (network, system_rpc_tx, network_starter) =
+	let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
+		backend.clone(),
+		grandpa_link.shared_authority_set().clone(),
+		Vec::default()
+	));
+
+	let (network, system_rpc_tx, tx_handler_controller,network_starter,sync_service) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
+			net_config,
 			client: client.clone(),
 			transaction_pool: transaction_pool.clone(),
 			spawn_handle: task_manager.spawn_handle(),
 			import_queue,
-			on_demand: None,
 			block_announce_validator_builder: None,
-			warp_sync: Some(warp_sync)
+			warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -192,18 +190,15 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
 	let justification_stream = grandpa_link.justification_stream();
 	let shared_authority_set = grandpa_link.shared_authority_set().clone();
-	let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
+	let shared_voter_state = grandpa::SharedVoterState::empty();
 
 	let finality_proof_provider =
 		FinalityProofProvider::new_for_service(backend.clone(), Some(shared_authority_set.clone()));
 
-	let babe_config = babe_link.config().clone();
-	let shared_epoch_changes = babe_link.epoch_changes().clone();
-
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
-		let keystore = keystore_container.sync_keystore();
+		let keystore = keystore_container.keystore();
 		let select_chain = select_chain.clone();
 
 		Box::new(move |deny_unsafe, subscription_executor| {
@@ -213,8 +208,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				select_chain: select_chain.clone(),
 				deny_unsafe,
 				babe: crate::rpc::BabeDeps {
-					babe_config: babe_config.clone(),
-					shared_epoch_changes: shared_epoch_changes.clone(),
+					babe_worker_handle: babe_worker_handler.clone(),
 					keystore: keystore.clone(),
 				},
 				grandpa: crate::rpc::GrandpaDeps {
@@ -234,16 +228,16 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		sc_service::SpawnTasksParams {
 			network: network.clone(),
 			client: client.clone(),
-			keystore: keystore_container.sync_keystore(),
+			keystore: keystore_container.keystore(),
 			task_manager: &mut task_manager,
 			transaction_pool: transaction_pool.clone(),
-			rpc_extensions_builder,
-			on_demand: None,
-			remote_blockchain: None,
 			backend,
 			system_rpc_tx,
 			config,
-			telemetry: telemetry.as_mut()
+			tx_handler_controller,
+			telemetry: telemetry.as_mut(),
+			rpc_builder: rpc_extensions_builder,
+			sync_service: sync_service.clone(),
 		},
 	)?;
 
@@ -257,51 +251,51 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			telemetry.as_ref().map(|x| x.handle())
 		);
 
-		let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 		let slot_duration = babe_link.config().slot_duration();
 		let babe_config = sc_consensus_babe::BabeParams {
-			keystore: keystore_container.sync_keystore(),
+			keystore: keystore_container.keystore(),
 			client,
 			select_chain,
 			env: proposer,
 			block_import,
-			sync_oracle: network.clone(),
-			justification_sync_link: network.clone(),
+			sync_oracle: sync_service.clone(),
+			justification_sync_link: sync_service.clone(),
 			create_inherent_data_providers: move |_, ()| async move {
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 				let slot =
-					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
+					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 						*timestamp,
 						slot_duration,
 					);
 
-				Ok((timestamp, slot))
+				Ok((slot, timestamp))
 			},
 			force_authoring,
 			backoff_authoring_blocks,
 			babe_link,
-			can_author_with,
 			block_proposal_slot_portion: sc_consensus_babe::SlotProportion::new(2f32 / 3f32),
 			max_block_proposal_slot_portion: None,
 			telemetry: telemetry.as_ref().map(|x| x.handle())
 		};
 
 		let babe = sc_consensus_babe::start_babe(babe_config)?;
-		task_manager
-			.spawn_essential_handle()
-			.spawn_blocking("babe", babe);
+		task_manager.spawn_essential_handle().spawn_blocking(
+			"babe-proposer",
+			Some("block-authoring"),
+			babe,
+		);
 	}
 
 	// if the node isn't actively participating in consensus then it doesn't
 	// need a keystore, regardless of which protocol we use below.
 	let keystore = if role.is_authority() {
-		Some(keystore_container.sync_keystore())
+		Some(keystore_container.keystore())
 	} else {
 		None
 	};
 
-	let grandpa_config = sc_finality_grandpa::Config {
+	let grandpa_config = grandpa::Config {
 		// FIXME #1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(333),
 		justification_period: 512,
@@ -309,7 +303,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		observer_enabled: false,
 		keystore,
 		telemetry: telemetry.as_ref().map(|x| x.handle()),
-		local_role: role
+		local_role: role,
+		protocol_name: grandpa_protocol_name,
 	};
 
 	if enable_grandpa {
@@ -319,12 +314,13 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		// and vote data availability than the observer. The observer has not
 		// been tested extensively yet and having most nodes in a network run it
 		// could lead to finality stalls.
-		let grandpa_config = sc_finality_grandpa::GrandpaParams {
+		let grandpa_config = grandpa::GrandpaParams {
 			config: grandpa_config,
 			link: grandpa_link,
 			network,
+			sync: Arc::new(sync_service.clone()),
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
-			voting_rule: sc_finality_grandpa::VotingRulesBuilder::default().build(),
+			voting_rule: grandpa::VotingRulesBuilder::default().build(),
 			prometheus_registry,
 			shared_voter_state: SharedVoterState::empty(),
 		};
@@ -333,126 +329,11 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		// if it fails we take down the service with it.
 		task_manager.spawn_essential_handle().spawn_blocking(
 			"grandpa-voter",
-			sc_finality_grandpa::run_grandpa_voter(grandpa_config)?
+			None,
+			grandpa::run_grandpa_voter(grandpa_config)?
 		);
 	}
 
 	network_starter.start_network();
 	Ok(task_manager)
-}
-
-/// Builds a new service for a light client.
-pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError> {
-	let telemetry = config
-		.telemetry_endpoints
-		.clone()
-		.filter(|x| !x.is_empty())
-		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
-			let worker = TelemetryWorker::new(16)?;
-			let telemetry = worker.handle().new_telemetry(endpoints);
-			Ok((worker, telemetry))
-		})
-		.transpose()?;
-
-	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config, telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()))?;
-
-	let mut telemetry = telemetry.map(|(worker, telemetry)| {
-		task_manager.spawn_handle().spawn("telemetry", worker.run());
-		telemetry
-	});
-
-	config.network.extra_sets.push(sc_finality_grandpa::grandpa_peers_set_config());
-
-	let select_chain = sc_consensus::LongestChain::new(backend.clone());
-
-	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
-		config.transaction_pool.clone(),
-		config.prometheus_registry(),
-		task_manager.spawn_essential_handle(),
-		client.clone(),
-		on_demand.clone(),
-	));
-
-	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
-		client.clone(),
-		&(client.clone() as Arc<_>),
-		select_chain.clone(),
-		telemetry.as_ref().map(|x| x.handle()),
-	)?;
-	let justification_import = grandpa_block_import.clone();
-
-	let (block_import, babe_link) = sc_consensus_babe::block_import(
-		sc_consensus_babe::Config::get_or_compute(&*client)?,
-		grandpa_block_import,
-		client.clone(),
-	)?;
-
-
-	let slot_duration = babe_link.config().slot_duration();
-	let import_queue =
-		sc_consensus_babe::import_queue(
-			babe_link,
-			block_import,
-			Some(Box::new(justification_import)),
-			client.clone(),
-			select_chain,
-			move |_, ()| async move {
-				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-				let slot =
-					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
-						*timestamp,
-						slot_duration,
-					);
-
-				Ok((timestamp, slot))
-			},
-			&task_manager.spawn_essential_handle(),
-			config.prometheus_registry(),
-			sp_consensus::NeverCanAuthor,
-			telemetry.as_ref().map(|x| x.handle()),
-		)?;
-
-	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
-		backend.clone(),
-		grandpa_link.shared_authority_set().clone(),
-	));
-
-	let (network, system_rpc_tx, network_starter) =
-		sc_service::build_network(sc_service::BuildNetworkParams {
-			config: &config,
-			client: client.clone(),
-			transaction_pool: transaction_pool.clone(),
-			spawn_handle: task_manager.spawn_handle(),
-			import_queue,
-			on_demand: Some(on_demand.clone()),
-			block_announce_validator_builder: None,
-			warp_sync: Some(warp_sync)
-		})?;
-
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
-
-	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		remote_blockchain: Some(backend.remote_blockchain()),
-		transaction_pool,
-		task_manager: &mut task_manager,
-		on_demand: Some(on_demand),
-		rpc_extensions_builder: Box::new(|_, _| Ok(())),
-		config,
-		client,
-		keystore: keystore_container.sync_keystore(),
-		backend,
-		network,
-		system_rpc_tx,
-		telemetry: telemetry.as_mut(),
-	})?;
-
-	 network_starter.start_network();
-
-	 Ok(task_manager)
 }
