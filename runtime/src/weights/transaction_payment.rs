@@ -9,12 +9,12 @@ use sp_std::marker::PhantomData;
 
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> module_transaction_payment::WeightInfo for WeightInfo<T> {
-	fn on_finalize() -> Weight {
-		(39_708_000 as Weight)
-			.saturating_add(DbWeight::get().reads(2 as Weight))
-			.saturating_add(DbWeight::get().writes(1 as Weight))
-	}
-	fn set_default_fee_token() -> Weight {
-		(1_000_000 as Weight).saturating_add(DbWeight::get().writes(1 as Weight))
-	}
+    fn on_finalize() -> Weight {
+        Weight::from_parts(39_708_000, 0)
+            .saturating_add(DbWeight::get().reads(2 as u64))
+            .saturating_add(DbWeight::get().writes(1 as u64))
+    }
+    fn set_default_fee_token() -> Weight {
+        Weight::from_parts(1_000_000,0).saturating_add(DbWeight::get().writes(1 as u64))
+    }
 }
