@@ -12,9 +12,9 @@ use reef_runtime::{
 	opaque::SessionKeys,
 };
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount};
-use sc_service::{ChainType, Properties};
+use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 
 use sp_std::{collections::btree_map::BTreeMap, str::FromStr};
@@ -94,7 +94,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		ChainType::Development,
 		move || testnet_genesis(
 			wasm_binary,
-			// Initial PoA authorities
+			// Initial PoS authorities
 			vec![
 				get_authority_keys_from_seed("Alice"),
 			],
@@ -114,8 +114,10 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		None,
 		// Protocol ID
 		None,
+		None,
 		// Properties
 		Some(reef_properties()),
+
 		// Extensions
 		Default::default(),
 	))
@@ -161,6 +163,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		None,
 		// Protocol ID
 		Some("reef_local_testnet"),
+		None,
 		// Properties
 		Some(reef_properties()),
 		// Extensions
@@ -226,6 +229,7 @@ pub fn public_testnet_config() -> Result<ChainSpec, String> {
 		TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
 		// Protocol ID
 		Some("reef_testnet"),
+		None,
 		// Properties
 		Some(reef_properties()),
 		// Extensions
@@ -316,6 +320,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 		TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
 		// Protocol ID
 		Some("reef_mainnet"),
+		None,
 		// Properties
 		Some(reef_properties()),
 		// Extensions
@@ -365,8 +370,9 @@ fn testnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
-			changes_trie_config: Default::default(),
+			// changes_trie_config: Default::default(),
 		},
+		assets:Default::default(),
 		indices: IndicesConfig { indices: vec![] },
 		balances: BalancesConfig { balances },
 		session: SessionConfig {
@@ -384,7 +390,7 @@ fn testnet_genesis(
 				.collect::<Vec<_>>(),
 		},
 		staking: StakingConfig {
-			validator_count: initial_authorities.len() as u32 * 2,
+			validator_count: initial_authorities.len() as u32,
 			minimum_validator_count: initial_authorities.len() as u32,
 			stakers: initial_authorities
 				.iter()
@@ -398,6 +404,7 @@ fn testnet_genesis(
 		grandpa: Default::default(),
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		im_online: Default::default(),
+		nomination_pools: Default::default(),
 		tokens: TokensConfig {
 			balances: endowed_accounts
 				.iter()
@@ -411,7 +418,7 @@ fn testnet_genesis(
 		evm: EVMConfig {
 			accounts: evm_genesis_accounts,
 		},
-		sudo: SudoConfig { key: root_key },
+		sudo: SudoConfig { key: Some(root_key) },
 		tech_council: Default::default(),
 	}
 }
@@ -457,8 +464,9 @@ fn mainnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
-			changes_trie_config: Default::default(),
+			// changes_trie_config: Default::default(),
 		},
+		assets:Default::default(),
 		indices: IndicesConfig { indices: vec![] },
 		balances: BalancesConfig { balances },
 		session: SessionConfig {
@@ -496,19 +504,21 @@ fn mainnet_genesis(
 		evm: EVMConfig {
 			accounts: evm_genesis_accounts,
 		},
-		sudo: SudoConfig { key: root_key },
+	    sudo: SudoConfig { key: Some(root_key) },
 		tech_council: Default::default(),
+		nomination_pools: Default::default(),
 	}
 }
 
-
-/// Token
-pub fn reef_properties() -> Properties {
-	let mut p = Properties::new();
-	p.insert("ss58format".into(), 42.into());
-	p.insert("tokenDecimals".into(), 18.into());
-	p.insert("tokenSymbol".into(), "REEF".into());
-	p
+pub fn reef_properties() -> serde_json::map::Map<String, serde_json::Value> {
+	serde_json::json!({
+		"ss58Format": 42,
+		"tokenDecimals": 18,
+		"tokenSymbol": "REEF",
+	})
+	.as_object()
+	.expect("Map given; qed")
+	.clone()
 }
 
 
