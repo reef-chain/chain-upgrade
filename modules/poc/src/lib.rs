@@ -328,6 +328,7 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::start_candidacy())]
         pub fn start_candidacy(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let origin = ensure_signed(origin)?;
@@ -351,6 +352,7 @@ pub mod module {
             Ok(().into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::stop_candidacy())]
         pub fn stop_candidacy(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let origin = ensure_signed(origin)?;
@@ -373,6 +375,7 @@ pub mod module {
             Ok(().into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::commit())]
         #[transactional]
         pub fn commit(
@@ -425,6 +428,7 @@ pub mod module {
             Ok(().into())
         }
 
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::add_funds())]
         #[transactional]
         pub fn add_funds(
@@ -473,6 +477,7 @@ pub mod module {
             Ok(().into())
         }
 
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::unbond())]
         pub fn unbond(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let origin = ensure_signed(origin)?;
@@ -497,6 +502,7 @@ pub mod module {
             Ok(().into())
         }
 
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -542,6 +548,7 @@ pub mod module {
             Err(Error::<T>::CannotWithdrawLocked.into())
         }
 
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::vote_candidate())]
         #[transactional]
         pub fn vote_candidate(
