@@ -5,6 +5,7 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use codec::Codec;
+use orml_traits::currency::OnDust;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -12,7 +13,7 @@ use frame_support::{
             fungible, fungibles, DepositConsequence, Fortitude, Precision, Preservation,
             Provenance, Restriction, WithdrawConsequence,
         },
-        BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
+       Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
         LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency,
         WithdrawReasons,
     },
@@ -26,7 +27,6 @@ use orml_traits::{
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
     MultiLockableCurrency, MultiReservableCurrency,
 };
-use orml_utilities::with_transaction_result;
 use primitives::{
     evm::{AddressMapping, EvmAddress},
     CurrencyId, TokenSymbol,
@@ -78,13 +78,25 @@ pub mod module {
         type MultiCurrency: TransferAll<Self::AccountId>
             + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
-            + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
+            + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>
+         	+ fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>>
+			+ fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>>
+			+ fungibles::Unbalanced<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>>
+			+ fungibles::InspectHold<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>, Reason = ()>
+			+ fungibles::MutateHold<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>>
+			+ fungibles::UnbalancedHold<Self::AccountId, AssetId = CurrencyId, Balance = BalanceOf<Self>>;
         type NativeCurrency: BasicCurrencyExtended<
                 Self::AccountId,
                 Balance = BalanceOf<Self>,
                 Amount = AmountOf<Self>,
             > + BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>>
-            + BasicReservableCurrency<Self::AccountId, Balance = BalanceOf<Self>>;
+            + BasicReservableCurrency<Self::AccountId, Balance = BalanceOf<Self>>
+            + fungible::Inspect<Self::AccountId, Balance = BalanceOf<Self>>
+			+ fungible::Mutate<Self::AccountId, Balance = BalanceOf<Self>>
+			+ fungible::Unbalanced<Self::AccountId, Balance = BalanceOf<Self>>
+			+ fungible::InspectHold<Self::AccountId, Balance = BalanceOf<Self>>
+			+ fungible::MutateHold<Self::AccountId, Balance = BalanceOf<Self>>
+			+ fungible::UnbalancedHold<Self::AccountId, Balance = BalanceOf<Self>>;
 
         /// Weight information for extrinsics in this module.
         type WeightInfo: WeightInfo;
@@ -105,6 +117,8 @@ pub mod module {
         /// EVM account not found
         EvmAccountNotFound,
         RealOriginNotFound,
+        /// Deposit result is not expected
+		DepositFailed,
     }
 
     #[pallet::event]
@@ -132,6 +146,7 @@ pub mod module {
         ///
         /// The dispatch origin for this call must be `Signed` by the
         /// transactor.
+        #[pallet::call_index(0)] 
         #[pallet::weight(T::WeightInfo::transfer_non_native_currency())]
         pub fn transfer(
             origin: OriginFor<T>,
@@ -149,6 +164,7 @@ pub mod module {
         ///
         /// The dispatch origin for this call must be `Signed` by the
         /// transactor.
+        #[pallet::call_index(1)] 
         #[pallet::weight(T::WeightInfo::transfer_native_currency())]
         pub fn transfer_native_currency(
             origin: OriginFor<T>,
@@ -171,6 +187,7 @@ pub mod module {
         /// update amount of account `who` under `currency_id`.
         ///
         /// The dispatch origin of this call must be _Root_.
+         #[pallet::call_index(2)] 
         #[pallet::weight(T::WeightInfo::update_balance_non_native_currency())]
         pub fn update_balance(
             origin: OriginFor<T>,
@@ -816,188 +833,369 @@ where
 }
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T, Currency, Amount, Moment>(
-    marker::PhantomData<(T, Currency, Amount, Moment)>,
-);
+
+/// Adapt other currency traits implementation to `BasicCurrency`.
+pub struct BasicCurrencyAdapter<T, Currency, Amount, Moment>(marker::PhantomData<(T, Currency, Amount, Moment)>);
 
 type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
 // Adapt `frame_support::traits::Currency`
 impl<T, AccountId, Currency, Amount, Moment> BasicCurrency<AccountId>
-    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-    Currency: PalletCurrency<AccountId>,
-    T: Config,
+	Currency: PalletCurrency<AccountId>,
+	T: Config,
 {
-    type Balance = PalletBalanceOf<AccountId, Currency>;
+	type Balance = PalletBalanceOf<AccountId, Currency>;
 
-    fn minimum_balance() -> Self::Balance {
-        Currency::minimum_balance()
-    }
+	fn minimum_balance() -> Self::Balance {
+		<Currency as PalletCurrency<_>>::minimum_balance()
+	}
 
-    fn total_issuance() -> Self::Balance {
-        Currency::total_issuance()
-    }
+	fn total_issuance() -> Self::Balance {
+		<Currency as PalletCurrency<_>>::total_issuance()
+	}
 
-    fn total_balance(who: &AccountId) -> Self::Balance {
-        Currency::total_balance(who)
-    }
+	fn total_balance(who: &AccountId) -> Self::Balance {
+		<Currency as PalletCurrency<_>>::total_balance(who)
+	}
 
-    fn free_balance(who: &AccountId) -> Self::Balance {
-        Currency::free_balance(who)
-    }
+	fn free_balance(who: &AccountId) -> Self::Balance {
+		<Currency as PalletCurrency<_>>::free_balance(who)
+	}
 
-    fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        let new_balance = Self::free_balance(who)
-            .checked_sub(&amount)
-            .ok_or(Error::<T>::BalanceTooLow)?;
+	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
+		let new_balance = Self::free_balance(who)
+			.checked_sub(&amount)
+			.ok_or(Error::<T>::BalanceTooLow)?;
 
-        Currency::ensure_can_withdraw(who, amount, WithdrawReasons::all(), new_balance)
-    }
+		<Currency as PalletCurrency<_>>::ensure_can_withdraw(who, amount, WithdrawReasons::all(), new_balance)
+	}
 
-    fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
-        Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
-    }
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
+		<Currency as PalletCurrency<_>>::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+	}
 
-    fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        let _ = Currency::deposit_creating(who, amount);
-        Ok(())
-    }
+	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
+		if !amount.is_zero() {
+			let deposit_result = <Currency as PalletCurrency<_>>::deposit_creating(who, amount);
+			let actual_deposit = deposit_result.peek();
+			ensure!(actual_deposit == amount, Error::<T>::DepositFailed);
+		}
 
-    fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        Currency::withdraw(
-            who,
-            amount,
-            WithdrawReasons::all(),
-            ExistenceRequirement::AllowDeath,
-        )
-        .map(|_| ())
-    }
+		Ok(())
+	}
 
-    fn can_slash(who: &AccountId, amount: Self::Balance) -> bool {
-        Currency::can_slash(who, amount)
-    }
+	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
+		<Currency as PalletCurrency<_>>::withdraw(who, amount, WithdrawReasons::all(), ExistenceRequirement::AllowDeath)
+			.map(|_| ())
+	}
 
-    fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
-        let (_, gap) = Currency::slash(who, amount);
-        gap
-    }
+	fn can_slash(who: &AccountId, amount: Self::Balance) -> bool {
+		<Currency as PalletCurrency<_>>::can_slash(who, amount)
+	}
+
+	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
+		let (_, gap) = <Currency as PalletCurrency<_>>::slash(who, amount);
+		gap
+	}
 }
 
 // Adapt `frame_support::traits::Currency`
 impl<T, AccountId, Currency, Amount, Moment> BasicCurrencyExtended<AccountId>
-    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-    Amount: Signed
-        + TryInto<PalletBalanceOf<AccountId, Currency>>
-        + TryFrom<PalletBalanceOf<AccountId, Currency>>
-        + SimpleArithmetic
-        + Codec
-        + Copy
-        + MaybeSerializeDeserialize
-        + Debug
-        + Default,
-    Currency: PalletCurrency<AccountId>,
-    T: Config,
+	Amount: Signed
+		+ TryInto<PalletBalanceOf<AccountId, Currency>>
+		+ TryFrom<PalletBalanceOf<AccountId, Currency>>
+		+ SimpleArithmetic
+		+ Codec
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ Default
+		+ MaxEncodedLen,
+	Currency: PalletCurrency<AccountId>,
+	T: Config,
 {
-    type Amount = Amount;
+	type Amount = Amount;
 
-    fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult {
-        let by_balance = by_amount
-            .abs()
-            .try_into()
-            .map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
-        if by_amount.is_positive() {
-            Self::deposit(who, by_balance)
-        } else {
-            Self::withdraw(who, by_balance)
-        }
-    }
+	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult {
+		let by_balance = by_amount
+			.abs()
+			.try_into()
+			.map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
+		if by_amount.is_positive() {
+			Self::deposit(who, by_balance)
+		} else {
+			Self::withdraw(who, by_balance)
+		}
+	}
 }
 
 // Adapt `frame_support::traits::LockableCurrency`
 impl<T, AccountId, Currency, Amount, Moment> BasicLockableCurrency<AccountId>
-    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-    Currency: PalletLockableCurrency<AccountId>,
-    T: Config,
+	Currency: PalletLockableCurrency<AccountId>,
+	T: Config,
 {
-    type Moment = Moment;
+	type Moment = Moment;
 
-    fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        Currency::set_lock(lock_id, who, amount, WithdrawReasons::all());
-        Ok(())
-    }
+	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+		<Currency as PalletLockableCurrency<_>>::set_lock(lock_id, who, amount, WithdrawReasons::all());
+		Ok(())
+	}
 
-    fn extend_lock(
-        lock_id: LockIdentifier,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) -> DispatchResult {
-        Currency::extend_lock(lock_id, who, amount, WithdrawReasons::all());
-        Ok(())
-    }
+	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+		<Currency as PalletLockableCurrency<_>>::extend_lock(lock_id, who, amount, WithdrawReasons::all());
+		Ok(())
+	}
 
-    fn remove_lock(lock_id: LockIdentifier, who: &AccountId) -> DispatchResult {
-        Currency::remove_lock(lock_id, who);
-        Ok(())
-    }
+	fn remove_lock(lock_id: LockIdentifier, who: &AccountId) -> DispatchResult {
+		<Currency as PalletLockableCurrency<_>>::remove_lock(lock_id, who);
+		Ok(())
+	}
 }
 
 // Adapt `frame_support::traits::ReservableCurrency`
 impl<T, AccountId, Currency, Amount, Moment> BasicReservableCurrency<AccountId>
-    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-    Currency: PalletReservableCurrency<AccountId>,
-    T: Config,
+	Currency: PalletReservableCurrency<AccountId>,
+	T: Config,
 {
-    fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
-        Currency::can_reserve(who, value)
-    }
+	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
+		<Currency as PalletReservableCurrency<_>>::can_reserve(who, value)
+	}
 
-    fn slash_reserved(who: &AccountId, value: Self::Balance) -> Self::Balance {
-        let (_, gap) = Currency::slash_reserved(who, value);
-        gap
-    }
+	fn slash_reserved(who: &AccountId, value: Self::Balance) -> Self::Balance {
+		let (_, gap) = <Currency as PalletReservableCurrency<_>>::slash_reserved(who, value);
+		gap
+	}
 
-    fn reserved_balance(who: &AccountId) -> Self::Balance {
-        Currency::reserved_balance(who)
-    }
+	fn reserved_balance(who: &AccountId) -> Self::Balance {
+		<Currency as PalletReservableCurrency<_>>::reserved_balance(who)
+	}
 
-    fn reserve(who: &AccountId, value: Self::Balance) -> DispatchResult {
-        Currency::reserve(who, value)
-    }
+	fn reserve(who: &AccountId, value: Self::Balance) -> DispatchResult {
+		<Currency as PalletReservableCurrency<_>>::reserve(who, value)
+	}
 
-    fn unreserve(who: &AccountId, value: Self::Balance) -> Self::Balance {
-        Currency::unreserve(who, value)
-    }
+	fn unreserve(who: &AccountId, value: Self::Balance) -> Self::Balance {
+		<Currency as PalletReservableCurrency<_>>::unreserve(who, value)
+	}
 
-    fn repatriate_reserved(
-        slashed: &AccountId,
-        beneficiary: &AccountId,
-        value: Self::Balance,
-        status: BalanceStatus,
-    ) -> result::Result<Self::Balance, DispatchError> {
-        Currency::repatriate_reserved(slashed, beneficiary, value, status)
-    }
+	fn repatriate_reserved(
+		slashed: &AccountId,
+		beneficiary: &AccountId,
+		value: Self::Balance,
+		status: BalanceStatus,
+	) -> result::Result<Self::Balance, DispatchError> {
+		<Currency as PalletReservableCurrency<_>>::repatriate_reserved(slashed, beneficiary, value, status)
+	}
+}
+
+/// impl fungile for Currency<T, GetCurrencyId>
+type FungibleBalanceOf<A, Currency> = <Currency as fungible::Inspect<A>>::Balance;
+impl<T, Currency, Amount, Moment> fungible::Inspect<T::AccountId> for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::Inspect<T::AccountId>,
+	T: Config,
+{
+	type Balance = FungibleBalanceOf<T::AccountId, Currency>;
+
+	fn total_issuance() -> Self::Balance {
+		<Currency as fungible::Inspect<_>>::total_issuance()
+	}
+	fn minimum_balance() -> Self::Balance {
+		<Currency as fungible::Inspect<_>>::minimum_balance()
+	}
+	fn balance(who: &T::AccountId) -> Self::Balance {
+		<Currency as fungible::Inspect<_>>::balance(who)
+	}
+	fn total_balance(who: &T::AccountId) -> Self::Balance {
+		<Currency as fungible::Inspect<_>>::total_balance(who)
+	}
+	fn reducible_balance(who: &T::AccountId, preservation: Preservation, force: Fortitude) -> Self::Balance {
+		<Currency as fungible::Inspect<_>>::reducible_balance(who, preservation, force)
+	}
+	fn can_deposit(who: &T::AccountId, amount: Self::Balance, provenance: Provenance) -> DepositConsequence {
+		<Currency as fungible::Inspect<_>>::can_deposit(who, amount, provenance)
+	}
+	fn can_withdraw(who: &T::AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
+		<Currency as fungible::Inspect<_>>::can_withdraw(who, amount)
+	}
+}
+
+impl<T, Currency, Amount, Moment> fungible::Unbalanced<T::AccountId>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::Unbalanced<T::AccountId>,
+	T: Config,
+{
+	fn handle_dust(_dust: fungible::Dust<T::AccountId, Self>) {
+		// https://github.com/paritytech/substrate/blob/569aae5341ea0c1d10426fa1ec13a36c0b64393b/frame/support/src/traits/tokens/fungibles/regular.rs#L124
+		// Note: currently the field of Dust type is private and there is no constructor for it, so
+		// we can't construct a Dust value and pass it.
+		// `BasicCurrencyAdapter` overwrites these functions which can be called as user-level
+		// operation of fungible traits when calling these functions, it will not actually reach
+		// `Unbalanced::handle_dust`.
+	}
+
+	fn write_balance(who: &T::AccountId, amount: Self::Balance) -> Result<Option<Self::Balance>, DispatchError> {
+		<Currency as fungible::Unbalanced<_>>::write_balance(who, amount)
+	}
+
+	fn set_total_issuance(amount: Self::Balance) {
+		<Currency as fungible::Unbalanced<_>>::set_total_issuance(amount)
+	}
+}
+
+impl<T, Currency, Amount, Moment> fungible::Mutate<T::AccountId> for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::Mutate<T::AccountId>,
+	T: Config,
+{
+	fn mint_into(who: &T::AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
+		<Currency as fungible::Mutate<_>>::mint_into(who, amount)
+	}
+
+	fn burn_from(
+		who: &T::AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+		fortitude: Fortitude,
+	) -> Result<Self::Balance, DispatchError> {
+		<Currency as fungible::Mutate<_>>::burn_from(who, amount, precision, fortitude)
+	}
+
+	fn transfer(
+		source: &T::AccountId,
+		dest: &T::AccountId,
+		amount: Self::Balance,
+		preservation: Preservation,
+	) -> Result<Self::Balance, DispatchError> {
+		<Currency as fungible::Mutate<_>>::transfer(source, dest, amount, preservation)
+	}
+}
+
+impl<T, Currency, Amount, Moment> fungible::InspectHold<T::AccountId>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::InspectHold<T::AccountId>,
+	T: Config,
+{
+	type Reason = <Currency as fungible::InspectHold<T::AccountId>>::Reason;
+
+	fn balance_on_hold(reason: &Self::Reason, who: &T::AccountId) -> Self::Balance {
+		<Currency as fungible::InspectHold<_>>::balance_on_hold(reason, who)
+	}
+	fn total_balance_on_hold(who: &T::AccountId) -> Self::Balance {
+		<Currency as fungible::InspectHold<_>>::total_balance_on_hold(who)
+	}
+	fn reducible_total_balance_on_hold(who: &T::AccountId, force: Fortitude) -> Self::Balance {
+		<Currency as fungible::InspectHold<_>>::reducible_total_balance_on_hold(who, force)
+	}
+	fn hold_available(reason: &Self::Reason, who: &T::AccountId) -> bool {
+		<Currency as fungible::InspectHold<_>>::hold_available(reason, who)
+	}
+	fn can_hold(reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) -> bool {
+		<Currency as fungible::InspectHold<_>>::can_hold(reason, who, amount)
+	}
+}
+
+type ReasonOfFungible<P, T> = <P as fungible::InspectHold<<T as frame_system::Config>::AccountId>>::Reason;
+impl<T, Currency, Amount, Moment> fungible::UnbalancedHold<T::AccountId>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::UnbalancedHold<T::AccountId>,
+	T: Config,
+{
+	fn set_balance_on_hold(
+		reason: &ReasonOfFungible<Self, T>,
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult {
+		<Currency as fungible::UnbalancedHold<_>>::set_balance_on_hold(reason, who, amount)
+	}
+}
+
+impl<T, Currency, Amount, Moment> fungible::MutateHold<T::AccountId>
+	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+	Currency: fungible::MutateHold<T::AccountId>,
+	T: Config,
+{
+	fn hold(reason: &ReasonOfFungible<Self, T>, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		<Currency as fungible::MutateHold<_>>::hold(reason, who, amount)
+	}
+
+	fn release(
+		reason: &ReasonOfFungible<Self, T>,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+	) -> Result<Self::Balance, DispatchError> {
+		<Currency as fungible::MutateHold<_>>::release(reason, who, amount, precision)
+	}
+
+	fn transfer_on_hold(
+		reason: &ReasonOfFungible<Self, T>,
+		source: &T::AccountId,
+		dest: &T::AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+		restriction: Restriction,
+		fortitude: Fortitude,
+	) -> Result<Self::Balance, DispatchError> {
+		<Currency as fungible::MutateHold<_>>::transfer_on_hold(
+			reason,
+			source,
+			dest,
+			amount,
+			precision,
+			restriction,
+			fortitude,
+		)
+	}
 }
 
 impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
-    fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-        with_transaction_result(|| {
-            // transfer non-native free to dest
-            T::MultiCurrency::transfer_all(source, dest)?;
+	#[transactional]
+	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+		// transfer non-native free to dest
+		<T::MultiCurrency as TransferAll<_>>::transfer_all(source, dest)?;
 
-            // unreserve all reserved currency
-            T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
-
-            // transfer all free to dest
-            T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
-        })
-    }
+		// transfer all free to dest
+		<T::NativeCurrency as BasicCurrency<_>>::transfer(
+			source,
+			dest,
+			<T::NativeCurrency as BasicCurrency<_>>::free_balance(source),
+		)
+	}
 }
 
 fn reserve_address(address: EvmAddress) -> EvmAddress {
-    let payload = (b"erc20:", address);
-    EvmAddress::from_slice(&payload.using_encoded(blake2_256)[0..20])
+	let payload = (b"erc20:", address);
+	EvmAddress::from_slice(&payload.using_encoded(blake2_256)[0..20])
+}
+
+pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
+impl<T: Config, GetAccountId> OnDust<T::AccountId, CurrencyId, BalanceOf<T>> for TransferDust<T, GetAccountId>
+where
+	T: Config,
+	GetAccountId: Get<T::AccountId>,
+{
+	fn on_dust(who: &T::AccountId, currency_id: CurrencyId, amount: BalanceOf<T>) {
+		// transfer the dust to treasury account, ignore the result,
+		// if failed will leave some dust which still could be recycled.
+		let _ = match currency_id {
+			CurrencyId::ERC20(_) => Ok(()),
+		    CurrencyId::Token(TokenSymbol::REEF) => {
+				<T::NativeCurrency as BasicCurrency<_>>::transfer(who, &GetAccountId::get(), amount)
+			}
+			_ => <T::MultiCurrency as MultiCurrency<_>>::transfer(currency_id, who, &GetAccountId::get(), amount),
+		};
+	}
 }
