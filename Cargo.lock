@@ -1369,6 +1369,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "frame-system-rpc-runtime-api"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
+dependencies = [
+ "parity-scale-codec 3.6.12",
+ "sp-api",
+]
+
+[[package]]
 name = "fs-err"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3507,11 +3516,14 @@ dependencies = [
 name = "reef-runtime"
 version = "4.0.0"
 dependencies = [
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
+ "frame-system-rpc-runtime-api",
  "hex",
  "hex-literal",
  "libsecp256k1 0.3.5",
+ "module-poc",
  "pallet-assets",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -3540,6 +3552,8 @@ dependencies = [
  "pallet-staking-runtime-api",
  "pallet-sudo",
  "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
  "parity-scale-codec 3.6.12",
