@@ -102,6 +102,7 @@ sp-consensus-babe = { git = "https://github.com/paritytech/substrate", default-f
 pallet-im-online = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-offences = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
+pallet-staking-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false}
 sp-authority-discovery = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-authority-discovery = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-assets = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
