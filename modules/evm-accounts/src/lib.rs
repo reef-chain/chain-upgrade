@@ -75,11 +75,14 @@ pub mod module {
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(fn deposit_event)]
+   #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Mapping between Substrate accounts and EVM accounts
         /// claim account. \[account_id, evm_address\]
-        ClaimAccount(T::AccountId, EvmAddress),
+       ClaimAccount {
+			account_id: T::AccountId,
+			evm_address: EvmAddress,
+		},
     }
 
     /// Error for evm accounts module.
@@ -121,13 +124,14 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         /// Claim account mapping between Substrate accounts and EVM accounts.
         /// Ensure eth_address has not been mapped.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::claim_account())]
         #[transactional]
         pub fn claim_account(
             origin: OriginFor<T>,
             eth_address: EvmAddress,
             eth_signature: EcdsaSignature,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             // ensure account_id and eth_address has not been mapped
@@ -160,13 +164,17 @@ pub mod module {
 
             T::OnClaim::handle(&who)?;
 
-            Self::deposit_event(Event::ClaimAccount(who, eth_address));
+           Self::deposit_event(Event::ClaimAccount {
+				account_id: who,
+				evm_address: eth_address,
+			});
 
-            Ok(().into())
+            Ok(())
         }
 
+         #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::claim_default_account())]
-        pub fn claim_default_account(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn claim_default_account(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             // ensure account_id has not been mapped
@@ -179,9 +187,12 @@ pub mod module {
 
             T::OnClaim::handle(&who)?;
 
-            Self::deposit_event(Event::ClaimAccount(who, eth_address));
+           Self::deposit_event(Event::ClaimAccount {
+				account_id: who,
+				evm_address: eth_address,
+			});
 
-            Ok(().into())
+            Ok(())
         }
     }
 }
@@ -286,7 +297,6 @@ fn account_to_default_evm_address(account_id: &impl Encode) -> EvmAddress {
 }
 
 pub struct EvmAddressMapping<T>(sp_std::marker::PhantomData<T>);
-
 impl<T: Config> AddressMapping<T::AccountId> for EvmAddressMapping<T>
 where
     T::AccountId: IsType<AccountId32>,

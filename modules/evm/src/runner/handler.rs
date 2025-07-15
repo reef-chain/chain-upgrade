@@ -9,7 +9,6 @@ use frame_support::{
     require_transactional,
     traits::{BalanceStatus, Currency, ExistenceRequirement, Get, ReservableCurrency},
 };
-// use evm::executor::stack::PrecompileSet;
 use evm::CreateScheme;
 use evm::{Opcode, Runtime, Transfer};
 use evm_gasometer::{self as gasometer, Gasometer};
@@ -719,7 +718,6 @@ impl<T: Config> StorageMeterHandler for StorageMeterHandlerImpl<T> {
         let user = T::AddressMapping::get_account_id(&self.origin);
 
         let amount = T::StorageDepositPerByte::get().saturating_mul(limit.into());
-
         T::Currency::reserve(&user, amount)
     }
 
@@ -769,13 +767,24 @@ impl<T: Config> StorageMeterHandler for StorageMeterHandlerImpl<T> {
             // contract_acc could be a new account so we need to do
             // unreserve/transfer/reserve
             T::Currency::unreserve(&user, amount);
+            log::info!(
+            target: "evm",
+            "Transferring storage deposit: from user {:?} to contract {:?}, amount {:?}",
+            &user,
+            &contract_acc,
+            amount
+        );
+
+        let ed = T::Currency::minimum_balance();
+        let transfer_amount = amount.saturating_add(ed); 
             T::Currency::transfer(
                 &user,
                 &contract_acc,
-                amount,
+                transfer_amount,
                 ExistenceRequirement::AllowDeath,
             )?;
-            T::Currency::reserve(&contract_acc, amount)?;
+
+        T::Currency::reserve(&contract_acc, amount)?;
         } else {
             let storage = refunded - used;
             let amount = T::StorageDepositPerByte::get().saturating_mul(storage.into());

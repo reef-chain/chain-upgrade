@@ -65,7 +65,11 @@ pub mod v1 {
 
 		fn on_runtime_upgrade() -> Weight {
 			let current = Pallet::<T>::current_storage_version();
-			let onchain = StorageVersion::<T>::get();
+
+			let nominators_migrated = T::VoterList::unsafe_regenerate(
+				Nominators::<T>::iter().map(|(id, _)| id),
+				Pallet::<T>::weight_of_fn(),
+			);
 
 			let prev_count = T::VoterList::count();
 				let weight_of_cached = Pallet::<T>::weight_of_fn();
@@ -86,6 +90,12 @@ pub mod v1 {
 				current.put::<Pallet<T>>();
 
 				log!(info, "v1 applied successfully");
+
+				crate::log!(
+				info,
+				"👜 completed staking migration to ObsoleteReleases::V8_0_0 with {} voters migrated",
+				nominators_migrated,
+			);
 				T::DbWeight::get().reads_writes(1, 2)
 			// else {
 			// 	log!(warn, "Skipping v1, should be removed");

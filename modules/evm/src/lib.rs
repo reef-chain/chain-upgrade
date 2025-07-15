@@ -743,7 +743,7 @@ pub mod module {
         pub fn enable_contract_development(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let address = T::AddressMapping::get_or_create_evm_address(&who);
-          T::Currency::ensure_reserved_named(&RESERVE_ID_DEVELOPER_DEPOSIT, &who, T::DeveloperDeposit::get())?;
+             T::Currency::reserve(&who, T::DeveloperDeposit::get())?;
             Accounts::<T>::mutate(address, |maybe_account_info| -> DispatchResult {
                 if let Some(account_info) = maybe_account_info.as_mut() {
                     ensure!(

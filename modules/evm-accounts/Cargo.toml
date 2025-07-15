@@ -23,9 +23,9 @@ primitives = { package = "reef-primitives", path = "../../primitives", default-f
 module-support = { path = "../support", default-features = false }
 
 [dev-dependencies]
-# pallet-balances = { workspace = true ,default-features = false }
-# orml-currencies = { path = "../../orml/currencies" }
-# orml-tokens = { path = "../../orml/tokens" }
+pallet-balances = { workspace = true ,default-features = false }
+orml-currencies = { path = "../../orml/currencies" }
+orml-tokens = { path = "../../orml/tokens" }
 
 [features]
 default = ["std"]
