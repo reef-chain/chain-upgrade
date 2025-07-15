@@ -11,17 +11,16 @@ use primitives::ReserveIdentifier;
  use frame_support::traits::NamedReservableCurrency;
 use frame_support::parameter_types;
 use frame_support::{
-    dispatch::{DispatchError, DispatchResult, DispatchResultWithPostInfo,Pays, PostDispatchInfo,},
+    dispatch::{DispatchResult, DispatchResultWithPostInfo,Pays, PostDispatchInfo,},
     ensure,
     error::BadOrigin,
     pallet_prelude::*,
     traits::{
         Currency, EitherOfDiverse, EnsureOrigin, ExistenceRequirement, Get, OnKilledAccount,
-        ReservableCurrency, WithdrawReasons,
+        ReservableCurrency, WithdrawReasons,GenesisBuild
     },
     transactional,
     weights::{Weight},
-    RuntimeDebug,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*, EnsureRoot, EnsureSigned};
 use evm::Config as EvmConfig;
@@ -207,13 +206,13 @@ pub mod module {
  #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode,TypeInfo)]
 #[scale_info(skip_type_params(T))] 
 	pub struct EvmAccountInfo<T: Config> {
-		pub nonce: T::Index,
+		pub nonce: T::Nonce,
 		pub contract_info: Option<ContractInfo>,
 		pub developer_deposit: Option<BalanceOf<T>>,
 	}
     impl<T: Config> EvmAccountInfo<T> {
         pub fn new(
-            nonce: T::Index,
+            nonce: T::Nonce,
             contract_info: Option<ContractInfo>,
         ) -> Self {
             Self {
@@ -287,7 +286,7 @@ pub mod module {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         pub accounts:
-            BTreeMap<EvmAddress, GenesisAccount<BalanceOf<T>, T::Index>>,
+            BTreeMap<EvmAddress, GenesisAccount<BalanceOf<T>, T::Nonce>>,
     }
 
     #[cfg(feature = "std")]
@@ -418,7 +417,7 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {

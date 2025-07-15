@@ -7,6 +7,7 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
+use frame_support::traits::GenesisBuild;
 use frame_system::pallet_prelude::*;
 
 mod mock;
@@ -101,13 +102,13 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(_n: T::BlockNumber) -> Weight {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             Dummy::<T>::put(T::Balance::from(10));
             10.into()
         }
 
-        fn on_finalize(_n: T::BlockNumber) {
+        fn on_finalize(_n: BlockNumberFor<T>) {
             Dummy::<T>::put(T::Balance::from(11));
         }
     }

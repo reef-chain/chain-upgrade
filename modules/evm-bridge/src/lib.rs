@@ -3,9 +3,10 @@
 
 use ethereum_types::BigEndianHash;
 use frame_support::{
-    dispatch::{DispatchError, DispatchResult},
+    dispatch::{DispatchResult},
     pallet_prelude::*,
 };
+use frame_system::pallet_prelude::*;
 use hex_literal::hex;
 use module_evm::{ExitReason, ExitSucceed};
 use sp_core::{H160, H256, U256};
@@ -44,7 +45,7 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}

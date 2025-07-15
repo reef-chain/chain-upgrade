@@ -22,8 +22,8 @@ orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = fa
 orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+pallet-balances = { workspace = true }
+sp-core = { workspace = true}
 
 orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.4.1-dev" }
 

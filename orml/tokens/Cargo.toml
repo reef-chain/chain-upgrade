@@ -13,6 +13,7 @@ scale-info = { version = "2.1.2", default-features = false, features = ["derive"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive","max-encoded-len"] }
 sp-runtime = { workspace = true ,default-features = false }
 sp-std = { workspace = true ,default-features = false }
+log = { version = "0.4.20", default-features = false }
 frame-support = { workspace = true ,default-features = false }
 frame-system = { workspace = true ,default-features = false }
 sp-arithmetic= { workspace = true, default-features = false} 

@@ -35,7 +35,7 @@ pub type BalanceOf<T> =
 pub type CommitmentOf<T> = Commitment<
     <T as frame_system::Config>::AccountId,
     BalanceOf<T>,
-    <T as frame_system::Config>::BlockNumber,
+    BlockNumberFor<T>,
 >;
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -185,7 +185,7 @@ pub mod module {
     }
 
     #[pallet::type_value]
-    pub(super) fn FirstEra<T: Config>() -> Era<T::BlockNumber> {
+    pub(super) fn FirstEra<T: Config>() -> Era<BlockNumberFor<T>> {
         Era {
             index: (0 as u32),
             start: (0 as u32).into(),
@@ -195,7 +195,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn current_era)]
     pub(super) type CurrentEra<T: Config> =
-        StorageValue<_, Era<T::BlockNumber>, ValueQuery, FirstEra<T>>;
+        StorageValue<_, Era<BlockNumberFor<T>>, ValueQuery, FirstEra<T>>;
 
     #[pallet::storage]
     #[pallet::getter(fn voter_rewards)]
@@ -247,10 +247,10 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(n: T::BlockNumber) -> Weight {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(n: BlockNumberFor<T>) -> Weight {
             let current_era = <CurrentEra<T>>::get();
-            let era_duration: T::BlockNumber = T::BlockNumber::from(T::EraDuration::get());
+            let era_duration: BlockNumberFor<T> = BlockNumberFor::<T>::from(T::EraDuration::get());
 
             // baseline weight for execution without era change
             let mut weight: Weight = T::WeightInfo::on_initialize_empty();
@@ -494,7 +494,7 @@ pub mod module {
             );
 
             // record the unbonding block number
-            let current_block: T::BlockNumber = frame_system::Pallet::<T>::block_number();
+            let current_block: BlockNumberFor<T> = frame_system::Pallet::<T>::block_number();
             commitment.state = LockState::Unbonding(current_block);
 
             <Commitments<T>>::insert(&origin, commitment.clone());
@@ -527,8 +527,8 @@ pub mod module {
                     LockDuration::OneYear => 365,
                     LockDuration::TenYears => 3650,
                 } * primitives::time::DAYS;
-                let lock_period: T::BlockNumber = lock_period.into();
-                let current_block: T::BlockNumber = frame_system::Pallet::<T>::block_number();
+                let lock_period: BlockNumberFor<T> = lock_period.into();
+                let current_block: BlockNumberFor<T> = frame_system::Pallet::<T>::block_number();
 
                 if start_block + lock_period <= current_block {
                     // credit the user his funds
@@ -601,7 +601,7 @@ impl<T: Config> Pallet<T> {
     /// Voting shares based on currently committed amount.
     /// Monthly locks have 1x voting power, yearly 10x and 10 yearly 100x.
     pub fn voting_weight(
-        commitment: &Commitment<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+        commitment: &Commitment<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
     ) -> BalanceOf<T> {
         if commitment.state != LockState::Committed {
             return BalanceOf::<T>::from(0 as u32);
@@ -617,7 +617,7 @@ impl<T: Config> Pallet<T> {
     /// Era reward amount based on currently committed amount.
     /// Montly locks yield 0% APY. Longer locks yield fixed 10% APY.
     pub fn era_voter_reward(
-        commitment: &Commitment<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+        commitment: &Commitment<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
     ) -> BalanceOf<T> {
         if commitment.state != LockState::Committed {
             return Zero::zero();

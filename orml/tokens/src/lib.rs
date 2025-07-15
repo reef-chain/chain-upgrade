@@ -42,7 +42,7 @@ pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
 use codec::MaxEncodedLen;
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
 	traits::{
 		tokens::{
@@ -78,6 +78,11 @@ mod imbalances;
 mod impls;
 mod mock;
 mod tests;
+mod tests_currency_adapter;
+mod tests_events;
+mod tests_fungibles;
+mod tests_multicurrency;
+
 mod weights;
 
 pub use impls::*;
@@ -353,6 +358,14 @@ pub mod module {
 			who: T::AccountId,
 			amount: T::Balance,
 		},
+		Issued {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
+		Rescinded {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -410,7 +423,6 @@ pub mod module {
 		pub balances: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig { balances: vec![] }
@@ -418,14 +430,14 @@ pub mod module {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// ensure no duplicates exist.
 			let unique_endowed_accounts = self
 				.balances
 				.iter()
 				.map(|(account_id, currency_id, _)| (account_id, currency_id))
-				.collect::<std::collections::BTreeSet<_>>();
+				.collect::<sp_std::collections::btree_set::BTreeSet<_>>();
 			assert!(
 				unique_endowed_accounts.len() == self.balances.len(),
 				"duplicate endowed accounts in genesis."
@@ -454,7 +466,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -1262,7 +1274,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 
 	// Set a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero.
@@ -1316,9 +1328,18 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			.into_iter()
 			.filter_map(|lock| {
 				if lock.id == lock_id {
-					new_lock.take().map(|nl| BalanceLock {
-						id: lock.id,
-						amount: lock.amount.max(nl.amount),
+					new_lock.take().map(|nl| {
+						let new_amount = lock.amount.max(nl.amount);
+						Self::deposit_event(Event::LockSet {
+							lock_id,
+							currency_id,
+							who: who.clone(),
+							amount: new_amount,
+						});
+						BalanceLock {
+							id: lock.id,
+							amount: new_amount,
+						}
 					})
 				} else {
 					Some(lock)
@@ -1326,6 +1347,12 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			})
 			.collect::<Vec<_>>();
 		if let Some(lock) = new_lock {
+			Self::deposit_event(Event::LockSet {
+				lock_id,
+				currency_id,
+				who: who.clone(),
+				amount: lock.amount,
+			});
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..])
@@ -1923,6 +1950,32 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	}
 }
 
+impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
+	type OnDropDebt = fungibles::IncreaseIssuance<T::AccountId, Self>;
+	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Self>;
+
+	fn done_deposit(currency_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Deposited {
+			currency_id,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_withdraw(currency_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Withdrawn {
+			currency_id,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_issue(currency_id: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Issued { currency_id, amount });
+	}
+	fn done_rescind(currency_id: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Rescinded { currency_id, amount });
+	}
+}
+
 type ReasonOf<P, T> = <P as fungibles::InspectHold<<T as frame_system::Config>::AccountId>>::Reason;
 impl<T: Config> fungibles::InspectHold<T::AccountId> for Pallet<T> {
 	type Reason = ();
@@ -2362,7 +2415,7 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {

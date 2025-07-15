@@ -17,7 +17,14 @@ use sp_std::{
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug + scale_info::TypeInfo;
+	type CurrencyId: FullCodec
+		+ Eq
+		+ PartialEq
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	/// The balance of an account.
 	type Balance: AtLeast32BitUnsigned
@@ -412,7 +419,8 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default;
+		+ Default
+		+ MaxEncodedLen;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive
 	/// `by_amount`, do add, else do remove.

@@ -39,7 +39,7 @@ impl frame_system::Config for Runtime {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type BlockWeights = ();
     type BlockLength = ();
@@ -69,7 +69,7 @@ parameter_types! {
 }
 
 impl tokens::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Amount = i64;
     type CurrencyId = CurrencyId;
@@ -95,7 +95,7 @@ parameter_types! {
 impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
@@ -138,7 +138,7 @@ impl module_evm::Config for Runtime {
     type StorageDepositPerByte = StorageDepositPerByte;
     type MaxCodeSize = MaxCodeSize;
 
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Precompiles = ();
     type ChainId = ();
     type GasToWeight = ();
@@ -158,7 +158,7 @@ impl module_evm_bridge::Config for Runtime {
 }
 
 impl Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type MultiCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
     type WeightInfo = ();

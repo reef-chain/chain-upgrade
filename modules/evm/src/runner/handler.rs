@@ -9,6 +9,7 @@ use frame_support::{
     require_transactional,
     traits::{BalanceStatus, Currency, ExistenceRequirement, Get, ReservableCurrency},
 };
+use crate::BlockNumberFor;
 use evm::CreateScheme;
 use evm::{Opcode, Runtime, Transfer};
 use evm_gasometer::{self as gasometer, Gasometer};
@@ -341,7 +342,7 @@ impl<'vicinity, 'config, 'meter, T: Config> HandlerT for Handler<'vicinity, 'con
         if number > U256::from(u32::max_value()) {
             H256::default()
         } else {
-            let number = T::BlockNumber::from(number.as_u32());
+           let number = BlockNumberFor::<T>::from(number.as_u32());
             H256::from_slice(frame_system::Pallet::<T>::block_hash(number).as_ref())
         }
     }
