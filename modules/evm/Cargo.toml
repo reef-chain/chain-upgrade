@@ -14,7 +14,7 @@ scale-info = { version = "2.2.0", default-features = false, features = ["derive"
 primitive-types = { version = "0.12.0", default-features = false, features = ["rlp", "byteorder","scale-info"] }
 ripemd160 = { version = "0.9", default-features = false }
 rlp = { version = "0.5.2", default-features = false }
-serde = { version = "1.0.145", optional = true, features = ["derive"] }
+serde = { version = "1.0.145",  default-features = false,features = ["derive","alloc"] }
 sha3 = { version = "0.8", default-features = false }
 tiny-keccak = { version = "2.0", features = ["fips202"] }
 log = { version = "0.4.14", default-features = false }
@@ -43,7 +43,7 @@ env_logger = "0.7"
 [features]
 default = ["std"]
 std = [
-	"serde",
+	"serde/std",
 	"codec/std",
 	"sp-core/std",
 	"scale-info/std",

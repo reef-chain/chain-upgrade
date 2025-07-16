@@ -16,8 +16,6 @@ use sp_runtime::{
     MultiSignature, RuntimeDebug,
 };
 use sp_std::convert::{TryFrom, TryInto};
-
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
@@ -133,8 +131,7 @@ pub type BlockId = generic::BlockId<Block>;
 /// Opaque, encoded, unchecked extrinsic.
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen,Serialize, Deserialize)]
 pub enum TokenSymbol {
     REEF = 0,
     RUSD = 1,
@@ -152,8 +149,7 @@ impl TryFrom<u8> for TokenSymbol {
     }
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord,Serialize, Deserialize, TypeInfo, MaxEncodedLen)]
 pub enum CurrencyId {
     Token(TokenSymbol),
     DEXShare(TokenSymbol, TokenSymbol),

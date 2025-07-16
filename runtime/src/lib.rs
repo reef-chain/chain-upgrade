@@ -18,7 +18,7 @@ use frame_support::{
     parameter_types,
     traits::{
         schedule::Priority, EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly,
-        KeyOwnerProofSystem, OriginTrait, U128CurrencyToVote, WithdrawReasons,
+        KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
         ConstU16,AsEnsureOriginWithArg,ConstU128
     },
     weights::{
@@ -36,6 +36,8 @@ use frame_system::{ensure_root, EnsureRoot,EnsureSigned,EnsureRootWithSuccess};
 use frame_election_provider_support::{
     onchain, BalancingConfig, ElectionDataProvider, SequentialPhragmen, VoteWeight,
 };
+use frame_election_provider_support::bounds::ElectionBounds;
+use frame_election_provider_support::bounds::ElectionBoundsBuilder;
 
 // Election Provider Multi-phase
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -63,6 +65,7 @@ use sp_api::impl_runtime_apis;
 
 mod voter_bags;
 pub use frame_system::Call as SystemCall;
+use sp_staking::currency_to_vote::U128CurrencyToVote;
 // Runtime Versioning
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -305,15 +308,11 @@ impl frame_system::Config for Runtime {
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
     type Lookup = (Indices, EvmAccounts);
     /// The index type for storing how many extrinsics an account has signed.
-    type Index = Nonce;
-    /// The index type for blocks.
-    type BlockNumber = BlockNumber;
+    type Nonce = Nonce;
     /// The type for hashing blocks and tries.
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = BlakeTwo256;
-    /// The header type.
-    type Header = generic::Header<BlockNumber, BlakeTwo256>;
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     /// The ubiquitous origin type.
@@ -342,13 +341,14 @@ impl frame_system::Config for Runtime {
     /// This is a hook that is use when setCode is called - not require unless using cumulus.
     type OnSetCode = ();
     type MaxConsumers = ConstU32<16>;
+    type Block = Block;
 }
 
 pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = pallet_staking::migrations::v1::MigrateToV1<crate::Runtime>;
+	pub type Unreleased = ();
 }
 
 parameter_types! {
@@ -401,8 +401,7 @@ impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = <Runtime as pallet_election_provider_multi_phase::Config>::DataProvider;
     type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
     type MaxWinners = <Runtime as pallet_election_provider_multi_phase::Config>::MaxWinners;
-    type VotersBound = MaxOnChainElectingVoters;
-    type TargetsBound = MaxOnChainElectableTargets;
+    type Bounds = ElectionBoundsOnChain;
 }
 
 parameter_types! {
@@ -473,9 +472,11 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
     type MaxValidators = ConstU32<1000>;
 }
 
+/// Upper limit on the number of NPOS nominations.
+const MAX_QUOTA_NOMINATIONS: u32 = 16;
+
 impl pallet_staking::Config for Runtime {
     type Currency = Balances;
-    type MaxNominations = MaxNominations;
     type UnixTime = Timestamp;
     type CurrencyToVote = U128CurrencyToVote;
     type RewardRemainder = (); // burn
@@ -495,7 +496,6 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type MaxUnlockingChunks = ConstU32<32>;
     type HistoryDepth = HistoryDepth;
-    type OnStakerSlash = NominationPools;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type AdminOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
@@ -504,6 +504,8 @@ impl pallet_staking::Config for Runtime {
     type CurrencyBalance = Balance;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type VoterList = VoterList;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<MAX_QUOTA_NOMINATIONS>;
+    type EventListeners = NominationPools;
 }
 
 /// We assume that ~10% of the block weight is consumed by `on_initialize` handlers.
@@ -578,6 +580,10 @@ parameter_types! {
     // OnChain values are lower.
     pub MaxOnChainElectingVoters: u32 = 5000;
     pub MaxOnChainElectableTargets: u16 = 1250;
+    pub ElectionBoundsMultiPhase: ElectionBounds = ElectionBoundsBuilder::default()
+		.voters_count(10_000.into()).targets_count(1_500.into()).build();
+    pub ElectionBoundsOnChain: ElectionBounds = ElectionBoundsBuilder::default()
+		.voters_count(5_000.into()).targets_count(1_250.into()).build();
     // The maximum winners that can be elected by the Election pallet which is equivalent to the
     // maximum active validators the staking pallet can have.
     pub MaxActiveValidators: u32 = 1000;
@@ -675,11 +681,10 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type GovernanceFallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type Solver = SequentialPhragmen<AccountId, SolutionAccuracyOf<Self>, OffchainRandomBalancing>;
     type ForceOrigin = EnsureRootOrHalfCouncil;
-    type MaxElectableTargets = MaxElectableTargets;
     type MaxWinners = MaxActiveValidators;
-    type MaxElectingVoters = MaxElectingVoters;
     type BenchmarkingConfig = ElectionProviderBenchmarkConfig;
     type WeightInfo = pallet_election_provider_multi_phase::weights::SubstrateWeight<Self>;
+    type ElectionBounds = ElectionBoundsMultiPhase;
 }
 
 impl pallet_babe::Config for Runtime {
@@ -690,6 +695,7 @@ impl pallet_babe::Config for Runtime {
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
     type WeightInfo = ();
     type DisabledValidators = Session;
+    type MaxNominators = MaxNominatorRewardedPerValidator;
     type MaxAuthorities = MaxAuthorities;
     type EquivocationReportSystem =
         pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
@@ -704,6 +710,7 @@ impl pallet_grandpa::Config for Runtime {
     type WeightInfo = ();
     type MaxAuthorities = MaxAuthorities;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
+    type MaxNominators = MaxNominatorRewardedPerValidator;
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type EquivocationReportSystem =
         pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
@@ -755,7 +762,6 @@ impl pallet_im_online::Config for Runtime {
     type WeightInfo = ();
     type MaxKeys = MaxKeys;
     type MaxPeerInHeartbeats = MaxPeerInHeartbeats;
-    type MaxPeerDataEncodingSize = MaxPeerDataEncodingSize;
 }
 
 parameter_types! {
@@ -979,8 +985,8 @@ impl pallet_balances::Config for Runtime {
      type ReserveIdentifier = ReserveIdentifier;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-    type HoldIdentifier = HoldReason;
     type MaxHolds = ConstU32<2>;
+    type RuntimeHoldReason = RuntimeHoldReason;
 }
 
 parameter_types! {
@@ -1261,13 +1267,10 @@ use pallet_session::historical as pallet_session_historical;
 // TODO: Implementation of `From` is preferred since it gives you `Into<_>` for free where the reverse isn't true.
 // After this TODO will be resolved, remove the suppresion of `from-over-into` warnings in the Makefile.
 construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-        NodeBlock = opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic
+    pub struct Runtime
     {
         // Core
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
         RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 3,
@@ -1294,14 +1297,14 @@ construct_runtime!(
 
         // Consensus
         Authorship: pallet_authorship = 30,
-        Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned} = 31,
-        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned} = 32,
+        Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 31,
+        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event, ValidateUnsigned} = 32,
         Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>} = 33,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 34,
         Historical: pallet_session_historical::{Pallet} = 35,
         Offences: pallet_offences::{Pallet, Storage, Event} = 36,
         ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 37,
-        AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config} = 38,
+        AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config<T>} = 38,
         ElectionProviderMultiPhase:pallet_election_provider_multi_phase = 42,
         NominationPools: pallet_nomination_pools = 43,
         Preimage: pallet_preimage = 44,

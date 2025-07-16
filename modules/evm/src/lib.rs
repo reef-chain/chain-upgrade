@@ -8,6 +8,7 @@ pub use crate::precompiles::{Precompile, Precompiles};
 pub use crate::runner::Runner;
 use codec::{Decode, Encode};
 use primitives::ReserveIdentifier;
+use serde::{Deserialize, Serialize};
  use frame_support::traits::NamedReservableCurrency;
 use frame_support::parameter_types;
 use frame_support::{
@@ -17,7 +18,7 @@ use frame_support::{
     pallet_prelude::*,
     traits::{
         Currency, EitherOfDiverse, EnsureOrigin, ExistenceRequirement, Get, OnKilledAccount,
-        ReservableCurrency, WithdrawReasons,GenesisBuild
+        ReservableCurrency, WithdrawReasons,
     },
     transactional,
     weights::{Weight},
@@ -31,8 +32,6 @@ pub use primitives::evm::{
     Account, AddressMapping, CallInfo, CreateInfo, EvmAddress, Log, Vicinity,
 };
 use scale_info::prelude::vec;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use primitive_types::{H256, U256};
 use sp_runtime::{
@@ -230,8 +229,8 @@ pub mod module {
     }
 
     // #[cfg(feature = "std")]
-    #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, Serialize, Deserialize)]
+    // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     /// Account definition used for genesis block construction.
     pub struct GenesisAccount<Balance, Index> {
         /// Account nonce.
@@ -289,7 +288,6 @@ pub mod module {
             BTreeMap<EvmAddress, GenesisAccount<BalanceOf<T>, T::Nonce>>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             GenesisConfig {
@@ -299,7 +297,7 @@ pub mod module {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             self.accounts.iter().for_each(|(address, account)| {
                 let account_id = T::AddressMapping::get_account_id(address);

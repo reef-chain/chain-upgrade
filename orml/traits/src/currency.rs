@@ -21,7 +21,6 @@ pub trait MultiCurrency<AccountId> {
 		+ Eq
 		+ PartialEq
 		+ Copy
-		+ MaybeSerializeDeserialize
 		+ Debug
 		+ scale_info::TypeInfo
 		+ MaxEncodedLen;

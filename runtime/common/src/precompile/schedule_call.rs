@@ -2,13 +2,13 @@
 #![allow(clippy::type_complexity)]
 
 use frame_support::{
-    dispatch::Dispatchable,
     ensure, parameter_types,
     traits::{
         schedule::{DispatchTime, Named as ScheduleNamed},
         Currency, IsType, OriginTrait,
     },
 };
+use sp_runtime::traits::Dispatchable;
 use module_evm::{Context, ExitError, ExitSucceed, Precompile};
 use module_support::TransactionPayment;
 use primitives::{evm::AddressMapping as AddressMappingT, Balance, BlockNumber};
