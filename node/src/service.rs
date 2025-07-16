@@ -1,6 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 use std::sync::Arc;
 use std::time::Duration;
+use futures::FutureExt;
 use reef_runtime::{self, opaque::Block, RuntimeApi};
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
@@ -269,7 +270,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		let proposer = sc_basic_authorship::ProposerFactory::new(
 			task_manager.spawn_handle(),
 			client.clone(),
-			transaction_pool,
+			transaction_pool.clone(),
 			prometheus_registry.as_ref(),
 			telemetry.as_ref().map(|x| x.handle())
 		);

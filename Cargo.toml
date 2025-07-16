@@ -163,5 +163,6 @@ sc-consensus-epochs = { git = "https://github.com/paritytech/polkadot-sdk", bran
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sc-consensus-slots = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sc-consensus-grandpa-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 
 xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
