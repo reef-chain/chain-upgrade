@@ -370,6 +370,7 @@ fn testnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
+			..Default::default()
 			// changes_trie_config: Default::default(),
 		},
 		assets:Default::default(),
@@ -400,9 +401,9 @@ fn testnet_genesis(
 			slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
 			..Default::default()
 		},
-		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG) },
+		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG), ..Default::default() },
 		grandpa: Default::default(),
-		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+		authority_discovery: Default::default(),
 		im_online: Default::default(),
 		nomination_pools: Default::default(),
 		tokens: TokensConfig {
@@ -464,6 +465,7 @@ fn mainnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
+			..Default::default()
 			// changes_trie_config: Default::default(),
 		},
 		assets:Default::default(),
@@ -494,9 +496,9 @@ fn mainnet_genesis(
 			slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
 			..Default::default()
 		},
-		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG) },
+		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG),..Default::default() },
 		grandpa: Default::default(),
-		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+		authority_discovery: AuthorityDiscoveryConfig { keys: vec![],..Default::default() },
 		im_online: Default::default(),
 		tokens: TokensConfig {
 			balances: vec![]

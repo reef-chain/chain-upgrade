@@ -5,11 +5,13 @@ use reef_runtime::{self, opaque::Block, RuntimeApi};
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use grandpa::SharedVoterState;
+use sc_client_api::Backend;
 use sc_service::WarpSyncParams;
 use sc_client_api::BlockBackend;
 use sc_executor::NativeElseWasmExecutor;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use grandpa::FinalityProofProvider;
+use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -30,6 +32,10 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	}
 }
 
+/// The minimum period of blocks on which justifications will be
+/// imported and generated.
+const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
 pub type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -37,7 +43,7 @@ type PartialResult = Result<sc_service::PartialComponents<
 	FullClient,
 	FullBackend,
 	FullSelectChain,
-	sc_consensus::DefaultImportQueue<Block, FullClient>,
+	sc_consensus::DefaultImportQueue<Block>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
 	(
 		sc_consensus_babe::BabeBlockImport<
@@ -85,7 +91,11 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 	);
 
 	let (grandpa_block_import, grandpa_link) = grandpa::block_import(
-		client.clone(), &(client.clone() as Arc<_>), select_chain.clone(), telemetry.as_ref().map(|x| x.handle())
+		client.clone(),
+		GRANDPA_JUSTIFICATION_PERIOD,
+		&client,
+		select_chain.clone(),
+		telemetry.as_ref().map(|x| x.handle()),
 	)?;
 
 	let (block_import, babe_link) = sc_consensus_babe::block_import(
@@ -96,13 +106,13 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 
 	let slot_duration = babe_link.config().slot_duration();
 	let (import_queue,babe_worker_handler) =
-		sc_consensus_babe::import_queue(
-			babe_link.clone(),
-			block_import.clone(),
-			Some(Box::new(grandpa_block_import)),
-			client.clone(),
-			select_chain.clone(),
-			move |_, ()| async move {
+		sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
+			link: babe_link.clone(),
+			block_import:block_import.clone(),
+			justification_import:Some(Box::new(grandpa_block_import)),
+			client: client.clone(),
+			select_chain: select_chain.clone(),
+			create_inherent_data_providers: move |_, ()| async move {
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 				let slot =
@@ -113,10 +123,11 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 
 				Ok((slot,timestamp))
 			},
-			&task_manager.spawn_essential_handle(),
-			config.prometheus_registry(),
-			telemetry.as_ref().map(|x| x.handle())
-		)?;
+			spawner: &task_manager.spawn_essential_handle(),
+			registry: config.prometheus_registry(),
+			telemetry: telemetry.as_ref().map(|x| x.handle()),
+			offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
+		})?;
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -171,12 +182,24 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
 		})?;
 
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config,
-			task_manager.spawn_handle(),
-			client.clone(),
-			network.clone(),
+		if config.offchain_worker.enabled {
+		task_manager.spawn_handle().spawn(
+			"offchain-workers-runner",
+			"offchain-worker",
+			sc_offchain::OffchainWorkers::new(sc_offchain::OffchainWorkerOptions {
+				runtime_api_provider: client.clone(),
+				is_validator: config.role.is_authority(),
+				keystore: Some(keystore_container.keystore()),
+				offchain_db: backend.offchain_storage(),
+				transaction_pool: Some(OffchainTransactionPoolFactory::new(
+					transaction_pool.clone(),
+				)),
+				network_provider: network.clone(),
+				enable_http_requests: true,
+				custom_extensions: |_| vec![],
+			})
+			.run(client.clone(), task_manager.spawn_handle())
+			.boxed(),
 		);
 	}
 
@@ -298,7 +321,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let grandpa_config = grandpa::Config {
 		// FIXME #1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(333),
-		justification_period: 512,
+		justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
 		name: Some(name),
 		observer_enabled: false,
 		keystore,
@@ -323,6 +346,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			voting_rule: grandpa::VotingRulesBuilder::default().build(),
 			prometheus_registry,
 			shared_voter_state: SharedVoterState::empty(),
+			offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
 		};
 
 		// the GRANDPA voter task is considered infallible, i.e.
