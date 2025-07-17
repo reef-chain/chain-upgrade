@@ -4,7 +4,7 @@
 
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_support::{
-    dispatch::{DispatchClass},
+    dispatch::DispatchClass,
     parameter_types,
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight},

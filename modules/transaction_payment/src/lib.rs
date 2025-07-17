@@ -11,13 +11,13 @@ use frame_support::traits::EstimateCallFee;
 use frame_support::traits::SameOrOther;
 use frame_support::weights::WeightToFee;
 use frame_support::{
-    dispatch::{DispatchResult,GetDispatchInfo,Pays, PostDispatchInfo, DispatchInfo},
+    dispatch::{DispatchInfo, DispatchResult, GetDispatchInfo, Pays, PostDispatchInfo},
     pallet_prelude::*,
     traits::{
         Currency, ExistenceRequirement, Imbalance, IsSubType, OnUnbalanced, ReservableCurrency,
         WithdrawReasons,
     },
-    weights::{ WeightToFeePolynomial},
+    weights::WeightToFeePolynomial,
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrency;
@@ -26,8 +26,8 @@ use pallet_transaction_payment_rpc_runtime_api::{FeeDetails, InclusionFee};
 use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{
-        CheckedSub, Convert, DispatchInfoOf, PostDispatchInfoOf, SaturatedConversion, Saturating,
-        SignedExtension, Zero, Dispatchable
+        CheckedSub, Convert, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SaturatedConversion,
+        Saturating, SignedExtension, Zero,
     },
     transaction_validity::{
         InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError,
@@ -276,8 +276,7 @@ pub mod module {
                 RuntimeOrigin = Self::RuntimeOrigin,
                 PostInfo = PostDispatchInfo,
                 Info = DispatchInfo,
-            > 
-            + IsSubType<Call<Self>>
+            > + IsSubType<Call<Self>>
             + IsType<<Self as frame_system::Config>::RuntimeCall>;
     }
 
@@ -303,11 +302,11 @@ pub mod module {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// `on_initialize` to return the weight used in `on_finalize`.
-       	fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+        fn on_initialize(_: BlockNumberFor<T>) -> Weight {
             <T as Config>::WeightInfo::on_finalize()
         }
 
-		fn on_finalize(_: BlockNumberFor<T>) {
+        fn on_finalize(_: BlockNumberFor<T>) {
             NextFeeMultiplier::<T>::mutate(|fm| {
                 *fm = T::FeeMultiplierUpdate::convert(*fm);
             });
@@ -745,7 +744,7 @@ where
         info: &DispatchInfoOf<Self::Call>,
         len: usize,
     ) -> TransactionValidity {
-       let (fee, _) = self.withdraw_fee(who, call, info, len)?;
+        let (fee, _) = self.withdraw_fee(who, call, info, len)?;
         Ok(ValidTransaction {
             priority: Self::get_priority(info, len, fee),
             ..Default::default()

@@ -15,6 +15,6 @@ impl<T: frame_system::Config> module_transaction_payment::WeightInfo for WeightI
             .saturating_add(DbWeight::get().writes(1 as u64))
     }
     fn set_default_fee_token() -> Weight {
-        Weight::from_parts(1_000_000,0).saturating_add(DbWeight::get().writes(1 as u64))
+        Weight::from_parts(1_000_000, 0).saturating_add(DbWeight::get().writes(1 as u64))
     }
 }

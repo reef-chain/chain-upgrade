@@ -1,8 +1,8 @@
 use crate::Balance;
 use codec::{Decode, Encode};
+use ethereum_types::{H160, U256};
 use evm::ExitReason;
 use scale_info::TypeInfo;
-use ethereum_types::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 

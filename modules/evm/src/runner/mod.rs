@@ -2,14 +2,14 @@ pub mod handler;
 pub mod storage_meter;
 
 use crate::{AddressMapping, BalanceOf, CallInfo, Config, CreateInfo, Error, Pallet, Vicinity};
-use frame_support::traits::{Currency, ExistenceRequirement, Get};
-use handler::Handler;
 use evm::ExitReason;
 use evm::{CreateScheme, ExitError};
 use evm_gasometer::{self as gasometer};
 use evm_runtime::Handler as HandlerT;
-use sha3::{Digest, Keccak256};
+use frame_support::traits::{Currency, ExistenceRequirement, Get};
+use handler::Handler;
 use primitive_types::{H160, H256, U256};
+use sha3::{Digest, Keccak256};
 use sp_runtime::{
     traits::Zero, DispatchError, DispatchResult, SaturatedConversion, TransactionOutcome,
 };
@@ -158,7 +158,6 @@ impl<T: Config> Runner<T> {
         if value.is_zero() {
             return Ok(());
         }
-       
 
         let from = T::AddressMapping::get_account_id(&source);
         let to = T::AddressMapping::get_account_id(&target);

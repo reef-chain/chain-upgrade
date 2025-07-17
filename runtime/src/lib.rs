@@ -17,9 +17,8 @@ use frame_support::{
     pallet_prelude::{ConstU32, DispatchClass, Get},
     parameter_types,
     traits::{
-        schedule::Priority, EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly,
-        KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
-        ConstU16,AsEnsureOriginWithArg,ConstU128
+        schedule::Priority, AsEnsureOriginWithArg, ConstU128, ConstU16, EitherOfDiverse,
+        EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -30,14 +29,14 @@ use frame_support::{
 
 // FRAME System
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
-use frame_system::{ensure_root, EnsureRoot,EnsureSigned,EnsureRootWithSuccess};
+use frame_system::{ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned};
 
 // Election Support
+use frame_election_provider_support::bounds::ElectionBounds;
+use frame_election_provider_support::bounds::ElectionBoundsBuilder;
 use frame_election_provider_support::{
     onchain, BalancingConfig, ElectionDataProvider, SequentialPhragmen, VoteWeight,
 };
-use frame_election_provider_support::bounds::ElectionBounds;
-use frame_election_provider_support::bounds::ElectionBoundsBuilder;
 
 // Election Provider Multi-phase
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -82,13 +81,11 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     generic, impl_opaque_keys,
     traits::{
-        self,
-        BadOrigin, BlakeTwo256, Block as BlockT, NumberFor, OpaqueKeys, SaturatedConversion,
+        self, BadOrigin, BlakeTwo256, Block as BlockT, NumberFor, OpaqueKeys, SaturatedConversion,
         StaticLookup, Zero,
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchResult, FixedPointNumber, FixedU128, Perbill,
-    Perquintill,
+    ApplyExtrinsicResult, DispatchResult, FixedPointNumber, FixedU128, Perbill, Perquintill,
 };
 
 // ORML Support
@@ -347,8 +344,8 @@ impl frame_system::Config for Runtime {
 pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+    /// Unreleased migrations. Add new ones here:
+    pub type Unreleased = ();
 }
 
 parameter_types! {
@@ -581,9 +578,9 @@ parameter_types! {
     pub MaxOnChainElectingVoters: u32 = 5000;
     pub MaxOnChainElectableTargets: u16 = 1250;
     pub ElectionBoundsMultiPhase: ElectionBounds = ElectionBoundsBuilder::default()
-		.voters_count(10_000.into()).targets_count(1_500.into()).build();
+        .voters_count(10_000.into()).targets_count(1_500.into()).build();
     pub ElectionBoundsOnChain: ElectionBounds = ElectionBoundsBuilder::default()
-		.voters_count(5_000.into()).targets_count(1_250.into()).build();
+        .voters_count(5_000.into()).targets_count(1_250.into()).build();
     // The maximum winners that can be elected by the Election pallet which is equivalent to the
     // maximum active validators the staking pallet can have.
     pub MaxActiveValidators: u32 = 1000;
@@ -982,7 +979,7 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxReserves = MaxReserves;
-     type ReserveIdentifier = ReserveIdentifier;
+    type ReserveIdentifier = ReserveIdentifier;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
     type MaxHolds = ConstU32<2>;
@@ -1006,146 +1003,146 @@ impl pallet_preimage::Config for Runtime {
 }
 
 parameter_types! {
-	pub const VoteLockingPeriod: BlockNumber = 30 * DAYS;
+    pub const VoteLockingPeriod: BlockNumber = 30 * DAYS;
 }
 
 impl pallet_conviction_voting::Config for Runtime {
-	type WeightInfo = pallet_conviction_voting::weights::SubstrateWeight<Self>;
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type VoteLockingPeriod = VoteLockingPeriod;
-	type MaxVotes = ConstU32<512>;
-	type MaxTurnout = frame_support::traits::TotalIssuanceOf<Balances, Self::AccountId>;
-	type Polls = Referenda;
+    type WeightInfo = pallet_conviction_voting::weights::SubstrateWeight<Self>;
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type VoteLockingPeriod = VoteLockingPeriod;
+    type MaxVotes = ConstU32<512>;
+    type MaxTurnout = frame_support::traits::TotalIssuanceOf<Balances, Self::AccountId>;
+    type Polls = Referenda;
 }
 
 parameter_types! {
-	pub const AlarmInterval: BlockNumber = 1;
-	pub const SubmissionDeposit: Balance = 100 * DOLLARS;
-	pub const UndecidingTimeout: BlockNumber = 28 * DAYS;
+    pub const AlarmInterval: BlockNumber = 1;
+    pub const SubmissionDeposit: Balance = 100 * DOLLARS;
+    pub const UndecidingTimeout: BlockNumber = 28 * DAYS;
 }
 
 pub struct TracksInfo;
 impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
-	type Id = u16;
-	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
-	fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
-		static DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 1] = [(
-			0u16,
-			pallet_referenda::TrackInfo {
-				name: "root",
-				max_deciding: 1,
-				decision_deposit: 10,
-				prepare_period: 4,
-				decision_period: 4,
-				confirm_period: 2,
-				min_enactment_period: 4,
-				min_approval: pallet_referenda::Curve::LinearDecreasing {
-					length: Perbill::from_percent(100),
-					floor: Perbill::from_percent(50),
-					ceil: Perbill::from_percent(100),
-				},
-				min_support: pallet_referenda::Curve::LinearDecreasing {
-					length: Perbill::from_percent(100),
-					floor: Perbill::from_percent(0),
-					ceil: Perbill::from_percent(100),
-				},
-			},
-		)];
-		&DATA[..]
-	}
-	fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
-		if let Ok(system_origin) = frame_system::RawOrigin::try_from(id.clone()) {
-			match system_origin {
-				frame_system::RawOrigin::Root => Ok(0),
-				_ => Err(()),
-			}
-		} else {
-			Err(())
-		}
-	}
+    type Id = u16;
+    type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
+    fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
+        static DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 1] = [(
+            0u16,
+            pallet_referenda::TrackInfo {
+                name: "root",
+                max_deciding: 1,
+                decision_deposit: 10,
+                prepare_period: 4,
+                decision_period: 4,
+                confirm_period: 2,
+                min_enactment_period: 4,
+                min_approval: pallet_referenda::Curve::LinearDecreasing {
+                    length: Perbill::from_percent(100),
+                    floor: Perbill::from_percent(50),
+                    ceil: Perbill::from_percent(100),
+                },
+                min_support: pallet_referenda::Curve::LinearDecreasing {
+                    length: Perbill::from_percent(100),
+                    floor: Perbill::from_percent(0),
+                    ceil: Perbill::from_percent(100),
+                },
+            },
+        )];
+        &DATA[..]
+    }
+    fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
+        if let Ok(system_origin) = frame_system::RawOrigin::try_from(id.clone()) {
+            match system_origin {
+                frame_system::RawOrigin::Root => Ok(0),
+                _ => Err(()),
+            }
+        } else {
+            Err(())
+        }
+    }
 }
 pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
 
 impl pallet_referenda::Config for Runtime {
-	type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeEvent = RuntimeEvent;
-	type Scheduler = Scheduler;
-	type Currency = pallet_balances::Pallet<Self>;
-	type SubmitOrigin = EnsureSigned<AccountId>;
-	type CancelOrigin = EnsureRoot<AccountId>;
-	type KillOrigin = EnsureRoot<AccountId>;
-	type Slash = ();
-	type Votes = pallet_conviction_voting::VotesOf<Runtime>;
-	type Tally = pallet_conviction_voting::TallyOf<Runtime>;
-	type SubmissionDeposit = SubmissionDeposit;
-	type MaxQueued = ConstU32<100>;
-	type UndecidingTimeout = UndecidingTimeout;
-	type AlarmInterval = AlarmInterval;
-	type Tracks = TracksInfo;
-	type Preimages = Preimage;
+    type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type Scheduler = Scheduler;
+    type Currency = pallet_balances::Pallet<Self>;
+    type SubmitOrigin = EnsureSigned<AccountId>;
+    type CancelOrigin = EnsureRoot<AccountId>;
+    type KillOrigin = EnsureRoot<AccountId>;
+    type Slash = ();
+    type Votes = pallet_conviction_voting::VotesOf<Runtime>;
+    type Tally = pallet_conviction_voting::TallyOf<Runtime>;
+    type SubmissionDeposit = SubmissionDeposit;
+    type MaxQueued = ConstU32<100>;
+    type UndecidingTimeout = UndecidingTimeout;
+    type AlarmInterval = AlarmInterval;
+    type Tracks = TracksInfo;
+    type Preimages = Preimage;
 }
 
 impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
-	type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeEvent = RuntimeEvent;
-	type Scheduler = Scheduler;
-	type Currency = pallet_balances::Pallet<Self>;
-	type SubmitOrigin = EnsureSigned<AccountId>;
-	type CancelOrigin = EnsureRoot<AccountId>;
-	type KillOrigin = EnsureRoot<AccountId>;
-	type Slash = ();
-	type Votes = pallet_ranked_collective::Votes;
-	type Tally = pallet_ranked_collective::TallyOf<Runtime>;
-	type SubmissionDeposit = SubmissionDeposit;
-	type MaxQueued = ConstU32<100>;
-	type UndecidingTimeout = UndecidingTimeout;
-	type AlarmInterval = AlarmInterval;
-	type Tracks = TracksInfo;
-	type Preimages = Preimage;
+    type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type Scheduler = Scheduler;
+    type Currency = pallet_balances::Pallet<Self>;
+    type SubmitOrigin = EnsureSigned<AccountId>;
+    type CancelOrigin = EnsureRoot<AccountId>;
+    type KillOrigin = EnsureRoot<AccountId>;
+    type Slash = ();
+    type Votes = pallet_ranked_collective::Votes;
+    type Tally = pallet_ranked_collective::TallyOf<Runtime>;
+    type SubmissionDeposit = SubmissionDeposit;
+    type MaxQueued = ConstU32<100>;
+    type UndecidingTimeout = UndecidingTimeout;
+    type AlarmInterval = AlarmInterval;
+    type Tracks = TracksInfo;
+    type Preimages = Preimage;
 }
 
 impl pallet_ranked_collective::Config for Runtime {
-	type WeightInfo = pallet_ranked_collective::weights::SubstrateWeight<Self>;
-	type RuntimeEvent = RuntimeEvent;
-	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
-	type DemoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
-	type Polls = RankedPolls;
-	type MinRankOfClass = traits::Identity;
-	type VoteWeight = pallet_ranked_collective::Geometric;
+    type WeightInfo = pallet_ranked_collective::weights::SubstrateWeight<Self>;
+    type RuntimeEvent = RuntimeEvent;
+    type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
+    type DemoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
+    type Polls = RankedPolls;
+    type MinRankOfClass = traits::Identity;
+    type VoteWeight = pallet_ranked_collective::Geometric;
 }
 
 parameter_types! {
-	pub const AssetDeposit: Balance = 100 * DOLLARS;
-	pub const ApprovalDeposit: Balance = 1 * DOLLARS;
-	pub const StringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 10 * DOLLARS;
-	pub const MetadataDepositPerByte: Balance = 1 * DOLLARS;
+    pub const AssetDeposit: Balance = 100 * DOLLARS;
+    pub const ApprovalDeposit: Balance = 1 * DOLLARS;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: Balance = 10 * DOLLARS;
+    pub const MetadataDepositPerByte: Balance = 1 * DOLLARS;
 }
 
 impl pallet_assets::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Balance = u128;
-	type AssetId = u32;
-	type AssetIdParameter = codec::Compact<u32>;
-	type Currency = Balances;
-	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
-	type ForceOrigin = EnsureRoot<AccountId>;
-	type AssetDeposit = AssetDeposit;
-	type AssetAccountDeposit = ConstU128<DOLLARS>;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
-	type ApprovalDeposit = ApprovalDeposit;
-	type StringLimit = StringLimit;
-	type Freezer = ();
-	type Extra = ();
-	type CallbackHandle = ();
-	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
-	type RemoveItemsLimit = ConstU32<1000>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
+    type RuntimeEvent = RuntimeEvent;
+    type Balance = u128;
+    type AssetId = u32;
+    type AssetIdParameter = codec::Compact<u32>;
+    type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type AssetAccountDeposit = ConstU128<DOLLARS>;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type CallbackHandle = ();
+    type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+    type RemoveItemsLimit = ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -1359,7 +1356,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    Migrations
+    Migrations,
 >;
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -1587,25 +1584,25 @@ impl_runtime_apis! {
         }
     }
 
-	impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
-		fn nominations_quota(balance: Balance) -> u32 {
-			Staking::api_nominations_quota(balance)
-		}
-	}
+    impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+        fn nominations_quota(balance: Balance) -> u32 {
+            Staking::api_nominations_quota(balance)
+        }
+    }
 
-    	impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
-		fn pending_rewards(who: AccountId) -> Balance {
-			NominationPools::api_pending_rewards(who).unwrap_or_default()
-		}
+        impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
+        fn pending_rewards(who: AccountId) -> Balance {
+            NominationPools::api_pending_rewards(who).unwrap_or_default()
+        }
 
-		fn points_to_balance(pool_id: pallet_nomination_pools::PoolId, points: Balance) -> Balance {
-			NominationPools::api_points_to_balance(pool_id, points)
-		}
+        fn points_to_balance(pool_id: pallet_nomination_pools::PoolId, points: Balance) -> Balance {
+            NominationPools::api_points_to_balance(pool_id, points)
+        }
 
-		fn balance_to_points(pool_id: pallet_nomination_pools::PoolId, new_funds: Balance) -> Balance {
-			NominationPools::api_balance_to_points(pool_id, new_funds)
-		}
-	}
+        fn balance_to_points(pool_id: pallet_nomination_pools::PoolId, new_funds: Balance) -> Balance {
+            NominationPools::api_balance_to_points(pool_id, new_funds)
+        }
+    }
 
     impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
         fn query_info(

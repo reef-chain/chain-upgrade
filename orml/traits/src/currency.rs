@@ -17,13 +17,7 @@ use sp_std::{
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec
-		+ Eq
-		+ PartialEq
-		+ Copy
-		+ Debug
-		+ scale_info::TypeInfo
-		+ MaxEncodedLen;
+	type CurrencyId: FullCodec + Eq + PartialEq + Copy + Debug + scale_info::TypeInfo + MaxEncodedLen;
 
 	/// The balance of an account.
 	type Balance: AtLeast32BitUnsigned

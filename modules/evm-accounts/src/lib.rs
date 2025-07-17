@@ -75,14 +75,14 @@ pub mod module {
     }
 
     #[pallet::event]
-   #[pallet::generate_deposit(pub(crate) fn deposit_event)]
+    #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Mapping between Substrate accounts and EVM accounts
         /// claim account. \[account_id, evm_address\]
-       ClaimAccount {
-			account_id: T::AccountId,
-			evm_address: EvmAddress,
-		},
+        ClaimAccount {
+            account_id: T::AccountId,
+            evm_address: EvmAddress,
+        },
     }
 
     /// Error for evm accounts module.
@@ -118,7 +118,7 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -164,15 +164,15 @@ pub mod module {
 
             T::OnClaim::handle(&who)?;
 
-           Self::deposit_event(Event::ClaimAccount {
-				account_id: who,
-				evm_address: eth_address,
-			});
+            Self::deposit_event(Event::ClaimAccount {
+                account_id: who,
+                evm_address: eth_address,
+            });
 
             Ok(())
         }
 
-         #[pallet::call_index(1)]
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::claim_default_account())]
         pub fn claim_default_account(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -187,10 +187,10 @@ pub mod module {
 
             T::OnClaim::handle(&who)?;
 
-           Self::deposit_event(Event::ClaimAccount {
-				account_id: who,
-				evm_address: eth_address,
-			});
+            Self::deposit_event(Event::ClaimAccount {
+                account_id: who,
+                evm_address: eth_address,
+            });
 
             Ok(())
         }

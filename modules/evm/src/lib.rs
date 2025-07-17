@@ -7,12 +7,13 @@
 pub use crate::precompiles::{Precompile, Precompiles};
 pub use crate::runner::Runner;
 use codec::{Decode, Encode};
-use primitives::ReserveIdentifier;
-use serde::{Deserialize, Serialize};
- use frame_support::traits::NamedReservableCurrency;
+use evm::Config as EvmConfig;
+pub use evm::ExitReason;
+pub use evm::{Context, ExitError, ExitFatal, ExitRevert, ExitSucceed};
 use frame_support::parameter_types;
+use frame_support::traits::NamedReservableCurrency;
 use frame_support::{
-    dispatch::{DispatchResult, DispatchResultWithPostInfo,Pays, PostDispatchInfo,},
+    dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays, PostDispatchInfo},
     ensure,
     error::BadOrigin,
     pallet_prelude::*,
@@ -21,19 +22,18 @@ use frame_support::{
         ReservableCurrency, WithdrawReasons,
     },
     transactional,
-    weights::{Weight},
+    weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*, EnsureRoot, EnsureSigned};
-use evm::Config as EvmConfig;
-pub use evm::ExitReason;
-pub use evm::{Context, ExitError, ExitFatal, ExitRevert, ExitSucceed};
 pub use orml_traits::currency::TransferAll;
+use primitive_types::{H256, U256};
 pub use primitives::evm::{
     Account, AddressMapping, CallInfo, CreateInfo, EvmAddress, Log, Vicinity,
 };
+use primitives::ReserveIdentifier;
 use scale_info::prelude::vec;
+use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use primitive_types::{H256, U256};
 use sp_runtime::{
     traits::{
         Convert, DispatchInfoOf, One, PostDispatchInfoOf, SignedExtension, UniqueSaturatedInto,
@@ -77,43 +77,42 @@ pub trait WeightInfo {
 
 // Initially based on Istanbul hard fork configuration.
 static EVM_CONFIG: EvmConfig = EvmConfig {
-	gas_ext_code: 700,
-	gas_ext_code_hash: 700,
-	gas_balance: 700,
-	gas_sload: 800,
-	gas_sstore_set: 20000,
-	gas_sstore_reset: 5000,
-	refund_sstore_clears: 0, // no gas refund
-	gas_suicide: 5000,
-	gas_suicide_new_account: 25000,
-	gas_call: 700,
-	gas_expbyte: 50,
-	gas_transaction_create: 53000,
-	gas_transaction_call: 21000,
-	gas_transaction_zero_data: 4,
-	gas_transaction_non_zero_data: 16,
-	sstore_gas_metering: false,         // no gas refund
-	sstore_revert_under_stipend: false, // ignored
-	err_on_call_with_more_gas: false,
-	empty_considered_exists: false,
-	create_increase_nonce: true,
-	call_l64_after_gas: true,
-	stack_limit: 1024,
-	memory_limit: usize::max_value(),
-	call_stack_limit: 1024,
-	create_contract_limit: None, // ignored
-	call_stipend: 2300,
-	has_delegate_call: true,
-	has_create2: true,
-	has_revert: true,
-	has_return_data: true,
-	has_bitwise_shifting: true,
-	has_chain_id: true,
-	has_self_balance: true,
-	has_ext_code_hash: true,
-	estimate: false,
+    gas_ext_code: 700,
+    gas_ext_code_hash: 700,
+    gas_balance: 700,
+    gas_sload: 800,
+    gas_sstore_set: 20000,
+    gas_sstore_reset: 5000,
+    refund_sstore_clears: 0, // no gas refund
+    gas_suicide: 5000,
+    gas_suicide_new_account: 25000,
+    gas_call: 700,
+    gas_expbyte: 50,
+    gas_transaction_create: 53000,
+    gas_transaction_call: 21000,
+    gas_transaction_zero_data: 4,
+    gas_transaction_non_zero_data: 16,
+    sstore_gas_metering: false,         // no gas refund
+    sstore_revert_under_stipend: false, // ignored
+    err_on_call_with_more_gas: false,
+    empty_considered_exists: false,
+    create_increase_nonce: true,
+    call_l64_after_gas: true,
+    stack_limit: 1024,
+    memory_limit: usize::max_value(),
+    call_stack_limit: 1024,
+    create_contract_limit: None, // ignored
+    call_stipend: 2300,
+    has_delegate_call: true,
+    has_create2: true,
+    has_revert: true,
+    has_return_data: true,
+    has_bitwise_shifting: true,
+    has_chain_id: true,
+    has_self_balance: true,
+    has_ext_code_hash: true,
+    estimate: false,
 };
-
 
 #[frame_support::pallet]
 pub mod module {
@@ -131,8 +130,8 @@ pub mod module {
         type AddressMapping: AddressMapping<Self::AccountId>;
 
         /// Currency type for withdraw and balance storage.
-        	type Currency: Currency<Self::AccountId>
-			+ NamedReservableCurrency<Self::AccountId, ReserveIdentifier = ReserveIdentifier>;
+        type Currency: Currency<Self::AccountId>
+            + NamedReservableCurrency<Self::AccountId, ReserveIdentifier = ReserveIdentifier>;
 
         /// Merge free balance from source to dest.
         type TransferAll: TransferAll<Self::AccountId>;
@@ -202,18 +201,15 @@ pub mod module {
         pub deployed: bool,
     }
 
- #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode,TypeInfo)]
-#[scale_info(skip_type_params(T))] 
-	pub struct EvmAccountInfo<T: Config> {
-		pub nonce: T::Nonce,
-		pub contract_info: Option<ContractInfo>,
-		pub developer_deposit: Option<BalanceOf<T>>,
-	}
+    #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct EvmAccountInfo<T: Config> {
+        pub nonce: T::Nonce,
+        pub contract_info: Option<ContractInfo>,
+        pub developer_deposit: Option<BalanceOf<T>>,
+    }
     impl<T: Config> EvmAccountInfo<T> {
-        pub fn new(
-            nonce: T::Nonce,
-            contract_info: Option<ContractInfo>,
-        ) -> Self {
+        pub fn new(nonce: T::Nonce, contract_info: Option<ContractInfo>) -> Self {
             Self {
                 nonce,
                 contract_info,
@@ -284,8 +280,7 @@ pub mod module {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        pub accounts:
-            BTreeMap<EvmAddress, GenesisAccount<BalanceOf<T>, T::Nonce>>,
+        pub accounts: BTreeMap<EvmAddress, GenesisAccount<BalanceOf<T>, T::Nonce>>,
     }
 
     impl<T: Config> Default for GenesisConfig<T> {
@@ -342,13 +337,13 @@ pub mod module {
         /// A contract was attempted to be created, but the execution failed.
         /// \[maintainer, contract, exit_reason, output, (gas_used, storage_used)\]
         CreatedFailed(EvmAddress, EvmAddress, ExitReason, Vec<u8>, (u64, i32)),
-    	/// A contract has been executed successfully with states applied.
-		Executed {
-			from: EvmAddress,
-			contract: EvmAddress,
-			used_gas: u64,
-			used_storage: i32,
-		},
+        /// A contract has been executed successfully with states applied.
+        Executed {
+            from: EvmAddress,
+            contract: EvmAddress,
+            used_gas: u64,
+            used_storage: i32,
+        },
         /// A contract has been executed with errors. States are reverted with
         /// only gas fees applied. \[caller, contract, exit_reason, output, (gas_used, storage_used)\]
         ExecutedFailed(EvmAddress, EvmAddress, ExitReason, Vec<u8>, (u64, i32)),
@@ -415,13 +410,13 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Issue an EVM call operation. This is similar to a message call
         /// transaction in Ethereum.
-         #[pallet::call_index(0)]
+        #[pallet::call_index(0)]
         #[pallet::weight(T::GasToWeight::convert(*gas_limit))]
         #[transactional]
         pub fn call(
@@ -448,14 +443,14 @@ pub mod module {
             let used_gas: u64 = info.used_gas.unique_saturated_into();
 
             if info.exit_reason.is_succeed() {
-               Self::deposit_event(Event::<T>::Executed {
-							from: source,
-							contract: target,
-							used_gas,
-							used_storage: info.used_storage,
-						});
+                Self::deposit_event(Event::<T>::Executed {
+                    from: source,
+                    contract: target,
+                    used_gas,
+                    used_storage: info.used_storage,
+                });
             } else {
-               Self::deposit_event(Event::<T>::ExecutedFailed(
+                Self::deposit_event(Event::<T>::ExecutedFailed(
                     source,
                     target,
                     info.exit_reason,
@@ -472,7 +467,7 @@ pub mod module {
             })
         }
 
-        #[pallet::call_index(1)]    
+        #[pallet::call_index(1)]
         #[pallet::weight(T::GasToWeight::convert(*gas_limit))]
         #[transactional]
         pub fn scheduled_call(
@@ -511,12 +506,12 @@ pub mod module {
             let used_gas: u64 = info.used_gas.unique_saturated_into();
 
             if info.exit_reason.is_succeed() {
-            	Self::deposit_event(Event::<T>::Executed {
-							from,
-							contract: target,
-							used_gas,
-							used_storage: info.used_storage,
-						});
+                Self::deposit_event(Event::<T>::Executed {
+                    from,
+                    contract: target,
+                    used_gas,
+                    used_storage: info.used_storage,
+                });
             } else {
                 Pallet::<T>::deposit_event(Event::<T>::ExecutedFailed(
                     from,
@@ -552,7 +547,7 @@ pub mod module {
 
         /// Issue an EVM create operation. This is similar to a contract
         /// creation transaction in Ethereum.
-        #[pallet::call_index(2)]    
+        #[pallet::call_index(2)]
         #[pallet::weight(T::GasToWeight::convert(*gas_limit))]
         #[transactional]
         pub fn create(
@@ -565,14 +560,8 @@ pub mod module {
             let who = ensure_signed(origin)?;
             let source = T::AddressMapping::get_or_create_evm_address(&who);
 
-            let info = Runner::<T>::create(
-                source,
-                init,
-                value,
-                gas_limit,
-                storage_limit,
-                T::config(),
-            )?;
+            let info =
+                Runner::<T>::create(source, init, value, gas_limit, storage_limit, T::config())?;
 
             if !info.exit_reason.is_succeed() {
                 Pallet::<T>::deposit_event(Event::<T>::CreatedFailed(
@@ -595,7 +584,7 @@ pub mod module {
         }
 
         /// Issue an EVM create2 operation.
-        #[pallet::call_index(3)] 
+        #[pallet::call_index(3)]
         #[pallet::weight(T::GasToWeight::convert(*gas_limit))]
         #[transactional]
         pub fn create2(
@@ -641,7 +630,7 @@ pub mod module {
 
         /// Issue an EVM create operation. The next available system contract
         /// address will be used as created contract address.
-        #[pallet::call_index(4)] 
+        #[pallet::call_index(4)]
         #[pallet::weight(T::GasToWeight::convert(*gas_limit))]
         #[transactional]
         pub fn create_network_contract(
@@ -687,7 +676,7 @@ pub mod module {
             })
         }
 
-        #[pallet::call_index(5)] 
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::transfer_maintainer())]
         #[transactional]
         pub fn transfer_maintainer(
@@ -703,7 +692,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(6)] 
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as Config>::WeightInfo::deploy())]
         #[transactional]
         pub fn deploy(origin: OriginFor<T>, contract: EvmAddress) -> DispatchResultWithPostInfo {
@@ -721,7 +710,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(7)] 
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::deploy_free())]
         #[transactional]
         pub fn deploy_free(
@@ -734,13 +723,13 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(8)] 
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as Config>::WeightInfo::enable_contract_development())]
         #[transactional]
         pub fn enable_contract_development(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let address = T::AddressMapping::get_or_create_evm_address(&who);
-             T::Currency::reserve(&who, T::DeveloperDeposit::get())?;
+            T::Currency::reserve(&who, T::DeveloperDeposit::get())?;
             Accounts::<T>::mutate(address, |maybe_account_info| -> DispatchResult {
                 if let Some(account_info) = maybe_account_info.as_mut() {
                     ensure!(
@@ -759,7 +748,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(9)] 
+        #[pallet::call_index(9)]
         #[pallet::weight(<T as Config>::WeightInfo::disable_contract_development())]
         #[transactional]
         pub fn disable_contract_development(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -783,7 +772,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(10)] 
+        #[pallet::call_index(10)]
         #[pallet::weight(<T as Config>::WeightInfo::set_code())]
         #[transactional]
         pub fn set_code(
@@ -799,7 +788,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::call_index(11)] 
+        #[pallet::call_index(11)]
         #[pallet::weight(<T as Config>::WeightInfo::selfdestruct())]
         #[transactional]
         pub fn selfdestruct(
@@ -1144,19 +1133,19 @@ impl<T: Config> EVMTrait<T::AccountId> for Pallet<T> {
                 value,
                 gas_limit,
                 storage_limit,
-                &config
+                &config,
             );
 
             match result {
                 Ok(info) => match mode {
                     ExecutionMode::Execute => {
                         if info.exit_reason.is_succeed() {
-                           Pallet::<T>::deposit_event(Event::<T>::Executed {
-								from: context.sender,
-								contract: context.contract,
-								used_gas: info.used_gas.unique_saturated_into(),
-								used_storage: info.used_storage,
-							});
+                            Pallet::<T>::deposit_event(Event::<T>::Executed {
+                                from: context.sender,
+                                contract: context.contract,
+                                used_gas: info.used_gas.unique_saturated_into(),
+                                used_storage: info.used_storage,
+                            });
                             TransactionOutcome::Commit(Ok(info))
                         } else {
                             Pallet::<T>::deposit_event(Event::<T>::ExecutedFailed(

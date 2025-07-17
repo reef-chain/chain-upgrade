@@ -1,23 +1,23 @@
 #![allow(clippy::type_complexity)]
+use crate::BlockNumberFor;
 use crate::{
     precompiles::Precompiles,
     runner::storage_meter::{StorageMeter, StorageMeterHandler},
     AccountStorages, Accounts, AddressMapping, Codes, Config, ContractInfo, Error, Event,
     EvmAccountInfo, Log, Pallet, QueuedEvents, TransferAll, Vicinity,
 };
-use frame_support::{
-    require_transactional,
-    traits::{BalanceStatus, Currency, ExistenceRequirement, Get, ReservableCurrency},
-};
-use crate::BlockNumberFor;
 use evm::CreateScheme;
 use evm::{Opcode, Runtime, Transfer};
 use evm_gasometer::{self as gasometer, Gasometer};
 use evm_runtime::{
     Capture, Config as EvmRuntimeConfig, Context, ExitError, ExitReason, Handler as HandlerT, Stack,
 };
-use sha3::{Digest, Keccak256};
+use frame_support::{
+    require_transactional,
+    traits::{BalanceStatus, Currency, ExistenceRequirement, Get, ReservableCurrency},
+};
 use primitive_types::{H160, H256, U256};
+use sha3::{Digest, Keccak256};
 use sp_runtime::{
     traits::{One, Saturating, UniqueSaturatedInto, Zero},
     DispatchError, DispatchResult, SaturatedConversion, TransactionOutcome,
@@ -342,7 +342,7 @@ impl<'vicinity, 'config, 'meter, T: Config> HandlerT for Handler<'vicinity, 'con
         if number > U256::from(u32::max_value()) {
             H256::default()
         } else {
-           let number = BlockNumberFor::<T>::from(number.as_u32());
+            let number = BlockNumberFor::<T>::from(number.as_u32());
             H256::from_slice(frame_system::Pallet::<T>::block_hash(number).as_ref())
         }
     }
@@ -769,15 +769,15 @@ impl<T: Config> StorageMeterHandler for StorageMeterHandlerImpl<T> {
             // unreserve/transfer/reserve
             T::Currency::unreserve(&user, amount);
             log::info!(
-            target: "evm",
-            "Transferring storage deposit: from user {:?} to contract {:?}, amount {:?}",
-            &user,
-            &contract_acc,
-            amount
-        );
+                target: "evm",
+                "Transferring storage deposit: from user {:?} to contract {:?}, amount {:?}",
+                &user,
+                &contract_acc,
+                amount
+            );
 
-        let ed = T::Currency::minimum_balance();
-        let transfer_amount = amount.saturating_add(ed); 
+            let ed = T::Currency::minimum_balance();
+            let transfer_amount = amount.saturating_add(ed);
             T::Currency::transfer(
                 &user,
                 &contract_acc,
@@ -785,7 +785,7 @@ impl<T: Config> StorageMeterHandler for StorageMeterHandlerImpl<T> {
                 ExistenceRequirement::AllowDeath,
             )?;
 
-        T::Currency::reserve(&contract_acc, amount)?;
+            T::Currency::reserve(&contract_acc, amount)?;
         } else {
             let storage = refunded - used;
             let amount = T::StorageDepositPerByte::get().saturating_mul(storage.into());

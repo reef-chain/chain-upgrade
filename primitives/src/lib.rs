@@ -10,13 +10,13 @@ use codec::MaxEncodedLen;
 use crate::evm::EvmAddress;
 
 use codec::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
     MultiSignature, RuntimeDebug,
 };
 use sp_std::convert::{TryFrom, TryInto};
-use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 mod tests;
@@ -131,7 +131,21 @@ pub type BlockId = generic::BlockId<Block>;
 /// Opaque, encoded, unchecked extrinsic.
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo, MaxEncodedLen,Serialize, Deserialize)]
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    TypeInfo,
+    MaxEncodedLen,
+    Serialize,
+    Deserialize,
+)]
 pub enum TokenSymbol {
     REEF = 0,
     RUSD = 1,
@@ -149,7 +163,21 @@ impl TryFrom<u8> for TokenSymbol {
     }
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord,Serialize, Deserialize, TypeInfo, MaxEncodedLen)]
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    TypeInfo,
+    MaxEncodedLen,
+)]
 pub enum CurrencyId {
     Token(TokenSymbol),
     DEXShare(TokenSymbol, TokenSymbol),

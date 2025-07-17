@@ -1,29 +1,23 @@
-use sp_core::{Pair, Public, sr25519, H160, Bytes};
 use reef_runtime::{
-	AccountId, CurrencyId,
-	BabeConfig, BalancesConfig, GenesisConfig, SudoConfig, SystemConfig,
-	IndicesConfig, EVMConfig, StakingConfig, SessionConfig, AuthorityDiscoveryConfig,
-	WASM_BINARY,
-	TokenSymbol, TokensConfig, REEF,
-	StakerStatus,
-	ImOnlineId, AuthorityDiscoveryId,
-	MaxNativeTokenExistentialDeposit,
-	get_all_module_accounts,
-	opaque::SessionKeys,
+    get_all_module_accounts, opaque::SessionKeys, AccountId, AuthorityDiscoveryConfig,
+    AuthorityDiscoveryId, BabeConfig, BalancesConfig, CurrencyId, EVMConfig, RuntimeGenesisConfig,
+    ImOnlineId, IndicesConfig, MaxNativeTokenExistentialDeposit, SessionConfig, StakerStatus,
+    StakingConfig, SudoConfig, SystemConfig, TokenSymbol, TokensConfig, REEF, WASM_BINARY,
 };
-use sp_consensus_babe::AuthorityId as BabeId;
-use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
+use sp_consensus_babe::AuthorityId as BabeId;
+use sp_consensus_grandpa::AuthorityId as GrandpaId;
+use sp_core::{sr25519, Bytes, Pair, Public, H160};
+use sp_runtime::traits::IdentifyAccount;
 
-use sp_std::{collections::btree_map::BTreeMap, str::FromStr};
 use sc_chain_spec::ChainSpecExtension;
+use sp_std::{collections::btree_map::BTreeMap, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
 use hex_literal::hex;
-use sp_core::{crypto::UncheckedInto, bytes::from_hex};
+use sp_core::{bytes::from_hex, crypto::UncheckedInto};
 
 use reef_primitives::{AccountPublic, Balance, Nonce};
 use reef_runtime::BABE_GENESIS_EPOCH_CONFIG;
@@ -38,142 +32,156 @@ const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 #[derive(Default, Clone, Serialize, Deserialize, ChainSpecExtension)]
 #[serde(rename_all = "camelCase")]
 pub struct Extensions {
-	/// Block numbers with known hashes.
-	pub fork_blocks: sc_client_api::ForkBlocks<reef_primitives::Block>,
-	/// Known bad block hashes.
-	pub bad_blocks: sc_client_api::BadBlocks<reef_primitives::Block>,
+    /// Block numbers with known hashes.
+    pub fork_blocks: sc_client_api::ForkBlocks<reef_primitives::Block>,
+    /// Known bad block hashes.
+    pub bad_blocks: sc_client_api::BadBlocks<reef_primitives::Block>,
 }
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
 
 fn get_session_keys(
-	grandpa: GrandpaId,
-	babe: BabeId,
-	im_online: ImOnlineId,
-	authority_discovery: AuthorityDiscoveryId,
-	) -> SessionKeys {
-	SessionKeys { babe, grandpa, im_online, authority_discovery }
+    grandpa: GrandpaId,
+    babe: BabeId,
+    im_online: ImOnlineId,
+    authority_discovery: AuthorityDiscoveryId,
+) -> SessionKeys {
+    SessionKeys {
+        babe,
+        grandpa,
+        im_online,
+        authority_discovery,
+    }
 }
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
-		.expect("static values are valid; qed")
-		.public()
+    TPublic::Pair::from_string(&format!("//{}", seed), None)
+        .expect("static values are valid; qed")
+        .public()
 }
 
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
-	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
-	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+    AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
 /// Generate an authority keys.
-pub fn get_authority_keys_from_seed(seed: &str)
-	-> (AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId) {
-	(
-		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
-		get_account_id_from_seed::<sr25519::Public>(seed),
-		get_from_seed::<GrandpaId>(seed),
-		get_from_seed::<BabeId>(seed),
-		get_from_seed::<ImOnlineId>(seed),
-		get_from_seed::<AuthorityDiscoveryId>(seed),
-	)
+pub fn get_authority_keys_from_seed(
+    seed: &str,
+) -> (
+    AccountId,
+    AccountId,
+    GrandpaId,
+    BabeId,
+    ImOnlineId,
+    AuthorityDiscoveryId,
+) {
+    (
+        get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+        get_account_id_from_seed::<sr25519::Public>(seed),
+        get_from_seed::<GrandpaId>(seed),
+        get_from_seed::<BabeId>(seed),
+        get_from_seed::<ImOnlineId>(seed),
+        get_from_seed::<AuthorityDiscoveryId>(seed),
+    )
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Development",
-		// ID
-		"dev",
-		ChainType::Development,
-		move || testnet_genesis(
-			wasm_binary,
-			// Initial PoS authorities
-			vec![
-				get_authority_keys_from_seed("Alice"),
-			],
-			// Sudo account
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-			// Pre-funded accounts
-			vec![
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-			],
-		),
-		// Bootnodes
-		vec![],
-		// Telemetry
-		None,
-		// Protocol ID
-		None,
-		None,
-		// Properties
-		Some(reef_properties()),
-
-		// Extensions
-		Default::default(),
-	))
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Development",
+        // ID
+        "dev",
+        ChainType::Development,
+        move || {
+            testnet_genesis(
+                wasm_binary,
+                // Initial PoS authorities
+                vec![get_authority_keys_from_seed("Alice")],
+                // Sudo account
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                // Pre-funded accounts
+                vec![
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                ],
+            )
+        },
+        // Bootnodes
+        vec![],
+        // Telemetry
+        None,
+        // Protocol ID
+        None,
+        None,
+        // Properties
+        Some(reef_properties()),
+        // Extensions
+        Default::default(),
+    ))
 }
 
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Local Testnet",
-		// ID
-		"local_testnet",
-		ChainType::Local,
-		move || testnet_genesis(
-			wasm_binary,
-			// Initial PoA authorities
-			vec![
-				get_authority_keys_from_seed("Alice"),
-				get_authority_keys_from_seed("Bob"),
-			],
-			// Sudo account
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-			// Pre-funded accounts
-			vec![
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie"),
-				get_account_id_from_seed::<sr25519::Public>("Dave"),
-				get_account_id_from_seed::<sr25519::Public>("Eve"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-			],
-		),
-		// Bootnodes
-		vec![],
-		// Telemetry
-		// TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-		None,
-		// Protocol ID
-		Some("reef_local_testnet"),
-		None,
-		// Properties
-		Some(reef_properties()),
-		// Extensions
-		Default::default(),
-	))
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Local Testnet",
+        // ID
+        "local_testnet",
+        ChainType::Local,
+        move || {
+            testnet_genesis(
+                wasm_binary,
+                // Initial PoA authorities
+                vec![
+                    get_authority_keys_from_seed("Alice"),
+                    get_authority_keys_from_seed("Bob"),
+                ],
+                // Sudo account
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                // Pre-funded accounts
+                vec![
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                ],
+            )
+        },
+        // Bootnodes
+        vec![],
+        // Telemetry
+        // TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+        None,
+        // Protocol ID
+        Some("reef_local_testnet"),
+        None,
+        // Properties
+        Some(reef_properties()),
+        // Extensions
+        Default::default(),
+    ))
 }
 
 pub fn public_testnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-	Ok(ChainSpec::from_genesis(
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    Ok(ChainSpec::from_genesis(
 		// Name
 		"Reef Testnet",
 		// ID
@@ -237,18 +245,17 @@ pub fn public_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
-
 pub fn live_mainnet_config() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../assets/chain_spec_mainnet_raw.json")[..])
+    ChainSpec::from_json_bytes(&include_bytes!("../../assets/chain_spec_mainnet_raw.json")[..])
 }
 
 pub fn live_testnet_config() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../assets/chain_spec_testnet_raw.json")[..])
+    ChainSpec::from_json_bytes(&include_bytes!("../../assets/chain_spec_testnet_raw.json")[..])
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-	Ok(ChainSpec::from_genesis(
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    Ok(ChainSpec::from_genesis(
 		// Name
 		"Reef Mainnet",
 		// ID
@@ -329,220 +336,274 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 }
 
 fn testnet_genesis(
-	wasm_binary: &[u8],
-	initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)>,
-	root_key: AccountId,
-	endowed_accounts: Vec<AccountId>,
-) -> GenesisConfig {
+    wasm_binary: &[u8],
+    initial_authorities: Vec<(
+        AccountId,
+        AccountId,
+        GrandpaId,
+        BabeId,
+        ImOnlineId,
+        AuthorityDiscoveryId,
+    )>,
+    root_key: AccountId,
+    endowed_accounts: Vec<AccountId>,
+) -> RuntimeGenesisConfig {
+    let evm_genesis_accounts = evm_genesis();
 
-	let evm_genesis_accounts = evm_genesis();
+    const INITIAL_BALANCE: u128 = 100_000_000 * REEF;
+    const INITIAL_STAKING: u128 = 1_000_000 * REEF;
+    let existential_deposit = MaxNativeTokenExistentialDeposit::get();
 
-	const INITIAL_BALANCE: u128 = 100_000_000 * REEF;
-	const INITIAL_STAKING: u128 =   1_000_000 * REEF;
-	let existential_deposit = MaxNativeTokenExistentialDeposit::get();
+    let balances = initial_authorities
+        .iter()
+        .map(|x| (x.0.clone(), INITIAL_STAKING))
+        .chain(
+            endowed_accounts
+                .iter()
+                .cloned()
+                .map(|k| (k, INITIAL_BALANCE)),
+        )
+        .chain(
+            get_all_module_accounts()
+                .iter()
+                .map(|x| (x.clone(), existential_deposit)),
+        )
+        .fold(
+            BTreeMap::<AccountId, Balance>::new(),
+            |mut acc, (account_id, amount)| {
+                if let Some(balance) = acc.get_mut(&account_id) {
+                    *balance = balance
+                        .checked_add(amount)
+                        .expect("balance cannot overflow when building genesis");
+                } else {
+                    acc.insert(account_id.clone(), amount);
+                }
+                acc
+            },
+        )
+        .into_iter()
+        .collect::<Vec<(AccountId, Balance)>>();
 
-	let balances = initial_authorities
-		.iter()
-		.map(|x| (x.0.clone(), INITIAL_STAKING))
-		.chain(endowed_accounts.iter().cloned().map(|k| (k, INITIAL_BALANCE)))
-		.chain(
-			get_all_module_accounts()
-				.iter()
-				.map(|x| (x.clone(), existential_deposit)),
-		)
-		.fold(
-			BTreeMap::<AccountId, Balance>::new(),
-			|mut acc, (account_id, amount)| {
-				if let Some(balance) = acc.get_mut(&account_id) {
-					*balance = balance
-						.checked_add(amount)
-						.expect("balance cannot overflow when building genesis");
-				} else {
-					acc.insert(account_id.clone(), amount);
-				}
-				acc
-			},
-		)
-		.into_iter()
-		.collect::<Vec<(AccountId, Balance)>>();
-
-	GenesisConfig {
-		system: SystemConfig {
-			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
-			..Default::default()
-			// changes_trie_config: Default::default(),
-		},
-		assets:Default::default(),
-		indices: IndicesConfig { indices: vec![] },
-		balances: BalancesConfig { balances },
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (
-						x.0.clone(), // stash
-						x.0.clone(), // stash
-						get_session_keys(
-							x.2.clone(), // grandpa
-							x.3.clone(), // babe
-							x.4.clone(), // im-online
-							x.5.clone(), // authority-discovery
-						)))
-				.collect::<Vec<_>>(),
-		},
-		staking: StakingConfig {
-			validator_count: initial_authorities.len() as u32,
-			minimum_validator_count: initial_authorities.len() as u32,
-			stakers: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.1.clone(), INITIAL_STAKING, StakerStatus::Validator))
-				.collect(),
-			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
-			slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
-			..Default::default()
-		},
-		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG), ..Default::default() },
-		grandpa: Default::default(),
-		authority_discovery: Default::default(),
-		im_online: Default::default(),
-		nomination_pools: Default::default(),
-		tokens: TokensConfig {
-			balances: endowed_accounts
-				.iter()
-				.flat_map(|x| {
-					vec![
-						(x.clone(), CurrencyId::Token(TokenSymbol::RUSD), INITIAL_BALANCE),
-					]
-				})
-				.collect(),
-		},
-		evm: EVMConfig {
-			accounts: evm_genesis_accounts,
-		},
-		sudo: SudoConfig { key: Some(root_key) },
-		tech_council: Default::default(),
-	}
+    RuntimeGenesisConfig {
+        system: SystemConfig {
+            // Add Wasm runtime to storage.
+            code: wasm_binary.to_vec(),
+            ..Default::default() // changes_trie_config: Default::default(),
+        },
+        assets: Default::default(),
+        indices: IndicesConfig { indices: vec![] },
+        balances: BalancesConfig { balances },
+        session: SessionConfig {
+            keys: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(), // stash
+                        x.0.clone(), // stash
+                        get_session_keys(
+                            x.2.clone(), // grandpa
+                            x.3.clone(), // babe
+                            x.4.clone(), // im-online
+                            x.5.clone(), // authority-discovery
+                        ),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        },
+        staking: StakingConfig {
+            validator_count: initial_authorities.len() as u32,
+            minimum_validator_count: initial_authorities.len() as u32,
+            stakers: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(),
+                        x.1.clone(),
+                        INITIAL_STAKING,
+                        StakerStatus::Validator,
+                    )
+                })
+                .collect(),
+            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+            slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
+            ..Default::default()
+        },
+        babe: BabeConfig {
+            authorities: Default::default(),
+            epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
+        },
+        grandpa: Default::default(),
+        authority_discovery: Default::default(),
+        im_online: Default::default(),
+        nomination_pools: Default::default(),
+        tokens: TokensConfig {
+            balances: endowed_accounts
+                .iter()
+                .flat_map(|x| {
+                    vec![(
+                        x.clone(),
+                        CurrencyId::Token(TokenSymbol::RUSD),
+                        INITIAL_BALANCE,
+                    )]
+                })
+                .collect(),
+        },
+        evm: EVMConfig {
+            accounts: evm_genesis_accounts,
+        },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
+        tech_council: Default::default(),
+    }
 }
 
 fn mainnet_genesis(
-	wasm_binary: &[u8],
-	initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)>,
-	root_key: AccountId,
-	endowed_accounts: Vec<(AccountId, Balance)>,
-) -> GenesisConfig {
+    wasm_binary: &[u8],
+    initial_authorities: Vec<(
+        AccountId,
+        AccountId,
+        GrandpaId,
+        BabeId,
+        ImOnlineId,
+        AuthorityDiscoveryId,
+    )>,
+    root_key: AccountId,
+    endowed_accounts: Vec<(AccountId, Balance)>,
+) -> RuntimeGenesisConfig {
+    let evm_genesis_accounts = evm_genesis();
 
-	let evm_genesis_accounts = evm_genesis();
+    const INITIAL_STAKING: u128 = 1_000_000 * REEF;
+    let existential_deposit = MaxNativeTokenExistentialDeposit::get();
 
-	const INITIAL_STAKING: u128 = 1_000_000 * REEF;
-	let existential_deposit = MaxNativeTokenExistentialDeposit::get();
+    let balances = initial_authorities
+        .iter()
+        .map(|x| (x.0.clone(), INITIAL_STAKING * 2))
+        .chain(
+            endowed_accounts
+                .iter()
+                .cloned()
+                .map(|x| (x.0.clone(), x.1 * REEF)),
+        )
+        .chain(
+            get_all_module_accounts()
+                .iter()
+                .map(|x| (x.clone(), existential_deposit)),
+        )
+        .fold(
+            BTreeMap::<AccountId, Balance>::new(),
+            |mut acc, (account_id, amount)| {
+                if let Some(balance) = acc.get_mut(&account_id) {
+                    *balance = balance
+                        .checked_add(amount)
+                        .expect("balance cannot overflow when building genesis");
+                } else {
+                    acc.insert(account_id.clone(), amount);
+                }
+                acc
+            },
+        )
+        .into_iter()
+        .collect::<Vec<(AccountId, Balance)>>();
 
-	let balances = initial_authorities
-		.iter()
-		.map(|x| (x.0.clone(), INITIAL_STAKING*2))
-		.chain(endowed_accounts.iter().cloned().map(|x| (x.0.clone(), x.1 * REEF)))
-		.chain(
-			get_all_module_accounts()
-				.iter()
-				.map(|x| (x.clone(), existential_deposit)),
-		)
-		.fold(
-			BTreeMap::<AccountId, Balance>::new(),
-			|mut acc, (account_id, amount)| {
-				if let Some(balance) = acc.get_mut(&account_id) {
-					*balance = balance
-						.checked_add(amount)
-						.expect("balance cannot overflow when building genesis");
-				} else {
-					acc.insert(account_id.clone(), amount);
-				}
-				acc
-			},
-		)
-		.into_iter()
-		.collect::<Vec<(AccountId, Balance)>>();
-
-	GenesisConfig {
-		system: SystemConfig {
-			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
-			..Default::default()
-			// changes_trie_config: Default::default(),
-		},
-		assets:Default::default(),
-		indices: IndicesConfig { indices: vec![] },
-		balances: BalancesConfig { balances },
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (
-						x.0.clone(), // stash
-						x.0.clone(), // stash
-						get_session_keys(
-							x.2.clone(), // grandpa
-							x.3.clone(), // babe
-							x.4.clone(), // im-online
-							x.5.clone(), // authority-discovery
-						)))
-				.collect::<Vec<_>>(),
-		},
-		staking: StakingConfig {
-			validator_count: initial_authorities.len() as u32 * 2,
-			minimum_validator_count: initial_authorities.len() as u32,
-			stakers: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.1.clone(), INITIAL_STAKING, StakerStatus::Validator))
-				.collect(),
-			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
-			slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
-			..Default::default()
-		},
-		babe: BabeConfig { authorities: Default::default(), epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG),..Default::default() },
-		grandpa: Default::default(),
-		authority_discovery: AuthorityDiscoveryConfig { keys: vec![],..Default::default() },
-		im_online: Default::default(),
-		tokens: TokensConfig {
-			balances: vec![]
-		},
-		evm: EVMConfig {
-			accounts: evm_genesis_accounts,
-		},
-	    sudo: SudoConfig { key: Some(root_key) },
-		tech_council: Default::default(),
-		nomination_pools: Default::default(),
-	}
+    RuntimeGenesisConfig {
+        system: SystemConfig {
+            // Add Wasm runtime to storage.
+            code: wasm_binary.to_vec(),
+            ..Default::default() // changes_trie_config: Default::default(),
+        },
+        assets: Default::default(),
+        indices: IndicesConfig { indices: vec![] },
+        balances: BalancesConfig { balances },
+        session: SessionConfig {
+            keys: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(), // stash
+                        x.0.clone(), // stash
+                        get_session_keys(
+                            x.2.clone(), // grandpa
+                            x.3.clone(), // babe
+                            x.4.clone(), // im-online
+                            x.5.clone(), // authority-discovery
+                        ),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        },
+        staking: StakingConfig {
+            validator_count: initial_authorities.len() as u32 * 2,
+            minimum_validator_count: initial_authorities.len() as u32,
+            stakers: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(),
+                        x.1.clone(),
+                        INITIAL_STAKING,
+                        StakerStatus::Validator,
+                    )
+                })
+                .collect(),
+            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+            slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
+            ..Default::default()
+        },
+        babe: BabeConfig {
+            authorities: Default::default(),
+            epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
+        },
+        grandpa: Default::default(),
+        authority_discovery: AuthorityDiscoveryConfig {
+            keys: vec![],
+            ..Default::default()
+        },
+        im_online: Default::default(),
+        tokens: TokensConfig { balances: vec![] },
+        evm: EVMConfig {
+            accounts: evm_genesis_accounts,
+        },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
+        tech_council: Default::default(),
+        nomination_pools: Default::default(),
+    }
 }
 
 pub fn reef_properties() -> serde_json::map::Map<String, serde_json::Value> {
-	serde_json::json!({
-		"ss58Format": 42,
-		"tokenDecimals": 18,
-		"tokenSymbol": "REEF",
-	})
-	.as_object()
-	.expect("Map given; qed")
-	.clone()
+    serde_json::json!({
+        "ss58Format": 42,
+        "tokenDecimals": 18,
+        "tokenSymbol": "REEF",
+    })
+    .as_object()
+    .expect("Map given; qed")
+    .clone()
 }
-
 
 /// Predeployed contract addresses
 pub fn evm_genesis() -> BTreeMap<H160, module_evm::GenesisAccount<Balance, Nonce>> {
-	let existential_deposit = MaxNativeTokenExistentialDeposit::get();
-	let contracts_json = &include_bytes!("../../assets/bytecodes.json")[..];
-	let contracts: Vec<(String, String, String)> = serde_json::from_slice(contracts_json).unwrap();
-	let mut accounts = BTreeMap::new();
-	for (_, address, code_string) in contracts {
-		let account = module_evm::GenesisAccount {
-			nonce: 0,
-			balance: existential_deposit,
-			storage: Default::default(),
-			code: Bytes::from_str(&code_string).unwrap().0,
-		};
-		let addr = H160::from_slice(
-			from_hex(address.as_str())
-				.expect("predeploy-contracts must specify address")
-				.as_slice(),
-		);
-		accounts.insert(addr, account);
-	}
-	accounts
+    let existential_deposit = MaxNativeTokenExistentialDeposit::get();
+    let contracts_json = &include_bytes!("../../assets/bytecodes.json")[..];
+    let contracts: Vec<(String, String, String)> = serde_json::from_slice(contracts_json).unwrap();
+    let mut accounts = BTreeMap::new();
+    for (_, address, code_string) in contracts {
+        let account = module_evm::GenesisAccount {
+            nonce: 0,
+            balance: existential_deposit,
+            storage: Default::default(),
+            code: Bytes::from_str(&code_string).unwrap().0,
+        };
+        let addr = H160::from_slice(
+            from_hex(address.as_str())
+                .expect("predeploy-contracts must specify address")
+                .as_slice(),
+        );
+        accounts.insert(addr, account);
+    }
+    accounts
 }

@@ -2,10 +2,7 @@
 #![allow(clippy::unused_unit)]
 
 use ethereum_types::BigEndianHash;
-use frame_support::{
-    dispatch::{DispatchResult},
-    pallet_prelude::*,
-};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 use hex_literal::hex;
 use module_evm::{ExitReason, ExitSucceed};
@@ -45,7 +42,7 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}

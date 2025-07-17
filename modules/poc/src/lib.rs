@@ -32,11 +32,8 @@ pub use module::*;
 pub type EraIndex = u32;
 pub type BalanceOf<T> =
     <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-pub type CommitmentOf<T> = Commitment<
-    <T as frame_system::Config>::AccountId,
-    BalanceOf<T>,
-    BlockNumberFor<T>,
->;
+pub type CommitmentOf<T> =
+    Commitment<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>;
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Encode, Decode, Clone, PartialEq, TypeInfo)]
