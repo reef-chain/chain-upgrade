@@ -30,31 +30,31 @@ frame-benchmarking = { workspace = true ,default-features = false }
 frame-benchmarking-cli = { workspace = true ,default-features = false }
 pallet-transaction-payment-rpc = { workspace = true ,default-features = false }
 sc-chain-spec = { workspace = true }
-sc-basic-authorship = { workspace = true ,default-features = false }
+sc-basic-authorship = { workspace = true }
 sc-cli = { workspace = true }
 sc-client-api = { workspace = true }
 sc-executor = { workspace = true }
 sc-rpc = { workspace = true }
 sc-rpc-api = { workspace = true }
 sc-service = { workspace = true }
-sc-transaction-pool = { workspace = true ,default-features = false }
-sc-transaction-pool-api = { workspace = true ,default-features = false }
-sc-telemetry = { workspace = true ,default-features = false }
+sc-transaction-pool = { workspace = true }
+sc-transaction-pool-api = { workspace = true }
+sc-telemetry = { workspace = true }
 sp-std = { workspace = true ,default-features = false }
 sp-api = { workspace = true ,default-features = false }
 sp-block-builder = { workspace = true ,default-features = false }
 sp-blockchain = { workspace = true ,default-features = false }
 sp-core  = { workspace = true ,default-features = false }
 sp-inherents = { workspace = true ,default-features = false }
-sc-network = { workspace = true ,default-features = false }
-sc-offchain = { workspace = true ,default-features = false }
+sc-network = { workspace = true }
+sc-offchain = { workspace = true }
 sp-runtime  = { workspace = true ,default-features = false }
 sp-transaction-pool  = { workspace = true ,default-features = false }
 log = { workspace = true, default-features = false }
 sp-timestamp = { workspace = true ,default-features = false }
 substrate-frame-rpc-system = { workspace = true ,default-features = false }
 
-sc-keystore = { workspace = true ,default-features = false }
+sc-keystore = { workspace = true }
 sp-keystore = { workspace = true ,default-features = false }
 grandpa = {  workspace = true ,package = "sc-consensus-grandpa"}
 sc-consensus-grandpa-rpc = { workspace = true }
