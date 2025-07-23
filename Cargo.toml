@@ -3,8 +3,8 @@ resolver = "2"
 
 members = [
     'node',
-    # 'modules/*',
-    # 'runtime',
+    'modules/*',
+    'runtime',
 ]
 
 [profile.dev.package]
@@ -114,7 +114,6 @@ pallet-nomination-pools-benchmarking= { git = "https://github.com/paritytech/pol
 log = { version = "0.4.22", default-features = false }
 
 # Primitives
-
 sp-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
 sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
 sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
@@ -158,7 +157,6 @@ sc-rpc-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "rel
 sp-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0",default-features = false }
 sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sc-consensus-babe-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
-sc-consensus-manual-seal = { git = "https://github.com/paritytech/polkadot-sdk", branch = "polkadot-v0.9.10" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sc-consensus-slots = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }

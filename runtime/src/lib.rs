@@ -262,7 +262,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("reef"),
     impl_name: create_runtime_str!("reef"),
     authoring_version: 1,
-    spec_version: 11,
+    spec_version: 13,
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,

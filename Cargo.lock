@@ -4715,6 +4715,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "module-example"
+version = "0.7.3"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec 3.6.12",
+ "scale-info 2.11.3",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "module-poc"
 version = "1.0.0"
 dependencies = [
@@ -6712,7 +6726,7 @@ dependencies = [
 
 [[package]]
 name = "reef-node"
-version = "4.0.0"
+version = "4.0.2"
 dependencies = [
  "clap 4.4.2",
  "evm-rpc",

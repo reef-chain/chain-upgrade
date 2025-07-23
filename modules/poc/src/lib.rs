@@ -529,7 +529,7 @@ pub mod module {
 
                 if start_block + lock_period <= current_block {
                     // credit the user his funds
-                    T::Currency::deposit_into_existing(&origin, commitment.amount)?;
+                    let _ = T::Currency::deposit_into_existing(&origin, commitment.amount)?;
 
                     // delete the commitment
                     <Commitments<T>>::remove(&origin);
@@ -581,7 +581,7 @@ pub mod module {
                 let current_era = <CurrentEra<T>>::get();
                 if !<VoterRewards<T>>::contains_key(&current_era.index, &origin) {
                     <VoterRewards<T>>::insert(&current_era.index, &origin, &era_reward);
-                    T::Currency::deposit_into_existing(&origin, era_reward)?;
+                    let _ = T::Currency::deposit_into_existing(&origin, era_reward)?;
                     Self::deposit_event(Event::VoterRewarded(
                         current_era.index,
                         origin,
