@@ -114,7 +114,6 @@ pallet-nomination-pools-benchmarking= { git = "https://github.com/paritytech/sub
 log = { version = "0.4.22", default-features = false }
 
 # Primitives
-
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
@@ -158,7 +157,6 @@ sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false }
 sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-babe-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sc-consensus-manual-seal = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-executor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-slots = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }

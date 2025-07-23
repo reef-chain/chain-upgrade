@@ -97,10 +97,6 @@ pub mod v1 {
 				nominators_migrated,
 			);
 				T::DbWeight::get().reads_writes(1, 2)
-			// else {
-			// 	log!(warn, "Skipping v1, should be removed");
-			// 	T::DbWeight::get().reads(1)
-			// }
 		}
 
 	}
