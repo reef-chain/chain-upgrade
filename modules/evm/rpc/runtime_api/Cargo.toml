@@ -21,8 +21,8 @@ std = [
 	"sp-api/std",
 	"codec/std",
 	"scale-info/std",
-	# "sp-std/std",
-	# "sp-core/std",
+	"sp-std/std",
+	"sp-core/std",
 	"ethereum-types/std",
 	"primitives/std",
 ]

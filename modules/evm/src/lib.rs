@@ -63,8 +63,6 @@ pub type BalanceOf<T> =
 pub type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
     <T as frame_system::Config>::AccountId,
 >>::NegativeImbalance;
-pub const RESERVE_ID_DEVELOPER_DEPOSIT: ReserveIdentifier = ReserveIdentifier::EvmDeveloperDeposit;
-
 pub trait WeightInfo {
     fn transfer_maintainer() -> Weight;
     fn deploy() -> Weight;
@@ -300,7 +298,7 @@ pub mod module {
                 let account_info = <EvmAccountInfo<T>>::new(account.nonce, None);
                 <Accounts<T>>::insert(address, account_info);
 
-                T::Currency::deposit_creating(&account_id, account.balance);
+                let _ = T::Currency::deposit_creating(&account_id, account.balance);
 
                 if !account.code.is_empty() {
                     // if code len > 0 then it's a contract
@@ -699,7 +697,7 @@ pub mod module {
             let who = ensure_signed(origin)?;
             let address =
                 T::AddressMapping::get_evm_address(&who).ok_or(Error::<T>::AddressNotMapped)?;
-            T::Currency::withdraw(
+            let _ = T::Currency::withdraw(
                 &who,
                 T::DeploymentFee::get(),
                 WithdrawReasons::FEE,

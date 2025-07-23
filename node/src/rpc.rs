@@ -19,7 +19,7 @@ use evm_rpc::evm_api::EVMApiServer;
 use sc_transaction_pool_api::TransactionPool;
 
 pub use evm_rpc::{EVMRuntimeRPCApi, EVM};
-use grandpa::{
+use sc_consensus_grandpa::{
     FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
 };
 use reef_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Nonce};

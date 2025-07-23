@@ -401,7 +401,7 @@ pub mod module {
                 Error::<T>::OverSubscribed
             );
 
-            T::Currency::withdraw(
+            let _ = T::Currency::withdraw(
                 &origin,
                 amount,
                 WithdrawReasons::RESERVE,
@@ -450,7 +450,7 @@ pub mod module {
                 Error::<T>::OverSubscribed
             );
 
-            T::Currency::withdraw(
+            let _ = T::Currency::withdraw(
                 &origin,
                 amount,
                 WithdrawReasons::RESERVE,

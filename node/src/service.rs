@@ -1,7 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 use futures::FutureExt;
-use grandpa::FinalityProofProvider;
-use grandpa::SharedVoterState;
+use sc_consensus_grandpa::FinalityProofProvider;
+use sc_consensus_grandpa::SharedVoterState;
 use reef_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::Backend;
 use sc_client_api::BlockBackend;
@@ -52,9 +52,9 @@ type PartialResult = Result<
             sc_consensus_babe::BabeBlockImport<
                 Block,
                 FullClient,
-                grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+                sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
             >,
-            grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+            sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
             sc_consensus_babe::BabeLink<Block>,
             BabeWorkerHandle<Block>,
             Option<Telemetry>,
@@ -100,7 +100,7 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
         client.clone(),
     );
 
-    let (grandpa_block_import, grandpa_link) = grandpa::block_import(
+    let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
         client.clone(),
         GRANDPA_JUSTIFICATION_PERIOD,
         &client,
@@ -172,7 +172,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
     let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
-    let grandpa_protocol_name = grandpa::protocol_standard_name(
+    let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
         &client
             .block_hash(0)
             .ok()
@@ -180,11 +180,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             .expect("Genesis block exists; qed"),
         &config.chain_spec,
     );
-    net_config.add_notification_protocol(grandpa::grandpa_peers_set_config(
+    net_config.add_notification_protocol(sc_consensus_grandpa::grandpa_peers_set_config(
         grandpa_protocol_name.clone(),
     ));
 
-    let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
+    let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
         backend.clone(),
         grandpa_link.shared_authority_set().clone(),
         Vec::default(),
@@ -233,7 +233,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
     let justification_stream = grandpa_link.justification_stream();
     let shared_authority_set = grandpa_link.shared_authority_set().clone();
-    let shared_voter_state = grandpa::SharedVoterState::empty();
+    let shared_voter_state = sc_consensus_grandpa::SharedVoterState::empty();
 
     let finality_proof_provider =
         FinalityProofProvider::new_for_service(backend.clone(), Some(shared_authority_set.clone()));
@@ -335,7 +335,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         None
     };
 
-    let grandpa_config = grandpa::Config {
+    let grandpa_config = sc_consensus_grandpa::Config {
         // FIXME #1578 make this available through chainspec
         gossip_duration: Duration::from_millis(333),
         justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
@@ -354,13 +354,13 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         // and vote data availability than the observer. The observer has not
         // been tested extensively yet and having most nodes in a network run it
         // could lead to finality stalls.
-        let grandpa_config = grandpa::GrandpaParams {
+        let grandpa_config = sc_consensus_grandpa::GrandpaParams {
             config: grandpa_config,
             link: grandpa_link,
             network,
             sync: Arc::new(sync_service.clone()),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
-            voting_rule: grandpa::VotingRulesBuilder::default().build(),
+            voting_rule: sc_consensus_grandpa::VotingRulesBuilder::default().build(),
             prometheus_registry,
             shared_voter_state: SharedVoterState::empty(),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
@@ -371,7 +371,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         task_manager.spawn_essential_handle().spawn_blocking(
             "grandpa-voter",
             None,
-            grandpa::run_grandpa_voter(grandpa_config)?,
+            sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?,
         );
     }
 

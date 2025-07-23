@@ -7,7 +7,6 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::GenesisBuild;
 use frame_system::pallet_prelude::*;
 
 mod mock;
@@ -86,7 +85,7 @@ pub mod module {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             if let Some(dummy) = self.dummy.as_ref() {
                 Dummy::<T>::put(dummy);
