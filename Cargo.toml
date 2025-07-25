@@ -103,7 +103,6 @@ pallet-im-online = { git = "https://github.com/paritytech/substrate", default-fe
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-offences = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-staking-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false}
-sp-authority-discovery = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-authority-discovery = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-assets = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 pallet-ranked-collective = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
@@ -115,6 +114,7 @@ log = { version = "0.4.22", default-features = false }
 
 # Primitives
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
+sp-authority-discovery = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
@@ -133,6 +133,7 @@ sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = f
 sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-keyring = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-keystore  = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
+sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.43" }
@@ -153,8 +154,6 @@ sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "polk
 sc-chain-spec = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false}
-
-sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43",default-features = false }
 sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-babe-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
@@ -163,3 +162,7 @@ sc-consensus-slots = { git = "https://github.com/paritytech/substrate", branch =
 sc-consensus-grandpa-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.43", default-features = false }
+
+evm = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false, features = ["with-codec"] }
+evm-gasometer = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false }
+evm-runtime = {  git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main", default-features = false }

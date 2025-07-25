@@ -19,9 +19,9 @@ sha3 = { version = "0.8", default-features = false }
 tiny-keccak = { version = "2.0", features = ["fips202"] }
 log = { version = "0.4.14", default-features = false }
 
-evm = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false, features = ["with-codec"] }
-evm-gasometer = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false }
-evm-runtime = {  git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main", default-features = false }
+evm = { workspace = true ,default-features = false, features = ["with-codec"] }
+evm-gasometer = { workspace = true ,default-features = false }
+evm-runtime = { workspace = true , default-features = false }
 
 frame-support= { workspace = true ,default-features = false }
 frame-system = { workspace = true ,default-features = false }

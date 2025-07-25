@@ -14,20 +14,15 @@ sp-blockchain= { workspace = true , default-features = false }
 sp-core= { workspace = true ,default-features = false } 
 sp-io= { workspace = true ,default-features = false } 
 sp-rpc = { workspace = true ,default-features = false } 
-sc-rpc-api=  { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-sp-runtime= { workspace = true ,default-features = false } 
-sp-storage= { workspace = true ,default-features = false } 
-# sp-transaction-pool= { workspace = true ,default-features = false } 
-# sc-service= { workspace = true ,default-features = false } 
-# sc-client-api= { workspace = true ,default-features = false } 
-# sc-rpc= { workspace = true ,default-features = false } 
-# sc-network= { workspace = true ,default-features = false } 
+sc-rpc-api = { workspace = true } 
+sp-runtime = { workspace = true ,default-features = false } 
+sp-storage = { workspace = true ,default-features = false } 
 rustc-hex = "2.1.0"
 serde = { version = "1.0", features = ["derive"] }
 module-evm-rpc-runtime-api = { path = "runtime_api" }
 module-evm = { path = ".." }
-pallet-transaction-payment-rpc-runtime-api = {git = "https://github.com/paritytech/substrate",default-features = false,branch = "polkadot-v0.9.43" }
-frame-support= { workspace = true ,default-features = false } 
+pallet-transaction-payment-rpc-runtime-api = { workspace = true ,default-features = false } 
+frame-support = { workspace = true ,default-features = false } 
 log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
