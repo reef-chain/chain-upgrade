@@ -165,3 +165,7 @@ sc-consensus-grandpa-rpc = { git = "https://github.com/paritytech/polkadot-sdk",
 sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 
 xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+
+evm = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false, features = ["with-codec"] }
+evm-gasometer = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false }
+evm-runtime = {  git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main", default-features = false }
