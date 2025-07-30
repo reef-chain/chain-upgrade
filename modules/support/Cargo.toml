@@ -11,7 +11,7 @@ sp-runtime = { workspace = true ,default-features = false }
 frame-support = { workspace = true ,default-features = false }
 sp-std = { workspace = true ,default-features = false }
 sp-core = { workspace = true ,default-features = false }
-ethereum-types = { version = "0.12.0", default-features = false }
+ethereum-types = { workspace = true, default-features = false }
 orml-traits = { path = "../../orml/traits", default-features = false }
 primitives = { package = "reef-primitives", path = "../../primitives", default-features = false }
 

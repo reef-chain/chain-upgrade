@@ -62,6 +62,7 @@ lto = "fat"
 codegen-units = 1
 
 [workspace.dependencies]
+ethereum-types = { version = "0.14.0", default-features = false,features = ["scale-info","codec"]  }
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
 frame-executive = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
