@@ -437,6 +437,7 @@ fn testnet_genesis(
         authority_discovery: Default::default(),
         im_online: Default::default(),
         nomination_pools: Default::default(),
+		treasury: Default::default(),
         tokens: TokensConfig {
             balances: endowed_accounts
                 .iter()
@@ -570,6 +571,7 @@ fn mainnet_genesis(
             key: Some(root_key),
         },
         tech_council: Default::default(),
+		treasury: Default::default(),
         nomination_pools: Default::default(),
     }
 }

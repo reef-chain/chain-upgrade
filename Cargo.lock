@@ -5324,6 +5324,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bounties"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-treasury",
+ "parity-scale-codec 3.6.12",
+ "scale-info 2.11.3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-child-bounties"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-bounties",
+ "pallet-treasury",
+ "parity-scale-codec 3.6.12",
+ "scale-info 2.11.3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-collective"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
@@ -6682,7 +6719,7 @@ dependencies = [
 
 [[package]]
 name = "reef-node"
-version = "4.0.2"
+version = "6.0.0"
 dependencies = [
  "clap 4.4.2",
  "evm-rpc",
@@ -6789,6 +6826,8 @@ dependencies = [
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances",
+ "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collective",
  "pallet-conviction-voting",
  "pallet-election-provider-multi-phase",
