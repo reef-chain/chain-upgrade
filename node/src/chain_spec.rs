@@ -404,6 +404,7 @@ fn testnet_genesis(
 		grandpa: Default::default(),
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		im_online: Default::default(),
+		treasury: Default::default(),
 		nomination_pools: Default::default(),
 		tokens: TokensConfig {
 			balances: endowed_accounts
@@ -498,6 +499,7 @@ fn mainnet_genesis(
 		grandpa: Default::default(),
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		im_online: Default::default(),
+		treasury: Default::default(),
 		tokens: TokensConfig {
 			balances: vec![]
 		},
