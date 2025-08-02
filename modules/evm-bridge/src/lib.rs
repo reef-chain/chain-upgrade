@@ -176,8 +176,7 @@ impl<T: Config> EVMBridgeTrait<AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
         Self::handle_exit_reason(info.exit_reason)?;
 
         // return value is true.
-        let bytes = [0u8; 32];
-        U256::from(1).to_big_endian();
+        let bytes = U256::from(1).to_big_endian();
 
         // Check return value to make sure not calling on empty contracts.
         ensure!(

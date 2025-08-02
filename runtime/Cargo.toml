@@ -97,7 +97,7 @@ pallet-referenda = { workspace = true ,default-features = false }
 # module-support = { path = "../modules/support", default-features = false }
 
 # primitives = { package = "reef-primitives", path = "../primitives", default-features = false }
-# runtime-common = { path = "common", default-features = false }
+runtime-common = { path = "common", default-features = false }
 
 [dev-dependencies]
 libsecp256k1 = "0.3.4"
@@ -176,7 +176,7 @@ std = [
 # 	"module-transaction-payment/std",
 # 	"module-support/std",
 # 	"primitives/std",
-# 	"runtime-common/std",
+	"runtime-common/std",
 # 	"module-evm-rpc-runtime-api/std",
 ]
 # with-ethereum-compatibility = [

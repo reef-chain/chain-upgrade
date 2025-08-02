@@ -219,7 +219,8 @@ where
 
                 // add task_id len prefix
                 let mut task_id_with_len = [0u8; 96];
-                U256::from(task_id.len()).to_big_endian(&mut task_id_with_len[0..32]);
+                let len_be = U256::from(task_id.len()).to_big_endian();
+                task_id_with_len[..32].copy_from_slice(&len_be);
                 task_id_with_len[32..32 + task_id.len()].copy_from_slice(&task_id[..]);
 
                 Ok((ExitSucceed::Returned, task_id_with_len.to_vec(), 0))
