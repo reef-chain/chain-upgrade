@@ -3,8 +3,8 @@ resolver = "2"
 
 members = [
     # 'node',
-    # 'modules/*',
-    'runtime',
+    'modules/evm',
+    # 'runtime',
 ]
 
 [profile.dev.package]

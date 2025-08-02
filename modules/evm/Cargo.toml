@@ -11,7 +11,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 impl-trait-for-tuples = "0.1"
 scale-info = { version = "2.2.0", default-features = false, features = ["derive"] }
-primitive-types = { version = "0.12.0", default-features = false, features = ["rlp", "byteorder","scale-info"] }
+primitive-types = { version="0.13.1", default-features = false, features = ["rlp", "byteorder","scale-info"] }
 ripemd160 = { version = "0.9", default-features = false }
 rlp = { version = "0.5.2", default-features = false }
 serde = { version = "1.0.145",  default-features = false,features = ["derive","alloc"] }
@@ -19,16 +19,17 @@ sha3 = { version = "0.8", default-features = false }
 tiny-keccak = { version = "2.0", features = ["fips202"] }
 log = { version = "0.4.14", default-features = false }
 
-evm = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false, features = ["with-codec"] }
-evm-gasometer = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false }
-evm-runtime = {  git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main", default-features = false }
+evm = { path="../../../Evm-30/evm-0.30.1",default-features = false, features = ["with-codec"] }
+evm-gasometer = { path="../../../Evm-30/evm-gasometer-0.30.0",default-features = false }
+evm-runtime = {  path="../../../Evm-30/evm-runtime-0.30.0", default-features = false }
 
 frame-support= { workspace = true ,default-features = false }
 frame-system = { workspace = true ,default-features = false }
 pallet-balances = { workspace = true ,default-features = false }
 pallet-timestamp = { workspace = true ,default-features = false }
 
-sp-core = { workspace = true ,default-features = false }
+# sp-core = { workspace = true ,default-features = false }
+
 sp-io = { workspace = true ,default-features = false }
 sp-runtime = { workspace = true ,default-features = false }
 sp-std = { workspace = true ,default-features = false }
@@ -45,7 +46,7 @@ default = ["std"]
 std = [
 	"serde/std",
 	"codec/std",
-	"sp-core/std",
+	# "sp-core/std",
 	"scale-info/std",
 	"sp-runtime/std",
 	"frame-support/std",

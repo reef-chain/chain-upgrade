@@ -14,8 +14,8 @@ sp-runtime = { workspace = true, default-features = false }
 sp-std = { workspace = true, default-features = false }
 scale-info = { version = "2.0.0", default-features = false, features = ["derive"] }
 sp-io = { workspace = true, default-features = false }
-ethereum-types = { version = "0.14.0", default-features = false,features = ["scale-info","codec"]  }
-evm = { git = "https://github.com/reef-chain/reef-chain-evm-pallet",branch = "main",default-features = false, features = ["with-codec"] }
+ethereum-types = { version ="0.15.0", default-features = false,features = ["scale-info","codec"]  }
+evm = { path="../../Evm-30/evm-0.30.1",default-features = false, features = ["with-codec"] }
 
 [dev-dependencies]
 frame-support = { workspace = true, default-features = false }
