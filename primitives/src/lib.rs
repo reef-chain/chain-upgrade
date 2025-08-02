@@ -5,6 +5,7 @@
 use scale_info::TypeInfo;
 pub mod evm;
 use codec::MaxEncodedLen;
+use codec::DecodeWithMemTracking;
 // pub mod mocks;
 
 use crate::evm::EvmAddress;
@@ -145,6 +146,7 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
     MaxEncodedLen,
     Serialize,
     Deserialize,
+    DecodeWithMemTracking
 )]
 pub enum TokenSymbol {
     REEF = 0,
@@ -177,6 +179,7 @@ impl TryFrom<u8> for TokenSymbol {
     Deserialize,
     TypeInfo,
     MaxEncodedLen,
+    DecodeWithMemTracking,
 )]
 pub enum CurrencyId {
     Token(TokenSymbol),

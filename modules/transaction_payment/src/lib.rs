@@ -636,7 +636,7 @@ where
 
 /// Require the transactor pay for themselves and maybe include a tip to
 /// gain additional priority in the queue.
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo,DecodeWithMemTracking)]
 #[scale_info(skip_type_params(T))]
 pub struct ChargeTransactionPayment<T: Config + Send + Sync>(#[codec(compact)] PalletBalanceOf<T>);
 
