@@ -8,6 +8,7 @@ use hex_literal::hex;
 use module_evm::{ExitReason, ExitSucceed};
 use sp_core::{H160, H256, U256};
 use sp_runtime::SaturatedConversion;
+use sp_runtime::ArithmeticError;
 use sp_std::vec::Vec;
 use support::{EVMBridge as EVMBridgeTrait, ExecutionMode, InvokeContext, EVM};
 
@@ -99,7 +100,7 @@ impl<T: Config> EVMBridgeTrait<AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
         Self::handle_exit_reason(info.exit_reason)?;
 
         ensure!(info.output.len() == 32, Error::<T>::InvalidReturnValue);
-        let value = U256::from(info.output.as_slice()).saturated_into::<u8>();
+       let value = U256::from_big_endian(info.output.as_slice()).saturated_into::<u8>();
         Ok(value)
     }
 
@@ -118,7 +119,7 @@ impl<T: Config> EVMBridgeTrait<AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
 
         Self::handle_exit_reason(info.exit_reason)?;
 
-        let value = U256::from(info.output.as_slice()).saturated_into::<u128>();
+        let value = U256::from_big_endian(info.output.as_slice()).saturated_into::<u128>();
         Ok(value.saturated_into::<BalanceOf<T>>())
     }
 
@@ -142,7 +143,7 @@ impl<T: Config> EVMBridgeTrait<AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
 
         Self::handle_exit_reason(info.exit_reason)?;
 
-        Ok(U256::from(info.output.as_slice())
+        Ok(U256::from_big_endian(info.output.as_slice())
             .saturated_into::<u128>()
             .saturated_into::<BalanceOf<T>>())
     }
@@ -175,8 +176,8 @@ impl<T: Config> EVMBridgeTrait<AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
         Self::handle_exit_reason(info.exit_reason)?;
 
         // return value is true.
-        let mut bytes = [0u8; 32];
-        U256::from(1).to_big_endian(&mut bytes);
+        let bytes = [0u8; 32];
+        U256::from(1).to_big_endian();
 
         // Check return value to make sure not calling on empty contracts.
         ensure!(

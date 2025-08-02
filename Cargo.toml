@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     # 'node',
     'modules/*',
+    #  'modules/evm/rpc'
     # 'runtime',
 ]
 

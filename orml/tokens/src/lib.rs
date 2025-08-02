@@ -19,8 +19,7 @@
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
 //! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper
-//!   types and methods, like updating balance
-//! by a given signed integer amount.
+//!   types and methods, like updating balance by a given signed integer amount.
 //!
 //! ## Interface
 //!
@@ -40,7 +39,6 @@
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
-use codec::MaxEncodedLen;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -57,13 +55,11 @@ use frame_support::{
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{
-		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
-		StaticLookup, Zero,
-	},
-	ArithmeticError, DispatchError, DispatchResult, FixedPointOperand, RuntimeDebug, TokenError,
+	traits::{Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug, TokenError,
 };
 use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
@@ -185,14 +181,7 @@ pub mod module {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The balance type
-		type Balance: Parameter
-			+ Member
-			+ AtLeast32BitUnsigned
-			+ Default
-			+ Copy
-			+ MaybeSerializeDeserialize
-			+ MaxEncodedLen
-			+ FixedPointOperand;
+		type Balance: frame_support::traits::tokens::Balance;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed
@@ -425,7 +414,9 @@ pub mod module {
 
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig { balances: vec![] }
+			GenesisConfig {
+				balances: Default::default(),
+			}
 		}
 	}
 
@@ -482,7 +473,7 @@ pub mod module {
 		///
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
-		/// - `amount`: free balance amount to tranfer.
+		/// - `amount`: free balance amount to transfer.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(
@@ -550,7 +541,7 @@ pub mod module {
 		///
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
-		/// - `amount`: free balance amount to tranfer.
+		/// - `amount`: free balance amount to transfer.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::transfer_keep_alive())]
 		pub fn transfer_keep_alive(
@@ -573,7 +564,7 @@ pub mod module {
 		/// - `source`: The sender of the transfer.
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
-		/// - `amount`: free balance amount to tranfer.
+		/// - `amount`: free balance amount to transfer.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::force_transfer())]
 		pub fn force_transfer(
@@ -1160,9 +1151,10 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		// allow death
-		Self::do_transfer(currency_id, from, to, amount, ExistenceRequirement::AllowDeath)
+		Self::do_transfer(currency_id, from, to, amount, existence_requirement)
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
@@ -1171,9 +1163,14 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		Ok(())
 	}
 
-	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
 		// allow death
-		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
+		Self::do_withdraw(currency_id, who, amount, existence_requirement, true)
 	}
 
 	// Check if `value` amount of free balance can be slashed from `who`.
@@ -1209,7 +1206,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
-			// Cannot underflow becuase free_slashed_amount can never be greater than
+			// Cannot underflow because free_slashed_amount can never be greater than
 			// account.free but just to be defensive here.
 			Self::set_free_balance(
 				currency_id,
@@ -1268,7 +1265,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {
-			Self::withdraw(currency_id, who, by_balance).map(|_| ())
+			Self::withdraw(currency_id, who, by_balance, ExistenceRequirement::AllowDeath).map(|_| ())
 		}
 	}
 }
@@ -1806,7 +1803,9 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		let a = Self::accounts(who, asset_id);
 		// Liquid balance is what is neither reserved nor locked/frozen.
 		let liquid = a.free.saturating_sub(a.frozen);
-		if frame_system::Pallet::<T>::can_dec_provider(who) && !matches!(preservation, Preservation::Protect) {
+		if frame_system::Pallet::<T>::can_dec_provider(who)
+			&& !matches!(preservation, Preservation::Protect | Preservation::Preserve)
+		{
 			liquid
 		} else {
 			// `must_remain_to_exist` is the part of liquid balance which must remain to
@@ -1854,6 +1853,8 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		asset_id: Self::AssetId,
 		who: &T::AccountId,
 		amount: Self::Balance,
+		// TODO: Respect preservation
+		_preservation: Preservation,
 		// TODO: Respect precision
 		_precision: Precision,
 		// TODO: Respect fortitude
@@ -2488,10 +2489,18 @@ where
 	fn burn_from(
 		who: &T::AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount, precision, fortitude)
+		<Pallet<T> as fungibles::Mutate<_>>::burn_from(
+			GetCurrencyId::get(),
+			who,
+			amount,
+			preservation,
+			precision,
+			fortitude,
+		)
 	}
 
 	fn transfer(

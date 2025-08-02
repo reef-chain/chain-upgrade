@@ -102,6 +102,7 @@ where
 	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
 	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
 	B: fungibles::Mutate<AccountId>,
+	AccountId: Eq,
 {
 	fn mint_into(
 		asset: Self::AssetId,
@@ -119,13 +120,14 @@ where
 		asset: Self::AssetId,
 		dest: &AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
 		if TestKey::contains(&asset) {
-			A::burn_from(dest, amount, precision, fortitude)
+			A::burn_from(dest, amount, preservation, precision, fortitude)
 		} else {
-			B::burn_from(asset, dest, amount, precision, fortitude)
+			B::burn_from(asset, dest, amount, preservation, precision, fortitude)
 		}
 	}
 
@@ -149,6 +151,7 @@ where
 	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
 	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
 	B: fungibles::Mutate<AccountId>,
+	AccountId: Eq,
 {
 	fn handle_dust(_dust: fungibles::Dust<AccountId, Self>) {
 		// FIXME: only way to access internals of Dust is into_credit, but T is
@@ -280,6 +283,7 @@ where
 	>,
 	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
+	AccountId: Eq,
 {
 	fn mint_into(dest: &AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
 		T::mint_into(
@@ -292,6 +296,7 @@ where
 	fn burn_from(
 		dest: &AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
@@ -299,6 +304,7 @@ where
 			GetCurrencyId::get(),
 			dest,
 			C::convert_balance_back(amount, GetCurrencyId::get())?,
+			preservation,
 			precision,
 			fortitude,
 		)

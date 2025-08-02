@@ -4,14 +4,16 @@
 
 use super::*;
 use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, SortedMembers},
+	construct_runtime, derive_impl, parameter_types,
+	traits::{
+		tokens::{PayFromAccount, UnityAssetBalanceConversion},
+		ChangeMembers, ConstU32, ConstU64,
+	},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
-use sp_core::H256;
 use sp_runtime::{
-	traits::{AccountIdConversion, IdentityLookup},
+	traits::{AccountIdConversion, BlockNumberProvider, IdentityLookup},
 	AccountId32, BuildStorage, Permill,
 };
 use sp_std::cell::RefCell;
@@ -37,30 +39,11 @@ pub const RID_2: ReserveIdentifier = [2u8; 8];
 
 use crate as tokens;
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
-	type Nonce = u64;
-	type Hash = H256;
-	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = ConstU64<250>;
-	type BlockWeights = ();
-	type BlockLength = ();
-	type Version = ();
-	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type DbWeight = ();
-	type BaseCallFilter = Everything;
-	type SystemWeightInfo = ();
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = ConstU32<16>;
 }
 
 thread_local! {
@@ -73,59 +56,49 @@ thread_local! {
 	]);
 }
 
-pub struct TenToFourteen;
-impl SortedMembers<AccountId> for TenToFourteen {
-	fn sorted_members() -> Vec<AccountId> {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().clone())
-	}
-	#[cfg(feature = "runtime-benchmarks")]
-	fn add(new: &AccountId) {
-		TEN_TO_FOURTEEN.with(|v| {
-			let mut members = v.borrow_mut();
-			members.push(new.clone());
-			members.sort();
-		})
-	}
-}
-
-impl ContainsLengthBound for TenToFourteen {
-	fn max_len() -> usize {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().len())
-	}
-	fn min_len() -> usize {
-		0
-	}
-}
-
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: u64 = 1;
-	pub const ProposalBondMaximum: u64 = 5;
-	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const GetTokenId: CurrencyId = DOT;
-	pub const MaxApprovals: u32 = 100;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
+
+parameter_types! {
+	pub static MockBlockNumberProvider: u64 = 0;
+}
+
+impl BlockNumberProvider for MockBlockNumberProvider {
+	type BlockNumber = u64;
+
+	fn current_block_number() -> BlockNumberFor<Runtime> {
+		Self::get()
+	}
+}
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = MockCurrencyAdapter;
-	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type RuntimeEvent = RuntimeEvent;
-	type OnSlash = ();
-	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ProposalBondMinimum;
-	type ProposalBondMaximum = ProposalBondMaximum;
-	type SpendPeriod = SpendPeriod;
+	type SpendPeriod = ConstU64<2>;
 	type Burn = Burn;
-	type BurnDestination = ();
-	type SpendFunds = ();
+	type BurnDestination = (); // Just gets burned.
 	type WeightInfo = ();
-	type MaxApprovals = MaxApprovals;
-	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+	type SpendFunds = ();
+	type MaxApprovals = ConstU32<100>;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u64>;
+	type AssetKind = ();
+	type Beneficiary = Self::AccountId;
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	type Paymaster = PayFromAccount<MockCurrencyAdapter, TreasuryAccount>;
+	type BalanceConverter = UnityAssetBalanceConversion;
+	type PayoutPeriod = ConstU64<10>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+	type BlockNumberProvider = MockBlockNumberProvider;
 }
 
 thread_local! {

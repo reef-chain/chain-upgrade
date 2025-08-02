@@ -1,7 +1,7 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
 use crate::{Config, TotalIssuance};
-use frame_support::traits::{Get, Imbalance, SameOrOther, TryDrop};
+use frame_support::traits::{tokens::imbalance::TryMerge, Get, Imbalance, SameOrOther, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{marker, mem, result};
 
@@ -102,6 +102,12 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 	fn peek(&self) -> T::Balance {
 		self.0
 	}
+
+	fn extract(&mut self, amount: T::Balance) -> Self {
+		let new: T::Balance = self.0.min(amount);
+		self.0 -= new;
+		Self::new(new)
+	}
 }
 
 impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for NegativeImbalance<T, GetCurrencyId> {
@@ -157,6 +163,12 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 	fn peek(&self) -> T::Balance {
 		self.0
 	}
+
+	fn extract(&mut self, amount: T::Balance) -> Self {
+		let new: T::Balance = self.0.min(amount);
+		self.0 -= new;
+		Self::new(new)
+	}
 }
 
 impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for PositiveImbalance<T, GetCurrencyId> {
@@ -170,5 +182,16 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for NegativeImbalance<T,
 	/// Basic drop handler will just square up the total issuance.
 	fn drop(&mut self) {
 		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_sub(self.0));
+	}
+}
+
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryMerge for PositiveImbalance<T, GetCurrencyId> {
+	fn try_merge(self, other: Self) -> Result<Self, (Self, Self)> {
+		Ok(self.merge(other))
+	}
+}
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryMerge for NegativeImbalance<T, GetCurrencyId> {
+	fn try_merge(self, other: Self) -> Result<Self, (Self, Self)> {
+		Ok(self.merge(other))
 	}
 }

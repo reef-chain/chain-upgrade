@@ -27,6 +27,15 @@ fn fungibles_inspect_trait_should_work() {
 				),
 				98
 			);
+			assert_eq!(
+				<Tokens as fungibles::Inspect<_>>::reducible_balance(
+					DOT,
+					&ALICE,
+					Preservation::Preserve,
+					Fortitude::Polite
+				),
+				98
+			);
 			assert_ok!(
 				<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1, Provenance::Extant).into_result()
 			);
@@ -42,7 +51,14 @@ fn fungibles_mutate_trait_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(<Tokens as fungibles::Mutate<_>>::mint_into(DOT, &ALICE, 10));
 		assert_eq!(
-			<Tokens as fungibles::Mutate<_>>::burn_from(DOT, &ALICE, 8, Precision::Exact, Fortitude::Polite),
+			<Tokens as fungibles::Mutate<_>>::burn_from(
+				DOT,
+				&ALICE,
+				8,
+				Preservation::Expendable,
+				Precision::Exact,
+				Fortitude::Polite
+			),
 			Ok(8)
 		);
 	});
@@ -709,6 +725,7 @@ fn fungibles_mutate_convert_should_work() {
 				DOT,
 				&BOB,
 				10000,
+				Preservation::Expendable,
 				Precision::Exact,
 				Fortitude::Polite
 			));

@@ -17,10 +17,10 @@ sp-core = { workspace = true, default-features = false}
 sp-runtime = { workspace = true, default-features = false} 
 sp-std = { workspace = true, default-features = false} 
 sp-io = { workspace = true, default-features = false} 
-primitive-types = { version = "0.12.0", default-features = false, features = ["rlp", "byteorder"] }
+primitive-types = { version = "0.12.1", default-features = false, features = ["rlp", "byteorder"] }
 sha3 = { version = "0.8", default-features = false }
 impl-trait-for-tuples = "0.2.1"
-ethereum-types = { version = "0.14.0", default-features = false,features = ["scale-info","codec"]  }
+ethereum-types = { version = "0.15.0", default-features = false,features = ["scale-info","codec"]  }
 primitives = { package = "reef-primitives", path = "../../primitives", default-features = false }
 support = { package = "module-support", path = "../support", default-features = false }
 module-evm = { path = "../evm", default-features = false }
