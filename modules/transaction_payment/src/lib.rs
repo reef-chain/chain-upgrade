@@ -415,10 +415,10 @@ where
         let dispatch_info = <Extrinsic as GetDispatchInfo>::get_dispatch_info(&unchecked_extrinsic);
 
         let partial_fee = Self::compute_fee(len, &dispatch_info, 0u32.into());
-        let DispatchInfo { weight, class, .. } = dispatch_info;
+        let DispatchInfo { call_weight, class, .. } = dispatch_info;
 
         RuntimeDispatchInfo {
-            weight,
+            weight:call_weight,
             class,
             partial_fee,
         }
@@ -439,7 +439,7 @@ where
         info: &DispatchInfoOf<CallOf<T>>,
         tip: PalletBalanceOf<T>,
     ) -> FeeDetails<PalletBalanceOf<T>> {
-        Self::compute_fee_raw(len, info.weight, tip, info.pays_fee, info.class)
+        Self::compute_fee_raw(len, info.total_weight(), tip, info.pays_fee, info.class)
     }
 
     /// Compute the final fee value for a particular transaction.
@@ -706,7 +706,7 @@ where
     ) -> TransactionPriority {
         // // Calculate how many such extrinsics we could fit into an empty block and take
         let weight_saturation =
-            T::BlockWeights::get().max_block.ref_time() / info.weight.ref_time().max(1);
+            T::BlockWeights::get().max_block.ref_time() / info.total_weight().ref_time().max(1);
         let max_block_length = *T::BlockLength::get().max.get(DispatchClass::Normal);
         let len_saturation = max_block_length as u64 / (len as u64).max(1);
         let coefficient: PalletBalanceOf<T> = weight_saturation
