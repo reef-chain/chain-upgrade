@@ -1230,7 +1230,7 @@ pub fn code_hash(code: &[u8]) -> H256 {
     H256::from_slice(Keccak256::digest(code).as_slice())
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo,DecodeWithMemTracking)]
 #[scale_info(skip_type_params(T))]
 pub struct SetEvmOrigin<T: Config + Send + Sync>(PhantomData<T>);
 
