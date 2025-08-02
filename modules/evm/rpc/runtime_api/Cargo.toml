@@ -10,7 +10,7 @@ sp-api = { workspace = true ,default-features = false }
 sp-std = { workspace = true ,default-features = false }
 sp-core = { workspace = true ,default-features = false }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
-ethereum-types = { version = "0.14.0", default-features = false,features = ["scale-info"]  }
+ethereum-types = { version = "0.15.0", default-features = false,features = ["scale-info"]  }
 scale-info = { version = "2.2.0", default-features = false, features = ["derive"] }
 primitives = { package = "reef-primitives", path = "../../../../primitives", default-features = false }
 

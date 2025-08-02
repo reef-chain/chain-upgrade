@@ -250,46 +250,19 @@ impl<T: Config> Pallet<T> {
         EvmAddress::from_slice(&keccak_256(&Self::eth_public(secret).serialize()[1..65])[12..])
     }
 
-     #[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
-    pub fn eth_sign(
-        secret: &secp256k1::SecretKey,
-         who: &T::AccountId
-    ) -> Eip712Signature {
-       let msg = keccak_256(&Self::eip712_signable_message(who));
-        let (sig, recovery_id) = secp256k1::sign(&secp256k1::Message::parse(&msg), secret);
-        let mut r = [0u8; 65];
-        r[0..64].copy_from_slice(&sig.serialize()[..]);
-        r[64] = recovery_id.serialize();
-       r
-    }
+    //  #[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
+    // pub fn eth_sign(
+    //     secret: &secp256k1::SecretKey,
+    //      who: &T::AccountId
+    // ) -> Eip712Signature {
+    //    let msg = keccak_256(&Self::eip712_signable_message(who));
+    //     let (sig, recovery_id) = secp256k1::sign(&secp256k1::Message::parse(&msg), secret);
+    //     let mut r = [0u8; 65];
+    //     r[0..64].copy_from_slice(&sig.serialize()[..]);
+    //     r[64] = recovery_id.serialize();
+    //    r
+    // }
 
-    // Eip-712 message to be signed
-	fn eip712_signable_message(who: &T::AccountId) -> Vec<u8> {
-		let domain_separator = Self::evm_account_domain_separator();
-		let payload_hash = Self::evm_account_payload_hash(who);
-
-		let mut msg = b"\x19\x01".to_vec();
-		msg.extend_from_slice(&domain_separator);
-		msg.extend_from_slice(&payload_hash);
-		msg
-	}
-
-    	fn evm_account_payload_hash(who: &T::AccountId) -> [u8; 32] {
-		let tx_type_hash = keccak256!("Transaction(bytes substrateAddress)");
-		let mut tx_msg = tx_type_hash.to_vec();
-		tx_msg.extend_from_slice(&keccak_256(&who.encode()));
-		keccak_256(tx_msg.as_slice())
-	}
-
-	fn evm_account_domain_separator() -> [u8; 32] {
-		let domain_hash = keccak256!("EIP712Domain(string name,string version,uint256 chainId,bytes32 salt)");
-		let mut domain_seperator_msg = domain_hash.to_vec();
-		domain_seperator_msg.extend_from_slice(keccak256!("Reef EVM claim")); // name
-		domain_seperator_msg.extend_from_slice(keccak256!("1")); // version
-		domain_seperator_msg.extend_from_slice(&to_bytes(T::ChainId::get())); // chain id
-		domain_seperator_msg.extend_from_slice(frame_system::Pallet::<T>::block_hash(BlockNumberFor::<T>::zero()).as_ref()); // genesis block hash
-		keccak_256(domain_seperator_msg.as_slice())
-	}
 
     /// Converts the given binary data into ASCII-encoded hex. It will be twice
     /// the length.
