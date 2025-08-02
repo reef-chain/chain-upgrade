@@ -28,7 +28,7 @@ frame-benchmarking = { workspace = true ,default-features = false, optional = tr
 frame-executive = { workspace = true ,default-features = false }
 frame-support = { workspace = true ,default-features = false }
 frame-system = { workspace = true ,default-features = false }
-# frame-system-benchmarking = { workspace = true ,default-features = false, optional = true }
+frame-system-benchmarking = { workspace = true ,default-features = false, optional = true }
 frame-system-rpc-runtime-api = { workspace = true ,default-features = false }
 frame-election-provider-support = { workspace = true ,default-features = false }
 pallet-balances = { workspace = true ,default-features = false }
@@ -43,11 +43,11 @@ pallet-transaction-payment = { workspace = true ,default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true ,default-features = false }
 pallet-utility = { workspace = true ,default-features = false }
 pallet-multisig = { workspace = true ,default-features = false }
-# sp-api = { workspace = true ,default-features = false }
-# sp-block-builder = { workspace = true ,default-features = false }
-# sp-core = { workspace = true ,default-features = false }
-# sp-inherents = { workspace = true ,default-features = false }
-# sp-io = { workspace = true ,default-features = false }
+sp-api = { workspace = true ,default-features = false }
+sp-block-builder = { workspace = true ,default-features = false }
+sp-core = { workspace = true ,default-features = false }
+sp-inherents = { workspace = true ,default-features = false }
+sp-io = { workspace = true ,default-features = false }
 sp-offchain = { workspace = true ,default-features = false }
 sp-runtime = { workspace = true ,default-features = false }
 sp-session = { workspace = true ,default-features = false }
@@ -65,28 +65,28 @@ pallet-authorship ={ workspace = true ,default-features = false }
 pallet-babe ={ workspace = true ,default-features = false }
 sp-consensus-babe ={ workspace = true ,default-features = false }
 pallet-im-online ={ workspace = true ,default-features = false }
-# pallet-offences ={ workspace = true ,default-features = false }
-# sp-authority-discovery ={ workspace = true ,default-features = false }
-# pallet-authority-discovery ={ workspace = true ,default-features = false }
-# pallet-identity = { workspace = true ,default-features = false }
-# pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
+pallet-offences ={ workspace = true ,default-features = false }
+sp-authority-discovery ={ workspace = true ,default-features = false }
+pallet-authority-discovery ={ workspace = true ,default-features = false }
+pallet-identity = { workspace = true ,default-features = false }
+pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
 pallet-treasury = { workspace = true ,default-features = false }
 # pallet-assets = { workspace = true ,default-features = false }
 pallet-referenda = { workspace = true ,default-features = false }
 pallet-conviction-voting = { workspace = true ,default-features = false }
-# pallet-nomination-pools = { workspace = true ,default-features = false }
-# pallet-nomination-pools-runtime-api = { workspace = true ,default-features = false }
+pallet-nomination-pools = { workspace = true ,default-features = false }
+pallet-nomination-pools-runtime-api = { workspace = true ,default-features = false }
 pallet-bags-list = { workspace = true ,default-features = false }
-# pallet-ranked-collective = { workspace = true ,default-features = false }
+pallet-ranked-collective = { workspace = true ,default-features = false }
 
 # # PoC
 pallet-collective  = { workspace = true ,default-features = false }
 module-poc = { path = "../modules/poc", default-features = false }
 
 # # local dependencies
-# orml-traits = { path = "../orml/traits", default-features = false }
-# orml-tokens = { path = "../orml/tokens", default-features = false }
-# orml-authority = { path = "../orml/authority", default-features = false }
+orml-traits = { path = "../orml/traits", default-features = false }
+orml-tokens = { path = "../orml/tokens", default-features = false }
+orml-authority = { path = "../orml/authority", default-features = false }
 
 module-currencies = { path = "../modules/currencies", default-features = false }
 module-evm = { path = "../modules/evm", default-features = false }
@@ -140,22 +140,22 @@ std = [
 	"pallet-authorship/std",
 	"pallet-babe/std",
 	"sp-consensus-babe/std",
-# 	"sp-authority-discovery/std",
-# 	"pallet-authority-discovery/std",
+	"sp-authority-discovery/std",
+ 	"pallet-authority-discovery/std",
 	"pallet-im-online/std",
-# 	"pallet-election-provider-multi-phase/std",
-# 	"pallet-offences/std",
-#  	"pallet-identity/std",
-# 	"pallet-ranked-collective/std",
-# 	"pallet-nomination-pools/std",
-# 	"pallet-nomination-pools-runtime-api/std",
+ 	"pallet-election-provider-multi-phase/std",
+ 	"pallet-offences/std",
+ 	"pallet-identity/std",
+	"pallet-ranked-collective/std",
+	"pallet-nomination-pools/std",
+	"pallet-nomination-pools-runtime-api/std",
 
 # # Primitives
-# 	"sp-api/std",
-# 	"sp-block-builder/std",
-# 	"sp-core/std",
-# 	"sp-inherents/std",
-# 	"sp-io/std",
+	"sp-api/std",
+	"sp-block-builder/std",
+	"sp-core/std",
+	"sp-inherents/std",
+	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
@@ -164,9 +164,9 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 
-# 	"orml-traits/std",
-# 	"orml-tokens/std",
-# 	"orml-authority/std",
+	"orml-traits/std",
+	"orml-tokens/std",
+	"orml-authority/std",
 
 	"module-poc/std",
 	"module-currencies/std",
@@ -174,7 +174,7 @@ std = [
 	"module-evm-accounts/std",
 	"module-evm-bridge/std",
 	"module-transaction-payment/std",
-# 	"module-support/std",
+	"module-support/std",
 	"primitives/std",
 	"runtime-common/std",
 # 	"module-evm-rpc-runtime-api/std",
