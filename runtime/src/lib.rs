@@ -19,6 +19,7 @@ use frame_support::{
     traits::{
         schedule::Priority, AsEnsureOriginWithArg, ConstU128, ConstU16, EitherOfDiverse,
         EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
+        ConstU64
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -368,6 +369,12 @@ impl pallet_session::Config for Runtime {
     type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
+parameter_types! {
+	pub const DepositPerItem: Balance = deposit(1, 0);
+	pub const DepositPerByte: Balance = deposit(0, 1);
+	pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+}
+
 impl pallet_revive::Config for Runtime {
 	type Time = Timestamp;
 	type Currency = Balances;
@@ -375,7 +382,7 @@ impl pallet_revive::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+	type WeightPrice = module_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
 	type Precompiles =
 		(ERC20<Self, InlineIdConfig<0x1>, Instance1>, ERC20<Self, InlineIdConfig<0x2>, Instance2>);
@@ -462,6 +469,15 @@ impl pallet_nomination_pools::Config for Runtime {
     type U256ToBalance = U256ToBalance;
     type PostUnbondingPoolsWindow = PostUnbondPoolsWindow;
     type MaxMetadataLen = ConstU32<256>;
+    type BlockNumberProvider = System;
+	type Filter = Nothing;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type StakeAdapter =
+		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+    type AdminOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>,
+	>;
     type MaxUnbonding = ConstU32<8>;
     type PalletId = NominationPoolsPalletId;
     type MaxPointsToBalance = MaxPointsToBalance;
@@ -623,6 +639,7 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
     type MaxVotesPerVoter =
 	<<Self as pallet_election_provider_multi_phase::Config>::DataProvider as ElectionDataProvider>::MaxVotesPerVoter;
     type MaxWinners = MaxActiveValidators;
+    type MaxBackersPerWinner = MaxElectingVotersSolution;
 
     // The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
     // weight estimate function is wired to this call's weight.
@@ -1001,6 +1018,8 @@ impl pallet_balances::Config for Runtime {
     /// The type for recording an account's balance.
     type Balance = Balance;
     type DustRemoval = (); // burn
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type DoneSlashHandler = ();
     type ExistentialDeposit = NativeTokenExistentialDeposit;
     type AccountStore = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
@@ -1023,6 +1042,16 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
+    type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<
+			dynamic_params::storage::BaseDeposit,
+			dynamic_params::storage::ByteDeposit,
+			Balance,
+		>,
+	>;
 }
 
 parameter_types! {
@@ -1037,6 +1066,8 @@ impl pallet_conviction_voting::Config for Runtime {
     type MaxVotes = ConstU32<512>;
     type MaxTurnout = frame_support::traits::TotalIssuanceOf<Balances, Self::AccountId>;
     type Polls = Referenda;
+    type BlockNumberProvider = System;
+	type VotingHooks = ();
 }
 
 parameter_types! {
@@ -1091,6 +1122,7 @@ impl pallet_referenda::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
+    type BlockNumberProvider = System;
     type Currency = pallet_balances::Pallet<Self>;
     type SubmitOrigin = EnsureSigned<AccountId>;
     type CancelOrigin = EnsureRoot<AccountId>;
@@ -1109,6 +1141,7 @@ impl pallet_referenda::Config for Runtime {
 impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
     type RuntimeCall = RuntimeCall;
+    type BlockNumberProvider = System;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
     type Currency = pallet_balances::Pallet<Self>;
@@ -1134,6 +1167,11 @@ impl pallet_ranked_collective::Config for Runtime {
     type Polls = RankedPolls;
     type MinRankOfClass = traits::Identity;
     type VoteWeight = pallet_ranked_collective::Geometric;
+    type AddOrigin = EnsureRoot<AccountId>;
+	type RemoveOrigin = Self::DemoteOrigin;
+    type ExchangeOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
+    type MemberSwappedHandler = (CoreFellowship, Salary);
+	type MaxMemberCount = ();
 }
 
 parameter_types! {
@@ -1148,6 +1186,7 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = u128;
     type AssetId = u32;
+    type Holder = ();
     type AssetIdParameter = codec::Compact<u32>;
     type Currency = Balances;
     type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
@@ -1177,6 +1216,7 @@ impl pallet_scheduler::Config for Runtime {
     type RuntimeOrigin = RuntimeOrigin;
     type PalletsOrigin = OriginCaller;
     type RuntimeCall = RuntimeCall;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type MaximumWeight = MaximumSchedulerWeight;
     type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
@@ -1232,10 +1272,22 @@ impl pallet_collective::Config<TechCouncilInstance> for Runtime {
     type MotionDuration = TechCouncilMotionDuration;
     type MaxProposals = TechCouncilMaxProposals;
     type MaxMembers = TechCouncilMaxMembers;
+    type DisapproveOrigin = EnsureRoot<Self::AccountId>;
+	type KillOrigin = EnsureRoot<Self::AccountId>;
     type DefaultVote = pallet_collective::MoreThanMajorityThenPrimeDefaultVote;
     type WeightInfo = ();
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type MaxProposalWeight = MaxCollectivesProposalWeight;
+    type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		ProposalHoldReason,
+		pallet_collective::deposit::Delayed<
+			ConstU32<2>,
+			pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
+		>,
+		u32,
+	>;
 }
 
 impl module_poc::Config for Runtime {
@@ -1276,6 +1328,7 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1431,6 +1484,15 @@ where
 	type RuntimeCall = RuntimeCall;
 }
 
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
+		generic::UncheckedExtrinsic::new_bare(call).into()
+	}
+}
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
     RuntimeCall: From<LocalCall>,
@@ -1454,7 +1516,7 @@ where
             // so the actual block number is `n`.
             .saturating_sub(1);
         let tip = 0;
-        let extra: SignedExtra = (
+        let extra: TxExtension = (
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -1494,8 +1556,8 @@ pallet_revive::impl_runtime_apis_plus_revive!(
             Executive::execute_block(block)
         }
 
-        fn initialize_block(header: &<Block as BlockT>::Header) {
-            Executive::initialize_block(header)
+        fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
+			Executive::initialize_block(header)
         }
     }
 
@@ -1650,13 +1712,20 @@ pallet_revive::impl_runtime_apis_plus_revive!(
         }
     }
 
-    impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+    impl pallet_staking_runtime_api::StakingApi<Block, Balance,AccountId> for Runtime {
         fn nominations_quota(balance: Balance) -> u32 {
             Staking::api_nominations_quota(balance)
         }
+        fn eras_stakers_page_count(era: sp_staking::EraIndex, account: AccountId) -> sp_staking::Page {
+			Staking::api_eras_stakers_page_count(era, account)
+		}
+
+		fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
+			Staking::api_pending_rewards(era, account)
+		}
     }
 
-        impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
+    impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
         fn pending_rewards(who: AccountId) -> Balance {
             NominationPools::api_pending_rewards(who).unwrap_or_default()
         }
@@ -1747,7 +1816,7 @@ pallet_revive::impl_runtime_apis_plus_revive!(
             let utx = UncheckedExtrinsic::decode(&mut &*extrinsic)
                 .map_err(|_| sp_runtime::DispatchError::Other("Invalid parameter extrinsic, decode failed"))?;
 
-            let request = match utx.function {
+            let request = match utx.0.function {
                 RuntimeCall::EVM(module_evm::Call::call{target, input, value, gas_limit, storage_limit}) => {
                     Some(EstimateResourcesRequest {
                         from: None,
