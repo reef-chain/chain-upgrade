@@ -1301,9 +1301,9 @@ impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::
     type Pre = ();
     type Val = ();
 
-   fn weight(&self, _call: &T::RuntimeCall) -> Weight {
-		Weight::zero()
-	}
+    fn weight(&self, _call: &T::RuntimeCall) -> Weight {
+        Weight::zero()
+    }
 
     fn validate(
         &self,
@@ -1323,9 +1323,9 @@ impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::
         TransactionValidityError,
     > {
         let origin_caller = frame_system::ensure_signed(origin.clone())
-        .map_err(|_| TransactionValidityError::Invalid(InvalidTransaction::BadSigner))?;
+            .map_err(|_| TransactionValidityError::Invalid(InvalidTransaction::BadSigner))?;
         ExtrinsicOrigin::<T>::set(Some(origin_caller));
-     	Ok((ValidTransaction::default(), (), origin))
+        Ok((ValidTransaction::default(), (), origin))
     }
     impl_tx_ext_default!(<T as frame_system::Config>::RuntimeCall; prepare);
 }
