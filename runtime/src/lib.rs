@@ -355,13 +355,14 @@ parameter_types! {
 impl pallet_session::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
-    type ValidatorIdOf = pallet_staking::StashOf<Self>;
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
     type SessionHandler = <opaque::SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
     type WeightInfo = ();
+    type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
 parameter_types! {
@@ -372,6 +373,7 @@ parameter_types! {
 }
 
 impl pallet_session::historical::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
     type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
 }
@@ -1054,7 +1056,6 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
         }
     }
 }
-pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
 
 impl pallet_referenda::Config for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
@@ -1289,8 +1290,8 @@ construct_runtime!(
         Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 31,
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event, ValidateUnsigned} = 32,
         Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>} = 33,
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 34,
-        Historical: pallet_session_historical::{Pallet} = 35,
+        Session: pallet_session::{Pallet, Call, Storage, Event<T>, Config<T>} = 34,
+        Historical: pallet_session_historical::{Pallet,Event<T>} = 35,
         Offences: pallet_offences::{Pallet, Storage, Event} = 36,
         ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 37,
         AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config<T>} = 38,
@@ -1334,6 +1335,22 @@ pub type SignedExtra = (
     module_transaction_payment::ChargeTransactionPayment<Runtime>,
     module_evm::SetEvmOrigin<Runtime>,
 );
+
+// pub type TxExtension = (
+//     frame_system::AuthorizeCall<Runtime>,
+//     frame_system::CheckNonZeroSender<Runtime>,
+//     frame_system::CheckSpecVersion<Runtime>,
+//     frame_system::CheckTxVersion<Runtime>,
+//     frame_system::CheckGenesis<Runtime>,
+//     frame_system::CheckEra<Runtime>,
+//     frame_system::CheckNonce<Runtime>,
+//     frame_system::CheckWeight<Runtime>,
+//     frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+//     frame_system::WeightReclaim<Runtime>,
+//     module_transaction_payment::ChargeTransactionPayment<Runtime>,
+//     module_evm::SetEvmOrigin<Runtime>,
+// );
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
@@ -1355,7 +1372,9 @@ impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for R
 where
     RuntimeCall: From<LocalCall>,
 {
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+    fn create_signed_transaction<
+        C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>,
+    >(
         call: RuntimeCall,
         public: <Signature as sp_runtime::traits::Verify>::Signer,
         account: AccountId,
@@ -1400,14 +1419,6 @@ where
 impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as sp_runtime::traits::Verify>::Signer;
     type Signature = Signature;
-}
-
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where
-    RuntimeCall: From<C>,
-{
-    type OverarchingCall = RuntimeCall;
-    type Extrinsic = UncheckedExtrinsic;
 }
 
 impl_runtime_apis! {

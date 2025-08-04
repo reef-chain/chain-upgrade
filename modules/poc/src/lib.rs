@@ -45,7 +45,7 @@ pub enum LockState<BlockNumber> {
 }
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Encode, Decode, Clone, Debug, PartialEq, TypeInfo,DecodeWithMemTracking)]
+#[derive(Encode, Decode, Clone, Debug, PartialEq, TypeInfo, DecodeWithMemTracking)]
 pub enum LockDuration {
     OneMonth,
     OneYear,

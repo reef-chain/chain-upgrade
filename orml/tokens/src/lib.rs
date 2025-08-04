@@ -39,6 +39,7 @@
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
+use codec::MaxEncodedLen;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -55,7 +56,6 @@ use frame_support::{
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},

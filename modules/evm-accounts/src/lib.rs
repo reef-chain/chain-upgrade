@@ -263,7 +263,6 @@ impl<T: Config> Pallet<T> {
     //    r
     // }
 
-
     /// Converts the given binary data into ASCII-encoded hex. It will be twice
     /// the length.
     pub fn convert_to_ascii_hex(data: &[u8]) -> Result<Vec<u8>, DispatchError> {

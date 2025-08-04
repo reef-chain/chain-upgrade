@@ -1,8 +1,8 @@
 #[doc(hidden)]
+pub use codec;
+#[doc(hidden)]
 pub use frame_support;
 use frame_support::Parameter;
-#[doc(hidden)]
-pub use codec;
 #[doc(hidden)]
 pub use paste;
 #[doc(hidden)]

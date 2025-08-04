@@ -1,7 +1,7 @@
+use frame_support::traits::ExistenceRequirement;
 use module_evm::{Context, ExitError, ExitSucceed, Precompile};
 use primitives::evm::AddressMapping as AddressMappingT;
 use sp_core::U256;
-use frame_support::traits::ExistenceRequirement;
 use sp_std::{convert::TryFrom, fmt::Debug, marker::PhantomData, prelude::*, result};
 
 use orml_traits::MultiCurrency as MultiCurrencyT;
@@ -90,7 +90,14 @@ where
                 log::debug!(target: "evm", "to: {:?}", to);
                 log::debug!(target: "evm", "amount: {:?}", amount);
 
-                MultiCurrency::transfer(currency_id, &from, &to, amount,ExistenceRequirement::AllowDeath).map_err(|e| {
+                MultiCurrency::transfer(
+                    currency_id,
+                    &from,
+                    &to,
+                    amount,
+                    ExistenceRequirement::AllowDeath,
+                )
+                .map_err(|e| {
                     let err_msg: &str = e.into();
                     ExitError::Other(err_msg.into())
                 })?;

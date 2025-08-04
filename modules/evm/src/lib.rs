@@ -35,9 +35,10 @@ use scale_info::prelude::vec;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use sp_runtime::{
+    impl_tx_ext_default,
     traits::{
-        Convert, DispatchInfoOf, One, PostDispatchInfoOf, SignedExtension, UniqueSaturatedInto,
-        Zero,
+        Convert, DispatchInfoOf, Dispatchable, One, PostDispatchInfoOf, SignedExtension,
+        TransactionExtension, UniqueSaturatedInto, Zero,
     },
     transaction_validity::TransactionValidityError,
     Either, TransactionOutcome,
@@ -1230,7 +1231,7 @@ pub fn code_hash(code: &[u8]) -> H256 {
     H256::from_slice(Keccak256::digest(code).as_slice())
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo,DecodeWithMemTracking)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, DecodeWithMemTracking)]
 #[scale_info(skip_type_params(T))]
 pub struct SetEvmOrigin<T: Config + Send + Sync>(PhantomData<T>);
 
@@ -1290,4 +1291,41 @@ impl<T: Config + Send + Sync> SignedExtension for SetEvmOrigin<T> {
         ExtrinsicOrigin::<T>::kill();
         Ok(())
     }
+}
+
+impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::RuntimeCall>
+    for SetEvmOrigin<T>
+{
+    const IDENTIFIER: &'static str = "SetEvmOrigin";
+    type Implicit = ();
+    type Pre = ();
+    type Val = ();
+
+   fn weight(&self, _call: &T::RuntimeCall) -> Weight {
+		Weight::zero()
+	}
+
+    fn validate(
+        &self,
+        origin: <<T as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin,
+        call: &<T as frame_system::Config>::RuntimeCall,
+        info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
+        _len: usize,
+        _self_implicit: Self::Implicit,
+        _inherited_implication: &impl Encode,
+        _source: TransactionSource,
+    ) -> Result<
+        (
+            ValidTransaction,
+            Self::Val,
+            <<T as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin,
+        ),
+        TransactionValidityError,
+    > {
+        let origin_caller = frame_system::ensure_signed(origin.clone())
+        .map_err(|_| TransactionValidityError::Invalid(InvalidTransaction::BadSigner))?;
+        ExtrinsicOrigin::<T>::set(Some(origin_caller));
+     	Ok((ValidTransaction::default(), (), origin))
+    }
+    impl_tx_ext_default!(<T as frame_system::Config>::RuntimeCall; prepare);
 }

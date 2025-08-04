@@ -4,8 +4,8 @@
 
 use scale_info::TypeInfo;
 pub mod evm;
-use codec::MaxEncodedLen;
 use codec::DecodeWithMemTracking;
+use codec::MaxEncodedLen;
 // use sp_core::U256;
 
 use crate::evm::EvmAddress;
@@ -146,7 +146,7 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
     MaxEncodedLen,
     Serialize,
     Deserialize,
-    DecodeWithMemTracking
+    DecodeWithMemTracking,
 )]
 pub enum TokenSymbol {
     REEF = 0,
@@ -280,6 +280,7 @@ pub enum AuthoritysOriginId {
     Ord,
     MaxEncodedLen,
     TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[repr(u8)]
 pub enum ReserveIdentifier {

@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use impl_trait_for_tuples::impl_for_tuples;
 use codec::{Decode, Encode, MaxEncodedLen};
+use impl_trait_for_tuples::impl_for_tuples;
 use sp_runtime::{DispatchResult, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},

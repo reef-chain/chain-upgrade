@@ -1,5 +1,5 @@
-use frame_support::Parameter;
 use codec::Encode;
+use frame_support::Parameter;
 use sp_runtime::{traits::Member, RuntimeDebug};
 
 #[derive(PartialEq, Eq, RuntimeDebug)]

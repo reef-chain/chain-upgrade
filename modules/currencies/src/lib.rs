@@ -164,7 +164,13 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let to = T::Lookup::lookup(dest)?;
-            <Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount,ExistenceRequirement::AllowDeath)?;
+            <Self as MultiCurrency<T::AccountId>>::transfer(
+                currency_id,
+                &from,
+                &to,
+                amount,
+                ExistenceRequirement::AllowDeath,
+            )?;
             Ok(().into())
         }
 
@@ -181,7 +187,7 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let to = T::Lookup::lookup(dest)?;
-            T::NativeCurrency::transfer(&from, &to, amount,ExistenceRequirement::AllowDeath)?;
+            T::NativeCurrency::transfer(&from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
             Self::deposit_event(Event::Transferred(
                 CurrencyId::Token(TokenSymbol::REEF),
@@ -332,8 +338,10 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
                     amount,
                 )?;
             }
-            CurrencyId::Token(TokenSymbol::REEF) => T::NativeCurrency::transfer(from, to, amount,existence_requirement)?,
-            _ => T::MultiCurrency::transfer(currency_id, from, to, amount,existence_requirement)?,
+            CurrencyId::Token(TokenSymbol::REEF) => {
+                T::NativeCurrency::transfer(from, to, amount, existence_requirement)?
+            }
+            _ => T::MultiCurrency::transfer(currency_id, from, to, amount, existence_requirement)?,
         }
 
         Self::deposit_event(Event::Transferred(
@@ -373,8 +381,10 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
         }
         match currency_id {
             CurrencyId::ERC20(_) => return Err(Error::<T>::ERC20InvalidOperation.into()),
-            CurrencyId::Token(TokenSymbol::REEF) => T::NativeCurrency::withdraw(who, amount,existence_requirement)?,
-            _ => T::MultiCurrency::withdraw(currency_id, who, amount,existence_requirement)?,
+            CurrencyId::Token(TokenSymbol::REEF) => {
+                T::NativeCurrency::withdraw(who, amount, existence_requirement)?
+            }
+            _ => T::MultiCurrency::withdraw(currency_id, who, amount, existence_requirement)?,
         }
         Self::deposit_event(Event::Withdrawn(currency_id, who.clone(), amount));
         Ok(())
@@ -703,16 +713,31 @@ where
         <Pallet<T>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
     }
 
-    fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance,existence_requirement:ExistenceRequirement) -> DispatchResult {
-        <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount,existence_requirement)
+    fn transfer(
+        from: &T::AccountId,
+        to: &T::AccountId,
+        amount: Self::Balance,
+        existence_requirement: ExistenceRequirement,
+    ) -> DispatchResult {
+        <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
+            GetCurrencyId::get(),
+            from,
+            to,
+            amount,
+            existence_requirement,
+        )
     }
 
     fn deposit(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
         <Pallet<T>>::deposit(GetCurrencyId::get(), who, amount)
     }
 
-    fn withdraw(who: &T::AccountId, amount: Self::Balance,existence_requirement: ExistenceRequirement,) -> DispatchResult {
-        <Pallet<T>>::withdraw(GetCurrencyId::get(), who, amount,existence_requirement)
+    fn withdraw(
+        who: &T::AccountId,
+        amount: Self::Balance,
+        existence_requirement: ExistenceRequirement,
+    ) -> DispatchResult {
+        <Pallet<T>>::withdraw(GetCurrencyId::get(), who, amount, existence_requirement)
     }
 
     fn can_slash(who: &T::AccountId, amount: Self::Balance) -> bool {
@@ -889,13 +914,13 @@ where
         )
     }
 
-    fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance,existence_requirement: ExistenceRequirement) -> DispatchResult {
-        <Currency as PalletCurrency<_>>::transfer(
-            from,
-            to,
-            amount,
-            existence_requirement,
-        )
+    fn transfer(
+        from: &AccountId,
+        to: &AccountId,
+        amount: Self::Balance,
+        existence_requirement: ExistenceRequirement,
+    ) -> DispatchResult {
+        <Currency as PalletCurrency<_>>::transfer(from, to, amount, existence_requirement)
     }
 
     fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
@@ -908,7 +933,11 @@ where
         Ok(())
     }
 
-    fn withdraw(who: &AccountId, amount: Self::Balance,existence_requirement: ExistenceRequirement) -> DispatchResult {
+    fn withdraw(
+        who: &AccountId,
+        amount: Self::Balance,
+        existence_requirement: ExistenceRequirement,
+    ) -> DispatchResult {
         <Currency as PalletCurrency<_>>::withdraw(
             who,
             amount,
@@ -955,7 +984,7 @@ where
         if by_amount.is_positive() {
             Self::deposit(who, by_balance)
         } else {
-            Self::withdraw(who, by_balance,ExistenceRequirement::AllowDeath)
+            Self::withdraw(who, by_balance, ExistenceRequirement::AllowDeath)
         }
     }
 }
@@ -1133,7 +1162,13 @@ where
         precision: Precision,
         fortitude: Fortitude,
     ) -> Result<Self::Balance, DispatchError> {
-        <Currency as fungible::Mutate<_>>::burn_from(who, amount, preservation,precision, fortitude)
+        <Currency as fungible::Mutate<_>>::burn_from(
+            who,
+            amount,
+            preservation,
+            precision,
+            fortitude,
+        )
     }
 
     fn transfer(
@@ -1266,14 +1301,19 @@ where
         let _ = match currency_id {
             CurrencyId::ERC20(_) => Ok(()),
             CurrencyId::Token(TokenSymbol::REEF) => {
-                <T::NativeCurrency as BasicCurrency<_>>::transfer(who, &GetAccountId::get(), amount,ExistenceRequirement::AllowDeath)
+                <T::NativeCurrency as BasicCurrency<_>>::transfer(
+                    who,
+                    &GetAccountId::get(),
+                    amount,
+                    ExistenceRequirement::AllowDeath,
+                )
             }
             _ => <T::MultiCurrency as MultiCurrency<_>>::transfer(
                 currency_id,
                 who,
                 &GetAccountId::get(),
                 amount,
-                ExistenceRequirement::AllowDeath
+                ExistenceRequirement::AllowDeath,
             ),
         };
     }

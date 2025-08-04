@@ -27,7 +27,7 @@ use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{
         CheckedSub, Convert, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SaturatedConversion,
-        Saturating, SignedExtension, Zero,
+        Saturating, SignedExtension, Zero, TransactionExtension
     },
     transaction_validity::{
         InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError,
@@ -415,10 +415,12 @@ where
         let dispatch_info = <Extrinsic as GetDispatchInfo>::get_dispatch_info(&unchecked_extrinsic);
 
         let partial_fee = Self::compute_fee(len, &dispatch_info, 0u32.into());
-        let DispatchInfo { call_weight, class, .. } = dispatch_info;
+        let DispatchInfo {
+            call_weight, class, ..
+        } = dispatch_info;
 
         RuntimeDispatchInfo {
-            weight:call_weight,
+            weight: call_weight,
             class,
             partial_fee,
         }
@@ -636,7 +638,7 @@ where
 
 /// Require the transactor pay for themselves and maybe include a tip to
 /// gain additional priority in the queue.
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo,DecodeWithMemTracking)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, DecodeWithMemTracking)]
 #[scale_info(skip_type_params(T))]
 pub struct ChargeTransactionPayment<T: Config + Send + Sync>(#[codec(compact)] PalletBalanceOf<T>);
 
@@ -878,4 +880,54 @@ where
 
         Ok(())
     }
+}
+
+#[derive(RuntimeDebugNoBound)]
+pub enum Val<T: Config> {
+	Charge {
+		tip: PalletBalanceOf<T>,
+		// who paid the fee
+		who: T::AccountId,
+		// transaction fee
+		fee: PalletBalanceOf<T>,
+	},
+	NoCharge,
+}
+
+impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::RuntimeCall> for ChargeTransactionPayment<T>{
+
+    const IDENTIFIER: &'static str = "ChargeTransactionPayment";
+    type Implicit = ();
+    type Val = Val<T>;
+    type Pre = (
+        PalletBalanceOf<T>,
+        T::AccountId,
+        Option<NegativeImbalanceOf<T>>,
+        PalletBalanceOf<T>,
+    );
+
+    fn weight(&self, _: &<T as frame_system::Config>::RuntimeCall) -> Weight {
+		Weight::zero()
+	}
+
+    fn validate(
+		&self,
+		origin: <<T as module::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin,
+		call: &<T as module::Config>::RuntimeCall,
+		info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
+		len: usize,
+		_: (),
+		_implication: &impl Encode,
+		_source: TransactionSource,
+	) -> Result<
+		(ValidTransaction, Self::Val, <<T as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin),
+		TransactionValidityError,
+	> {
+        let Ok(who) = frame_system::ensure_signed(origin.clone()) else {
+			return Ok((ValidTransaction::default(), Val::NoCharge, origin));
+		};
+        let (final_fee, _,) = self.withdraw_fee(&who, call, info, len)?;
+		let tip = self.0;
+    }
+
 }
