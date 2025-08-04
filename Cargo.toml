@@ -75,6 +75,11 @@ pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", default-
 pallet-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-child-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive-eth-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive-fixtures = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive-proc-macro  = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-conviction-voting = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-identity = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }

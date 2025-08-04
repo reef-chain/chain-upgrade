@@ -78,6 +78,9 @@ pallet-nomination-pools = { workspace = true ,default-features = false }
 pallet-nomination-pools-runtime-api = { workspace = true ,default-features = false }
 pallet-bags-list = { workspace = true ,default-features = false }
 pallet-ranked-collective = { workspace = true ,default-features = false }
+pallet-revive = { workspace = true ,default-features = false }
+pallet-revive-proc-macro = { workspace = true ,default-features = false }
+pallet-revive-uapi = { workspace = true ,default-features = false }
 
 # # PoC
 pallet-collective  = { workspace = true ,default-features = false }
@@ -120,7 +123,7 @@ std = [
 	"pallet-bags-list/std",
 	"pallet-grandpa/std",
 	"pallet-indices/std",
-   "pallet-insecure-randomness-collective-flip/std",
+    "pallet-insecure-randomness-collective-flip/std",
 	"pallet-sudo/std",
 	"pallet-utility/std",
 	"pallet-multisig/std",
@@ -147,6 +150,7 @@ std = [
  	"pallet-offences/std",
  	"pallet-identity/std",
 	"pallet-ranked-collective/std",
+	"pallet-revive/std",
 	"pallet-nomination-pools/std",
 	"pallet-nomination-pools-runtime-api/std",
 

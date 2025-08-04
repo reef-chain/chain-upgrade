@@ -266,7 +266,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
-    state_version: 1,
+    system_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -400,6 +400,9 @@ impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = <Runtime as pallet_election_provider_multi_phase::Config>::DataProvider;
     type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
     type Bounds = ElectionBoundsOnChain;
+    type Sort = ConstBool<true>;
+    type MaxBackersPerWinner = MaxElectingVotersSolution;
+    type MaxWinnersPerPage = MaxActiveValidators;
 }
 
 parameter_types! {
@@ -657,7 +660,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type EstimateCallFee = TransactionPayment;
     type SignedPhase = SignedPhase;
     type UnsignedPhase = UnsignedPhase;
-    type BetterUnsignedThreshold = BetterUnsignedThreshold;
     type BetterSignedThreshold = ();
     type OffchainRepeat = OffchainRepeat;
     type MinerTxPriority = MultiPhaseUnsignedPriority;
@@ -774,7 +776,7 @@ impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type SubAccountDeposit = SubAccountDeposit;
     type MaxSubAccounts = MaxSubAccounts;
-    type MaxAdditionalFields = MaxAdditionalFields;
+
     type MaxRegistrars = MaxRegistrars;
     type Slashed = ();
     type ForceOrigin = EnsureRootOrTwoThridsTechCouncil;
@@ -853,7 +855,6 @@ impl module_transaction_payment::Config for Runtime {
     type FeeMultiplierUpdate =
         TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
     type WeightInfo = weights::transaction_payment::WeightInfo<Runtime>;
-    type RuntimeCall = RuntimeCall;
 }
 
 pub struct EvmAccountsOnClaimHandler;
@@ -1336,24 +1337,49 @@ pub type SignedExtra = (
     module_evm::SetEvmOrigin<Runtime>,
 );
 
-// pub type TxExtension = (
-//     frame_system::AuthorizeCall<Runtime>,
-//     frame_system::CheckNonZeroSender<Runtime>,
-//     frame_system::CheckSpecVersion<Runtime>,
-//     frame_system::CheckTxVersion<Runtime>,
-//     frame_system::CheckGenesis<Runtime>,
-//     frame_system::CheckEra<Runtime>,
-//     frame_system::CheckNonce<Runtime>,
-//     frame_system::CheckWeight<Runtime>,
-//     frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-//     frame_system::WeightReclaim<Runtime>,
-//     module_transaction_payment::ChargeTransactionPayment<Runtime>,
-//     module_evm::SetEvmOrigin<Runtime>,
-// );
+pub type TxExtension = (
+    frame_system::AuthorizeCall<Runtime>,
+    frame_system::CheckNonZeroSender<Runtime>,
+    frame_system::CheckSpecVersion<Runtime>,
+    frame_system::CheckTxVersion<Runtime>,
+    frame_system::CheckGenesis<Runtime>,
+    frame_system::CheckEra<Runtime>,
+    frame_system::CheckNonce<Runtime>,
+    frame_system::CheckWeight<Runtime>,
+    frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+    frame_system::WeightReclaim<Runtime>,
+    module_transaction_payment::ChargeTransactionPayment<Runtime>,
+    module_evm::SetEvmOrigin<Runtime>,
+);
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EthExtraImpl;
+
+impl EthExtra for EthExtraImpl {
+	type Config = Runtime;
+	type Extension = TxExtension;
+
+	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
+		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::from(crate::generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(nonce),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
+				.into(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			frame_system::WeightReclaim::<Runtime>::new(),
+		)
+	}
+}
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Extrinsic type that has already been checked.
@@ -1368,6 +1394,14 @@ pub type Executive = frame_executive::Executive<
     Migrations,
 >;
 
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
     RuntimeCall: From<LocalCall>,
@@ -1379,10 +1413,7 @@ where
         public: <Signature as sp_runtime::traits::Verify>::Signer,
         account: AccountId,
         nonce: Nonce,
-    ) -> Option<(
-        RuntimeCall,
-        <UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
-    )> {
+   ) -> Option<UncheckedExtrinsic> {
         // take the biggest period possible.
         let period = BlockHashCount::get()
             .checked_next_power_of_two()
