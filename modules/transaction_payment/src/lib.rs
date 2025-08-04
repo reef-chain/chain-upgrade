@@ -982,7 +982,7 @@ where
         let Ok(who) = frame_system::ensure_signed(origin.clone()) else {
             return Ok((ValidTransaction::default(), Val::NoCharge, origin));
         };
-        let (final_fee, _) = self.withdraw_fee(&who, call, info, len)?;
+        let (final_fee) = self.can_withdraw_fee(&who, call, info, len)?;
         Ok((
             ValidTransaction {
                 priority: Self::get_priority(info, len, final_fee),
