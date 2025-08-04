@@ -14,18 +14,20 @@ use codec::{Decode, Encode, MaxEncodedLen};
 // FRAME Support
 use frame_support::{
     construct_runtime,
+    dynamic_params::{dynamic_pallet_params, dynamic_params},
     pallet_prelude::{ConstU32, DispatchClass, Get},
     parameter_types,
+    instances::{Instance1, Instance2},
     traits::{
         schedule::Priority, AsEnsureOriginWithArg, ConstU128, ConstU16, EitherOfDiverse,
         EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
-        ConstU64
+        ConstU64,fungible::HoldConsideration, Nothing
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
         ConstantMultiplier, Weight,
     },
-    PalletId,
+    PalletId,ConstU32
 };
 
 // FRAME System
@@ -373,6 +375,7 @@ parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
 	pub const DepositPerByte: Balance = deposit(0, 1);
 	pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+    pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -626,6 +629,7 @@ parameter_types! {
         .voters_count(10_000.into()).targets_count(1_500.into()).build();
     pub ElectionBoundsOnChain: ElectionBounds = ElectionBoundsBuilder::default()
         .voters_count(5_000.into()).targets_count(1_250.into()).build();
+    pub MaxElectingVotersSolution: u32 = 40_000;
     // The maximum winners that can be elected by the Election pallet which is equivalent to the
     // maximum active validators the staking pallet can have.
     pub MaxActiveValidators: u32 = 1000;
@@ -706,12 +710,14 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type SignedPhase = SignedPhase;
     type UnsignedPhase = UnsignedPhase;
     type BetterSignedThreshold = ();
+    type MaxBackersPerWinner = MaxElectingVotersSolution;
     type OffchainRepeat = OffchainRepeat;
     type MinerTxPriority = MultiPhaseUnsignedPriority;
     type MinerConfig = Self;
     type SignedMaxSubmissions = ConstU32<10>;
     type SignedRewardBase = SignedRewardBase;
-    type SignedDepositBase = SignedDepositBase;
+    type SignedDepositBase =
+		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
     type SignedDepositByte = SignedDepositByte;
     type SignedMaxRefunds = ConstU32<3>;
     type SignedDepositWeight = ();
@@ -821,8 +827,16 @@ impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type SubAccountDeposit = SubAccountDeposit;
     type MaxSubAccounts = MaxSubAccounts;
-
+    type ByteDeposit = ByteDeposit;
+	type UsernameDeposit = UsernameDeposit;
+    	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
+    type OffchainSignature = Signature;
+	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
+	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
     type MaxRegistrars = MaxRegistrars;
+    type UsernameGracePeriod = ConstU32<{ 30 * DAYS }>;
+	type MaxSuffixLength = ConstU32<7>;
+	type MaxUsernameLength = ConstU32<32>;
     type Slashed = ();
     type ForceOrigin = EnsureRootOrTwoThridsTechCouncil;
     type RegistrarOrigin = EnsureRootOrTwoThridsTechCouncil;
@@ -1025,8 +1039,8 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = ReserveIdentifier;
-    type FreezeIdentifier = ();
-    type MaxFreezes = ();
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
 }
 
@@ -1035,6 +1049,71 @@ parameter_types! {
     pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
     // One cent: $10,000 / MB
     pub const PreimageByteDeposit: Balance = 1 * CENTS;
+}
+
+
+/// Dynamic parameters that can be changed at runtime through the
+/// `pallet_parameters::set_parameter`.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod storage {
+		/// Configures the base deposit of storing some data.
+		#[codec(index = 0)]
+		pub static BaseDeposit: Balance = 1 * DOLLARS;
+
+		/// Configures the per-byte deposit of storing some data.
+		#[codec(index = 1)]
+		pub static ByteDeposit: Balance = 1 * CENTS;
+	}
+
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod referenda {
+		/// The configuration for the tracks
+		#[codec(index = 0)]
+		pub static Tracks: BoundedVec<
+			pallet_referenda::Track<u16, Balance, BlockNumber>,
+			ConstU32<100>,
+		> = BoundedVec::truncate_from(vec![pallet_referenda::Track {
+			id: 0u16,
+			info: pallet_referenda::TrackInfo {
+				name: s("root"),
+				max_deciding: 1,
+				decision_deposit: 10,
+				prepare_period: 4,
+				decision_period: 4,
+				confirm_period: 2,
+				min_enactment_period: 4,
+				min_approval: pallet_referenda::Curve::LinearDecreasing {
+					length: Perbill::from_percent(100),
+					floor: Perbill::from_percent(50),
+					ceil: Perbill::from_percent(100),
+				},
+				min_support: pallet_referenda::Curve::LinearDecreasing {
+					length: Perbill::from_percent(100),
+					floor: Perbill::from_percent(0),
+					ceil: Perbill::from_percent(100),
+				},
+			},
+		}]);
+
+		/// A list mapping every origin with a track Id
+		#[codec(index = 1)]
+		pub static Origins: BoundedVec<(OriginCaller, u16), ConstU32<100>> =
+			BoundedVec::truncate_from(vec![(
+				OriginCaller::system(frame_system::RawOrigin::Root),
+				0,
+			)]);
+	}
+}
+
+parameter_types! {
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -1075,46 +1154,23 @@ parameter_types! {
     pub const SubmissionDeposit: Balance = 100 * DOLLARS;
     pub const UndecidingTimeout: BlockNumber = 28 * DAYS;
 }
-
 pub struct TracksInfo;
 impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
-    type Id = u16;
-    type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
-    fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
-        static DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 1] = [(
-            0u16,
-            pallet_referenda::TrackInfo {
-                name: "root",
-                max_deciding: 1,
-                decision_deposit: 10,
-                prepare_period: 4,
-                decision_period: 4,
-                confirm_period: 2,
-                min_enactment_period: 4,
-                min_approval: pallet_referenda::Curve::LinearDecreasing {
-                    length: Perbill::from_percent(100),
-                    floor: Perbill::from_percent(50),
-                    ceil: Perbill::from_percent(100),
-                },
-                min_support: pallet_referenda::Curve::LinearDecreasing {
-                    length: Perbill::from_percent(100),
-                    floor: Perbill::from_percent(0),
-                    ceil: Perbill::from_percent(100),
-                },
-            },
-        )];
-        &DATA[..]
-    }
-    fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
-        if let Ok(system_origin) = frame_system::RawOrigin::try_from(id.clone()) {
-            match system_origin {
-                frame_system::RawOrigin::Root => Ok(0),
-                _ => Err(()),
-            }
-        } else {
-            Err(())
-        }
-    }
+	type Id = u16;
+	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
+
+	fn tracks(
+	) -> impl Iterator<Item = Cow<'static, pallet_referenda::Track<Self::Id, Balance, BlockNumber>>>
+	{
+		dynamic_params::referenda::Tracks::get().into_iter().map(Cow::Owned)
+	}
+	fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
+		dynamic_params::referenda::Origins::get()
+			.iter()
+			.find(|(o, _)| id == o)
+			.map(|(_, track_id)| *track_id)
+			.ok_or(())
+	}
 }
 
 impl pallet_referenda::Config for Runtime {
@@ -1516,7 +1572,7 @@ where
             // so the actual block number is `n`.
             .saturating_sub(1);
         let tip = 0;
-        let extra: TxExtension = (
+        let tx_ext: TxExtension = (
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -1526,7 +1582,7 @@ where
             module_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
-        let raw_payload = SignedPayload::new(call, extra)
+        let raw_payload = SignedPayload::new(call, tx_ext)
             .map_err(|e| {
                 log::warn!("Unable to create signed payload: {:?}", e);
             })
@@ -1534,7 +1590,9 @@ where
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
         let address = Indices::unlookup(account);
         let (call, extra, _) = raw_payload.deconstruct();
-        Some((call, (address, signature, extra)))
+        let transaction =
+			generic::UncheckedExtrinsic::new_signed(call, address, signature, tx_ext).into();
+		Some(transaction)
     }
 }
 
