@@ -397,7 +397,6 @@ impl onchain::Config for OnChainSeqPhragmen {
     >;
     type DataProvider = <Runtime as pallet_election_provider_multi_phase::Config>::DataProvider;
     type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
-    type MaxWinners = <Runtime as pallet_election_provider_multi_phase::Config>::MaxWinners;
     type Bounds = ElectionBoundsOnChain;
 }
 
@@ -428,7 +427,6 @@ impl pallet_nomination_pools::Config for Runtime {
     type RewardCounter = FixedU128;
     type BalanceToU256 = BalanceToU256;
     type U256ToBalance = U256ToBalance;
-    type Staking = Staking;
     type PostUnbondingPoolsWindow = PostUnbondPoolsWindow;
     type MaxMetadataLen = ConstU32<256>;
     type MaxUnbonding = ConstU32<8>;
@@ -485,7 +483,6 @@ impl pallet_staking::Config for Runtime {
     type SlashDeferDuration = SlashDeferDuration;
     type SessionInterface = Self;
     type NextNewSession = Session;
-    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type WeightInfo = ();
     type ElectionProvider = ElectionProviderMultiPhase;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
@@ -499,7 +496,6 @@ impl pallet_staking::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<AccountId, TechCouncilInstance, 3, 4>,
     >;
     type CurrencyBalance = Balance;
-    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type VoterList = VoterList;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<MAX_QUOTA_NOMINATIONS>;
     type EventListeners = NominationPools;
@@ -774,7 +770,6 @@ impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type BasicDeposit = BasicDeposit;
-    type FieldDeposit = FieldDeposit;
     type SubAccountDeposit = SubAccountDeposit;
     type MaxSubAccounts = MaxSubAccounts;
     type MaxAdditionalFields = MaxAdditionalFields;
@@ -982,7 +977,6 @@ impl pallet_balances::Config for Runtime {
     type ReserveIdentifier = ReserveIdentifier;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-    type MaxHolds = ConstU32<2>;
     type RuntimeHoldReason = RuntimeHoldReason;
 }
 
@@ -998,8 +992,6 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type BaseDeposit = PreimageBaseDeposit;
-    type ByteDeposit = PreimageByteDeposit;
 }
 
 parameter_types! {
