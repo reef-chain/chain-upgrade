@@ -22,6 +22,7 @@ scale-info = { version = "2.11.6", default-features = false, features = ["derive
 smallvec = "1.11.0"
 hex-literal = { optional = true, version = '0.4.1' }
 log = { workspace = true, default-features = false }
+serde_json = { features = ["alloc", "arbitrary_precision"], version = "1.0.132", default-features = false}
 
 # Substrate dependencies
 frame-benchmarking = { workspace = true ,default-features = false, optional = true }
@@ -65,11 +66,13 @@ pallet-staking = { workspace = true ,default-features = false }
 pallet-salary = { workspace = true ,default-features = false }
 pallet-staking-runtime-api = { workspace = true ,default-features = false }
 pallet-staking-reward-curve ={ workspace = true ,default-features = false }
-pallet-authorship ={ workspace = true ,default-features = false }
-pallet-babe ={ workspace = true ,default-features = false }
-sp-consensus-babe ={ workspace = true ,default-features = false }
-pallet-im-online ={ workspace = true ,default-features = false }
-pallet-offences ={ workspace = true ,default-features = false }
+pallet-authorship = { workspace = true ,default-features = false }
+pallet-babe = { workspace = true ,default-features = false }
+sp-consensus-babe = { workspace = true ,default-features = false }
+pallet-im-online = { workspace = true ,default-features = false }
+pallet-bounties = { workspace = true ,default-features = false }
+pallet-child-bounties = { workspace = true ,default-features = false }
+pallet-offences = { workspace = true ,default-features = false }
 sp-authority-discovery ={ workspace = true ,default-features = false }
 pallet-authority-discovery ={ workspace = true ,default-features = false }
 pallet-identity = { workspace = true ,default-features = false }
@@ -126,6 +129,7 @@ default = ['std']
 std = [
 	"codec/std",
 	"scale-info/std",
+	"serde_json/std",
 	"frame-executive/std",
  	"frame-support/std",
 	"frame-metadata-hash-extension/std",
@@ -156,6 +160,8 @@ std = [
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-assets-freezer/std",
 	"pallet-assets-holder/std",
+	"pallet-bounties/std",
+	"pallet-child-bounties/std",
 	"pallet-referenda/std",
 	"pallet-conviction-voting/std",
 	"pallet-timestamp/std",

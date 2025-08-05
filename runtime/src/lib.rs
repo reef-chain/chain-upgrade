@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+#![recursion_limit = "1024"]
+extern crate alloc;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -24,10 +25,11 @@ use frame_support::{
             Balanced, Credit, HoldConsideration, ItemOf, NativeFromLeft, NativeOrWithId, UnionOf,
         },
         schedule::Priority,
-        tokens::{imbalance::ResolveAssetTo, GetSalary, PayFromAccount},
+        tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, ConstantStoragePrice,
-        EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly, Imbalance, KeyOwnerProofSystem,
-        LinearStoragePrice, Nothing, OriginTrait, VariantCountOf, WithdrawReasons,
+        Currency, EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly, Imbalance,
+        KeyOwnerProofSystem, LinearStoragePrice, Nothing, OriginTrait, VariantCountOf,
+        WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -38,7 +40,9 @@ use frame_support::{
 
 // FRAME System
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
-use frame_system::{ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned};
+use frame_system::{
+    ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned, EnsureWithSuccess,
+};
 
 // Substrate Transaction Payment
 pub use pallet_transaction_payment::{
@@ -145,6 +149,7 @@ pub use runtime_common::{
 
 pub use primitives::{currency::*, time::*};
 
+mod assets_api;
 mod weights;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -946,6 +951,15 @@ parameter_types! {
 type NegativeImbalance =
     <Balances as frame_support::traits::Currency<AccountId>>::NegativeImbalance;
 
+pub struct Author;
+impl frame_support::traits::OnUnbalanced<NegativeImbalance> for Author {
+    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+        if let Some(author) = Authorship::author() {
+            Balances::resolve_creating(&author, amount);
+        }
+    }
+}
+
 pub struct DealWithFees;
 impl frame_support::traits::OnUnbalanced<NegativeImbalance> for DealWithFees {
     fn on_unbalanceds(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
@@ -1301,6 +1315,56 @@ impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
 }
 
 parameter_types! {
+    pub const ChildBountyValueMinimum: Balance = 1 * DOLLARS;
+}
+
+impl pallet_child_bounties::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxActiveChildBountyCount = ConstU32<5>;
+    type ChildBountyValueMinimum = ChildBountyValueMinimum;
+    type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+    pub const BountyValueMinimum: Balance = 5 * DOLLARS;
+    pub const BountyDepositBase: Balance = 1 * DOLLARS;
+    pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
+    pub const CuratorDepositMin: Balance = 1 * DOLLARS;
+    pub const CuratorDepositMax: Balance = 100 * DOLLARS;
+    pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
+    pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
+}
+
+impl pallet_bounties::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BountyDepositBase = BountyDepositBase;
+    type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
+    type BountyUpdatePeriod = BountyUpdatePeriod;
+    type CuratorDepositMultiplier = CuratorDepositMultiplier;
+    type CuratorDepositMin = CuratorDepositMin;
+    type CuratorDepositMax = CuratorDepositMax;
+    type BountyValueMinimum = BountyValueMinimum;
+    type DataDepositPerByte = DataDepositPerByte;
+    type MaximumReasonLength = MaximumReasonLength;
+    type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
+    type ChildBountyManager = ChildBounties;
+    type OnSlash = Treasury;
+}
+
+impl pallet_asset_rate::Config for Runtime {
+    type CreateOrigin = EnsureRoot<AccountId>;
+    type RemoveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type Currency = Balances;
+    type AssetKind = NativeOrWithId<u32>;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_asset_rate::weights::SubstrateWeight<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = AssetRateArguments;
+}
+
+parameter_types! {
     pub const SpendPeriod: BlockNumber = 1 * DAYS;
     pub const Burn: Permill = Permill::from_percent(50);
     pub const TipCountdown: BlockNumber = 1 * DAYS;
@@ -1319,7 +1383,7 @@ impl pallet_treasury::Config for Runtime {
     type Currency = Balances;
     type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
-        pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
+        pallet_collective::EnsureProportionMoreThan<AccountId, TechCouncilInstance, 1, 2>,
     >;
     type RuntimeEvent = RuntimeEvent;
     type SpendPeriod = SpendPeriod;
@@ -1915,7 +1979,17 @@ mod runtime {
     pub type SubstrateTransactionPayment = pallet_transaction_payment::Pallet<Runtime>;
 
     #[runtime::pallet_index(66)]
-	pub type Treasury = pallet_treasury::Pallet<Runtime>;
+    pub type Treasury = pallet_treasury::Pallet<Runtime>;
+
+    #[runtime::pallet_index(67)]
+    pub type ChildBounties = pallet_child_bounties::Pallet<Runtime>;
+
+    #[runtime::pallet_index(68)]
+    pub type Bounties = pallet_bounties::Pallet<Runtime>;
+
+    #[runtime::pallet_index(69)]
+    pub type AssetRate = pallet_asset_rate::Pallet<Runtime>;
+
 }
 
 /// The address format for describing accounts.
@@ -2236,6 +2310,18 @@ pallet_revive::impl_runtime_apis_plus_revive!(
     impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
         fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
+        }
+    }
+
+    impl assets_api::AssetsApi<
+        Block,
+        AccountId,
+        Balance,
+        u32,
+    > for Runtime
+    {
+        fn account_balances(account: AccountId) -> Vec<(u32, Balance)> {
+            Assets::account_balances(account)
         }
     }
 

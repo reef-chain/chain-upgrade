@@ -101,7 +101,7 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             Dummy::<T>::put(T::Balance::from(10));
             10.into()
