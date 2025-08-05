@@ -14,6 +14,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 // FRAME Support
 use frame_support::{
     construct_runtime,
+    ord_parameter_types,
     dynamic_params::{dynamic_pallet_params, dynamic_params},
     instances::{Instance1, Instance2},
     pallet_prelude::{ConstU32, DispatchClass, Get},
@@ -23,10 +24,10 @@ use frame_support::{
 			Balanced, Credit, HoldConsideration, ItemOf, NativeFromLeft, NativeOrWithId, UnionOf,
 		},
         schedule::Priority,
-        tokens::{GetSalary, PayFromAccount},
+        tokens::{GetSalary, PayFromAccount,imbalance::ResolveAssetTo},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, EitherOfDiverse,
         EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, LinearStoragePrice, Nothing,
-        OriginTrait, VariantCountOf, WithdrawReasons, ConstantStoragePrice, imbalance::ResolveAssetTo
+        OriginTrait, VariantCountOf, WithdrawReasons, ConstantStoragePrice,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -107,11 +108,11 @@ use sp_runtime::{
     generic, impl_opaque_keys, str_array as s,
     traits::{
         self, BadOrigin, BlakeTwo256, Block as BlockT, NumberFor, OpaqueKeys, SaturatedConversion,
-        StaticLookup, Zero,
+        StaticLookup, Zero, AccountIdConversion
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent,
-    Perquintill,
+    Perquintill,Permill
 };
 
 // ORML Support
@@ -1307,7 +1308,7 @@ impl pallet_assets::Config<Instance2> for Runtime {
     type AssetId = u32;
     type AssetIdParameter = codec::Compact<u32>;
     type Currency = Balances;
-    type CreateOrigin = AsEnsureOriginWithArg<EnsureSignedBy<AssetConversionOrigin, AccountId>>;
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSignedBy<AssetConversionOrigin, AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = ConstU128<DOLLARS>;
@@ -1700,7 +1701,7 @@ construct_runtime!(
         RankedPolls: pallet_referenda::<Instance2> = 47,
         ConvictionVoting: pallet_conviction_voting = 48,
         RankedCollective: pallet_ranked_collective = 49,
-        Assets:pallet_assets::{Event<T>,Call,Pallet}= 50,
+        Assets:pallet_assets::{Event<T>, Call, Config<T>, Pallet}= 50,
 
         // Identity
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 51,
@@ -1714,7 +1715,9 @@ construct_runtime!(
         Salary: pallet_salary = 57,
 
         PoolAssets : pallet_assets::<Instance2>::{Pallet,Event<T>,Call} = 58,
-        AssetsFreezer : pallet_assets_freezer::<Instance1>::{Pallet} = 59
+        AssetsFreezer : pallet_assets_freezer::<Instance1>::{Pallet} = 59,
+        AssetConversionTxPayment: pallet_asset_conversion_tx_payment::{Event<T>, Pallet} = 60,
+        AssetConversionMigration: pallet_asset_conversion_ops = 61,
     }
 );
 
