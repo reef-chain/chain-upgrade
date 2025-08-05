@@ -6,7 +6,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 // Standard prelude
-use sp_std::prelude::*;
+use sp_std::{borrow::Cow, prelude::*};
 
 // Codec and Encoding
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -21,13 +21,13 @@ use frame_support::{
     traits::{
         schedule::Priority, AsEnsureOriginWithArg, ConstU128, ConstU16, EitherOfDiverse,
         EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, OriginTrait, WithdrawReasons,
-        ConstU64,fungible::HoldConsideration, Nothing
+        ConstU64,fungible::HoldConsideration, Nothing, VariantCountOf, ConstBool, LinearStoragePrice
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
         ConstantMultiplier, Weight,
     },
-    PalletId,ConstU32
+    PalletId, BoundedVec
 };
 
 // FRAME System
@@ -41,8 +41,11 @@ use frame_election_provider_support::{
     onchain, BalancingConfig, ElectionDataProvider, SequentialPhragmen, VoteWeight,
 };
 
+// Assets
+use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+
 // Election Provider Multi-phase
-use pallet_election_provider_multi_phase::SolutionAccuracyOf;
+use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccuracyOf};
 
 // Grandpa
 use pallet_grandpa::{
@@ -61,6 +64,9 @@ pub use pallet_timestamp::Call as TimestampCall;
 
 // Balances
 pub use pallet_balances::Call as BalancesCall;
+
+// Identity
+use pallet_identity::legacy::IdentityInfo;
 
 // Authority Discovery
 pub use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -85,7 +91,7 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160};
 use sp_runtime::{
     create_runtime_str,
     curve::PiecewiseLinear,
-    generic, impl_opaque_keys,
+    generic, impl_opaque_keys, str_array as s,
     traits::{
         self, BadOrigin, BlakeTwo256, Block as BlockT, NumberFor, OpaqueKeys, SaturatedConversion,
         StaticLookup, Zero,
@@ -479,7 +485,7 @@ impl pallet_nomination_pools::Config for Runtime {
 		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
     type AdminOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>,
+		pallet_collective::EnsureProportionAtLeast<AccountId, TechCouncilInstance, 3, 4>,
 	>;
     type MaxUnbonding = ConstU32<8>;
     type PalletId = NominationPoolsPalletId;
@@ -819,6 +825,8 @@ parameter_types! {
     pub const MaxSubAccounts: u32 = 100;
     pub const MaxAdditionalFields: u32 = 100;
     pub const MaxRegistrars: u32 = 20;
+    pub const ByteDeposit: Balance = deposit(0, 1);
+	pub const UsernameDeposit: Balance = deposit(0, 32);
 }
 
 impl pallet_identity::Config for Runtime {
@@ -827,9 +835,10 @@ impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type SubAccountDeposit = SubAccountDeposit;
     type MaxSubAccounts = MaxSubAccounts;
+    type SigningPublicKey = <Signature as traits::Verify>::Signer;
     type ByteDeposit = ByteDeposit;
 	type UsernameDeposit = UsernameDeposit;
-    	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
+    type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
     type OffchainSignature = Signature;
 	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
 	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
@@ -1318,6 +1327,8 @@ parameter_types! {
     pub const CandidacyDeposit: Balance =   1_000_000 * primitives::currency::REEF;
     pub const MinLockAmount: Balance =        100_000 * primitives::currency::REEF;
     pub const TotalLockedCap: Balance = 2_000_000_000 * primitives::currency::REEF;
+    pub const ProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Council(pallet_collective::HoldReason::ProposalSubmission);
     pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
 }
 
