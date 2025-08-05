@@ -1066,9 +1066,7 @@ where
                 Ok(Weight::zero())
             }
 
-            Pre::NoCharge { refund } => {
-                Ok(refund)
-            }
+            Pre::NoCharge { refund } => Ok(refund),
         }
     }
 }

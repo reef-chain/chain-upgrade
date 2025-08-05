@@ -114,7 +114,16 @@ pallet-staking-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk
 sp-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-rewards = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-rate = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-conversion = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-conversion-ops = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-asset-conversion-tx-payment= { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-assets-freezer = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-assets-holder = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-ranked-collective = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+
 pallet-election-provider-multi-phase = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-nomination-pools = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-nomination-pools-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
