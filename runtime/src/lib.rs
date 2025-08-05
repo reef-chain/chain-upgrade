@@ -1041,6 +1041,13 @@ impl module_evm_bridge::Config for Runtime {
     type EVM = EVM;
 }
 
+pub type AssetsFreezerInstance = pallet_assets_freezer::Instance1;
+impl pallet_assets_freezer::Config<AssetsFreezerInstance> for Runtime {
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	 type RuntimeEvent = RuntimeEvent;
+}
+
+
 parameter_types! {
     // note: if we add other native tokens (RUSD) we have to set native
     // existential deposit to 0 or check for other tokens on account pruning
@@ -1652,74 +1659,175 @@ impl pallet_multisig::Config for Runtime {
 // workaround for a weird bug in macro
 use pallet_session::historical as pallet_session_historical;
 
-// TODO: Implementation of `From` is preferred since it gives you `Into<_>` for free where the reverse isn't true.
-// After this TODO will be resolved, remove the suppresion of `from-over-into` warnings in the Makefile.
-construct_runtime!(
-    pub struct Runtime
-    {
-        // Core
-        System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
-        RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 1,
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 3,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 4,
+#[frame_support::runtime]
+mod runtime {
+	use super::*;
 
-        // Account lookup
-        Indices: pallet_indices::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
+	#[runtime::runtime]
+	#[runtime::derive(
+		RuntimeCall,
+		RuntimeEvent,
+		RuntimeError,
+		RuntimeOrigin,
+		RuntimeFreezeReason,
+		RuntimeHoldReason,
+		RuntimeSlashReason,
+		RuntimeLockId,
+		RuntimeTask,
+		RuntimeViewFunction
+	)]
+	pub struct Runtime;
 
-        // Tokens & Fees
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 6,
-        Currencies: module_currencies::{Pallet, Call, Event<T>} = 7,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 8,
-        TransactionPayment: module_transaction_payment::{Pallet, Call, Storage} = 9,
+	// Core
+	#[runtime::pallet_index(1)]
+	pub type RandomnessCollectiveFlip = pallet_insecure_randomness_collective_flip::Pallet<Runtime>;
 
-        // Authorization + Utility
-        Authority: orml_authority::{Pallet, Call, Event<T>, Origin<T>} = 10,
-        Utility: pallet_utility::{Pallet, Call, Event} = 11,
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 12,
+	#[runtime::pallet_index(2)]
+	pub type Timestamp = pallet_timestamp::Pallet<Runtime>;
 
-        // Smart contracts
-        EvmAccounts: module_evm_accounts::{Pallet, Call, Storage, Event<T>} = 20,
-        EVM: module_evm::{Pallet, Config<T>, Call, Storage, Event<T>} = 21,
-        EVMBridge: module_evm_bridge::{Pallet} = 22,
+	#[runtime::pallet_index(3)]
+	pub type Sudo = pallet_sudo::Pallet<Runtime>;
 
-        // Consensus
-        Authorship: pallet_authorship = 30,
-        Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 31,
-        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event, ValidateUnsigned} = 32,
-        Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>} = 33,
-        Session: pallet_session::{Pallet, Call, Storage, Event<T>, Config<T>} = 34,
-        Historical: pallet_session_historical::{Pallet,Event<T>} = 35,
-        Offences: pallet_offences::{Pallet, Storage, Event} = 36,
-        ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 37,
-        AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config<T>} = 38,
-        ElectionProviderMultiPhase:pallet_election_provider_multi_phase = 42,
-        NominationPools: pallet_nomination_pools = 43,
-        Preimage: pallet_preimage = 44,
-        VoterList: pallet_bags_list::<Instance1> = 45,
-        Referenda: pallet_referenda = 46,
-        RankedPolls: pallet_referenda::<Instance2> = 47,
-        ConvictionVoting: pallet_conviction_voting = 48,
-        RankedCollective: pallet_ranked_collective = 49,
-        Assets:pallet_assets::{Event<T>, Call, Config<T>, Pallet}= 50,
+	#[runtime::pallet_index(4)]
+	pub type Scheduler = pallet_scheduler::Pallet<Runtime>;
 
-        // Identity
-        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 51,
+	// Account lookup
+	#[runtime::pallet_index(5)]
+	pub type Indices = pallet_indices::Pallet<Runtime>;
 
-        // Proof of CommitmentEthExtra
-        TechCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 52,
-        Poc: module_poc::{Pallet, Call, Storage, Event<T>} = 53,
-        Revive: pallet_revive = 54,
-        DelegatedStaking: pallet_delegated_staking = 55,
-        CoreFellowship: pallet_core_fellowship = 56,
-        Salary: pallet_salary = 57,
+	// Tokens & Fees
+	#[runtime::pallet_index(6)]
+	pub type Balances = pallet_balances::Pallet<Runtime>;
 
-        PoolAssets : pallet_assets::<Instance2>::{Pallet,Event<T>,Call} = 58,
-        AssetsFreezer : pallet_assets_freezer::<Instance1>::{Pallet} = 59,
-        AssetConversionTxPayment: pallet_asset_conversion_tx_payment::{Event<T>, Pallet} = 60,
-        AssetConversionMigration: pallet_asset_conversion_ops = 61,
-    }
-);
+	#[runtime::pallet_index(7)]
+	pub type Currencies = module_currencies::Pallet<Runtime>;
+
+	#[runtime::pallet_index(8)]
+	pub type Tokens = orml_tokens::Pallet<Runtime>;
+
+	#[runtime::pallet_index(9)]
+	pub type TransactionPayment = module_transaction_payment::Pallet<Runtime>;
+
+	// Authorization + Utility
+	#[runtime::pallet_index(10)]
+	pub type Authority = orml_authority::Pallet<Runtime>;
+
+	#[runtime::pallet_index(11)]
+	pub type Utility = pallet_utility::Pallet<Runtime>;
+
+	#[runtime::pallet_index(12)]
+	pub type Multisig = pallet_multisig::Pallet<Runtime>;
+
+	// Smart Contracts
+	#[runtime::pallet_index(20)]
+	pub type EvmAccounts = module_evm_accounts::Pallet<Runtime>;
+
+	#[runtime::pallet_index(21)]
+	pub type EVM = module_evm::Pallet<Runtime>;
+
+	#[runtime::pallet_index(22)]
+	pub type EVMBridge = module_evm_bridge::Pallet<Runtime>;
+
+	// Consensus
+	#[runtime::pallet_index(30)]
+	pub type Authorship = pallet_authorship::Pallet<Runtime>;
+
+	#[runtime::pallet_index(31)]
+	pub type Babe = pallet_babe::Pallet<Runtime>;
+
+	#[runtime::pallet_index(32)]
+	pub type Grandpa = pallet_grandpa::Pallet<Runtime>;
+
+	#[runtime::pallet_index(33)]
+	pub type Staking = pallet_staking::Pallet<Runtime>;
+
+	#[runtime::pallet_index(34)]
+	pub type Session = pallet_session::Pallet<Runtime>;
+
+	#[runtime::pallet_index(35)]
+	pub type Historical = pallet_session_historical::Pallet<Runtime>;
+
+	#[runtime::pallet_index(36)]
+	pub type Offences = pallet_offences::Pallet<Runtime>;
+
+	#[runtime::pallet_index(37)]
+	pub type ImOnline = pallet_im_online::Pallet<Runtime>;
+
+	#[runtime::pallet_index(38)]
+	pub type AuthorityDiscovery = pallet_authority_discovery::Pallet<Runtime>;
+
+	#[runtime::pallet_index(42)]
+	pub type ElectionProviderMultiPhase = pallet_election_provider_multi_phase::Pallet<Runtime>;
+
+	#[runtime::pallet_index(43)]
+	pub type NominationPools = pallet_nomination_pools::Pallet<Runtime>;
+
+	#[runtime::pallet_index(44)]
+	pub type Preimage = pallet_preimage::Pallet<Runtime>;
+
+	#[runtime::pallet_index(45)]
+	pub type VoterList = pallet_bags_list::Pallet<Runtime, Instance1>;
+
+	#[runtime::pallet_index(46)]
+	pub type Referenda = pallet_referenda::Pallet<Runtime>;
+
+	#[runtime::pallet_index(47)]
+	pub type RankedPolls = pallet_referenda::Pallet<Runtime, Instance2>;
+
+	#[runtime::pallet_index(48)]
+	pub type ConvictionVoting = pallet_conviction_voting::Pallet<Runtime>;
+
+	#[runtime::pallet_index(49)]
+	pub type RankedCollective = pallet_ranked_collective::Pallet<Runtime>;
+
+	// Identity
+	#[runtime::pallet_index(51)]
+	pub type Identity = pallet_identity::Pallet<Runtime>;
+
+	// PoC & Governance
+	#[runtime::pallet_index(52)]
+	pub type TechCouncil = pallet_collective::Pallet<Runtime, Instance1>;
+
+	#[runtime::pallet_index(53)]
+	pub type Poc = module_poc::Pallet<Runtime>;
+
+	#[runtime::pallet_index(54)]
+	pub type Revive = pallet_revive::Pallet<Runtime>;
+
+	#[runtime::pallet_index(55)]
+	pub type DelegatedStaking = pallet_delegated_staking::Pallet<Runtime>;
+
+	#[runtime::pallet_index(56)]
+	pub type CoreFellowship = pallet_core_fellowship::Pallet<Runtime>;
+
+	#[runtime::pallet_index(57)]
+	pub type Salary = pallet_salary::Pallet<Runtime>;
+
+	#[runtime::pallet_index(58)]
+	pub type PoolAssets = pallet_assets::Pallet<Runtime, Instance2>;
+
+	// Already Existing
+	#[runtime::pallet_index(0)]
+	pub type System = frame_system::Pallet<Runtime>;
+
+	#[runtime::pallet_index(50)]
+	pub type Assets = pallet_assets::Pallet<Runtime, Instance1>;
+
+	#[runtime::pallet_index(60)]
+	pub type AssetRewards = pallet_asset_rewards::Pallet<Runtime>;
+
+	#[runtime::pallet_index(61)]
+	pub type AssetsFreezer = pallet_assets_freezer::Pallet<Runtime, Instance1>;
+
+	#[runtime::pallet_index(62)]
+	pub type AssetConversion = pallet_asset_conversion::Pallet<Runtime>;
+
+    #[runtime::pallet_index(63)]
+	pub type AssetConversionMigration = pallet_asset_conversion_ops::Pallet<Runtime>;
+
+    #[runtime::pallet_index(64)]
+	pub type Parameters = pallet_parameters::Pallet<Runtime>;
+}
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, AccountIndex>;

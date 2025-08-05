@@ -28,6 +28,7 @@ frame-benchmarking = { workspace = true ,default-features = false, optional = tr
 frame-executive = { workspace = true ,default-features = false }
 frame-support = { workspace = true ,default-features = false }
 frame-system = { workspace = true ,default-features = false }
+frame-metadata-hash-extension = { workspace = true ,default-features = false }
 frame-system-benchmarking = { workspace = true ,default-features = false, optional = true }
 frame-system-rpc-runtime-api = { workspace = true ,default-features = false }
 frame-election-provider-support = { workspace = true ,default-features = false }
@@ -74,6 +75,7 @@ pallet-authority-discovery ={ workspace = true ,default-features = false }
 pallet-identity = { workspace = true ,default-features = false }
 pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
 pallet-treasury = { workspace = true ,default-features = false }
+pallet-parameters = { workspace = true ,default-features = false }
 pallet-assets = { workspace = true ,default-features = false }
 pallet-asset-tx-payment = { workspace = true ,default-features = false }
 pallet-asset-rewards = { workspace = true ,default-features = false }
@@ -126,6 +128,7 @@ std = [
 	"scale-info/std",
 	"frame-executive/std",
  	"frame-support/std",
+	"frame-metadata-hash-extension/std",
 	"frame-system/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-benchmarking/std",
@@ -142,6 +145,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-scheduler/std",
 	"pallet-preimage/std",
+	"pallet-parameters/std",
 	"pallet-treasury/std",
 	"pallet-assets/std",
 	"pallet-asset-tx-payment/std",
