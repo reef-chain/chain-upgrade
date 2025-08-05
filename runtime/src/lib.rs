@@ -15,6 +15,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     construct_runtime,
     ord_parameter_types,
+    derive_impl,
     dynamic_params::{dynamic_pallet_params, dynamic_params},
     instances::{Instance1, Instance2},
     pallet_prelude::{ConstU32, DispatchClass, Get},
@@ -27,11 +28,11 @@ use frame_support::{
         tokens::{GetSalary, PayFromAccount,imbalance::ResolveAssetTo},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, EitherOfDiverse,
         EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, LinearStoragePrice, Nothing,
-        OriginTrait, VariantCountOf, WithdrawReasons, ConstantStoragePrice,
+        OriginTrait, VariantCountOf, WithdrawReasons, ConstantStoragePrice,Imbalance
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
-        ConstantMultiplier, Weight,
+        ConstantMultiplier, Weight, IdentityFee
     },
     BoundedVec, PalletId,
 };
@@ -39,6 +40,10 @@ use frame_support::{
 // FRAME System
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_system::{ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned};
+
+// Substrate Transaction Payment
+pub use pallet_transaction_payment::{CurrencyAdapter, TargetedFeeAdjustment as SubstrateTargetedFeeAdjustment};
+
 
 // Election Support
 use frame_election_provider_support::bounds::ElectionBounds;
@@ -108,7 +113,7 @@ use sp_runtime::{
     generic, impl_opaque_keys, str_array as s,
     traits::{
         self, BadOrigin, BlakeTwo256, Block as BlockT, NumberFor, OpaqueKeys, SaturatedConversion,
-        StaticLookup, Zero, AccountIdConversion
+        StaticLookup, Zero, AccountIdConversion, Bounded
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent,
@@ -318,6 +323,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
+#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig)]
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
     type BaseCallFilter = frame_support::traits::Everything;
@@ -932,8 +938,44 @@ parameter_types! {
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier:  Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000 as u128);
+    pub MaximumMultiplier: Multiplier = Bounded::max_value();
     pub const OperationalFeeMultiplier: u8 = 5;
     pub TipPerWeightStep: Balance = 0;
+}
+
+type NegativeImbalance = <Balances as frame_support::traits::Currency<AccountId>>::NegativeImbalance;
+
+pub struct DealWithFees;
+impl frame_support::traits::OnUnbalanced<NegativeImbalance> for DealWithFees {
+	fn on_unbalanceds(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+		if let Some(fees) = fees_then_tips.next() {
+			// for fees, 80% to treasury, 20% to author
+			let mut split = fees.ration(80, 20);
+			if let Some(tips) = fees_then_tips.next() {
+				// for tips, if any, 80% to treasury, 20% to author (though this can be anything)
+				tips.ration_merge_into(80, 20, &mut split);
+			}
+			Treasury::on_unbalanced(split.0);
+			Author::on_unbalanced(split.1);
+		}
+	}
+}
+
+#[allow(deprecated)]
+impl pallet_transaction_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
+	type WeightToFee = IdentityFee<Balance>;
+	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+	type FeeMultiplierUpdate = SubstrateTargetedFeeAdjustment<
+		Self,
+		TargetBlockFullness,
+		AdjustmentVariable,
+		MinimumMultiplier,
+		MaximumMultiplier,
+	>;
+	type WeightInfo = pallet_transaction_payment::weights::SubstrateWeight<Runtime>;
 }
 
 impl module_transaction_payment::Config for Runtime {
@@ -1584,7 +1626,7 @@ parameter_types! {
     pub const TotalLockedCap: Balance = 2_000_000_000 * primitives::currency::REEF;
     pub const ProposalDepositOffset: Balance = NativeTokenExistentialDeposit::get() + NativeTokenExistentialDeposit::get();
     pub const ProposalHoldReason: RuntimeHoldReason =
-        RuntimeHoldReason::Council(pallet_collective::HoldReason::ProposalSubmission);
+        RuntimeHoldReason::TechCouncil(pallet_collective::HoldReason::ProposalSubmission);
     pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
 }
 
@@ -1827,6 +1869,9 @@ mod runtime {
 
     #[runtime::pallet_index(64)]
 	pub type Parameters = pallet_parameters::Pallet<Runtime>;
+
+    #[runtime::pallet_index(65)]
+	pub type SubstrateTransactionPayment = pallet_transaction_payment::Pallet<Runtime>;
 }
 
 /// The address format for describing accounts.
@@ -1883,10 +1928,10 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckEra::from(crate::generic::Era::Immortal),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
-                .into(),
             frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
             frame_system::WeightReclaim::<Runtime>::new(),
+            module_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
 }
@@ -1895,9 +1940,9 @@ impl EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
     pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 /// The payload being signed in transactions.
-pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
+pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 /// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
+pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, TxExtension>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
     Runtime,
@@ -1949,12 +1994,16 @@ where
             .saturating_sub(1);
         let tip = 0;
         let tx_ext: TxExtension = (
+            frame_system::AuthorizeCall::<Runtime>::new(),
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
             frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
+            frame_metadata_hash_extension::CheckMetadataHash::new(false),
+			frame_system::WeightReclaim::<Runtime>::new(),
             module_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
@@ -1965,7 +2014,7 @@ where
             .ok()?;
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
         let address = Indices::unlookup(account);
-        let (call, extra, _) = raw_payload.deconstruct();
+        let (call, tx_ext, _) = raw_payload.deconstruct();
         let transaction =
             generic::UncheckedExtrinsic::new_signed(call, address, signature, tx_ext).into();
         Some(transaction)
@@ -1987,7 +2036,7 @@ pallet_revive::impl_runtime_apis_plus_revive!(
         }
 
         fn execute_block(block: Block) {
-            Executive::execute_block(block)
+            Executive::execute_block(block);
         }
 
         fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
