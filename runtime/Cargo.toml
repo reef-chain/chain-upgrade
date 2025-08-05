@@ -32,6 +32,8 @@ frame-system-benchmarking = { workspace = true ,default-features = false, option
 frame-system-rpc-runtime-api = { workspace = true ,default-features = false }
 frame-election-provider-support = { workspace = true ,default-features = false }
 pallet-balances = { workspace = true ,default-features = false }
+pallet-core-fellowship = { workspace = true ,default-features = false }
+pallet-delegated-staking = { workspace = true ,default-features = false }
 pallet-grandpa = { workspace = true ,default-features = false }
 pallet-indices = { workspace = true ,default-features = false }
 pallet-insecure-randomness-collective-flip =  { workspace = true ,default-features = false }
@@ -59,6 +61,7 @@ sp-version = { workspace = true ,default-features = false }
 # # NPoS
 pallet-session = { workspace = true ,default-features = false, features = ["historical"] }
 pallet-staking = { workspace = true ,default-features = false }
+pallet-salary = { workspace = true ,default-features = false }
 pallet-staking-runtime-api = { workspace = true ,default-features = false }
 pallet-staking-reward-curve ={ workspace = true ,default-features = false }
 pallet-authorship ={ workspace = true ,default-features = false }
@@ -121,6 +124,8 @@ std = [
 	"frame-election-provider-support/std",
 	"pallet-balances/std",
 	"pallet-bags-list/std",
+	"pallet-core-fellowship/std",
+	"pallet-delegated-staking/std",
 	"pallet-grandpa/std",
 	"pallet-indices/std",
     "pallet-insecure-randomness-collective-flip/std",
@@ -137,6 +142,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-staking-runtime-api/std",
+	"pallet-salary/std",
 	"pallet-collective/std",
 	"pallet-session/std",
 	"pallet-staking/std",

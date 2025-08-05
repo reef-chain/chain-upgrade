@@ -1307,12 +1307,65 @@ impl pallet_sudo::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const Budget: Balance = 10_000 * DOLLARS;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
+}
+
+pub struct SalaryForRank;
+impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
+	fn get_salary(a: u16, _: &AccountId) -> Balance {
+		Balance::from(a) * 1000 * DOLLARS
+	}
+}
+
+impl pallet_salary::Config for Runtime {
+	type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
+	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type Members = RankedCollective;
+	type Salary = SalaryForRank;
+	type RegistrationPeriod = ConstU32<200>;
+	type PayoutPeriod = ConstU32<200>;
+	type Budget = Budget;
+}
+
+impl pallet_core_fellowship::Config for Runtime {
+	type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
+	type Members = RankedCollective;
+	type Balance = Balance;
+	type ParamsOrigin = frame_system::EnsureRoot<AccountId>;
+	type InductOrigin = pallet_core_fellowship::EnsureInducted<Runtime, (), 1>;
+	type ApproveOrigin = EnsureRootWithSuccess<AccountId, ConstU16<9>>;
+	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<9>>;
+	type FastPromoteOrigin = Self::PromoteOrigin;
+	type EvidenceSize = ConstU32<16_384>;
+	type MaxRank = ConstU16<9>;
+}
+
+parameter_types! {
+	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
+	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+}
+
+impl pallet_delegated_staking::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = DelegatedStakingPalletId;
+	type Currency = Balances;
+	type OnSlash = ();
+	type SlashRewardFraction = SlashRewardFraction;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CoreStaking = Staking;
+}
+
 type TechCouncilInstance = pallet_collective::Instance1;
 
 type EnsureRootOrTwoThridsTechCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechCouncilInstance, 2, 3>,
 >;
+
 
 parameter_types! {
     pub const EraDuration: BlockNumber = 7 * DAYS;
@@ -1461,6 +1514,9 @@ construct_runtime!(
         TechCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 52,
         Poc: module_poc::{Pallet, Call, Storage, Event<T>} = 53,
         Revive: pallet_revive = 54,
+        DelegatedStaking: pallet_delegated_staking = 55,
+        CoreFellowship: pallet_core_fellowship = 56,
+        Salary: pallet_salary = 57,
     }
 );
 

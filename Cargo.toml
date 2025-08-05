@@ -74,6 +74,8 @@ frame-election-provider-support = { git = "https://github.com/paritytech/polkado
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-child-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-core-fellowship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-delegated-staking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-revive-eth-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
@@ -87,6 +89,7 @@ pallet-indices = { git = "https://github.com/paritytech/polkadot-sdk", default-f
 pallet-insecure-randomness-collective-flip = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-salary = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }

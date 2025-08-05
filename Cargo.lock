@@ -1718,7 +1718,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3767,6 +3767,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-core-fellowship"
+version = "25.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-ranked-collective",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-delegated-staking"
+version = "8.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "40.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
@@ -4084,6 +4117,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-salary"
+version = "26.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
+dependencies = [
+ "log",
+ "pallet-ranked-collective",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
 name = "pallet-scheduler"
 version = "42.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
@@ -4264,8 +4309,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes 0.13.0",
- "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand 0.7.3",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
 ]
@@ -4978,6 +5023,8 @@ dependencies = [
  "pallet-balances",
  "pallet-collective",
  "pallet-conviction-voting",
+ "pallet-core-fellowship",
+ "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-grandpa",
  "pallet-identity",
@@ -4994,6 +5041,7 @@ dependencies = [
  "pallet-revive",
  "pallet-revive-proc-macro",
  "pallet-revive-uapi",
+ "pallet-salary",
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
@@ -5283,7 +5331,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6780,7 +6828,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7085,7 +7133,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
