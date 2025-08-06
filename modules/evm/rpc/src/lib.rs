@@ -2,11 +2,11 @@
 
 pub use crate::evm_api::EVMApiServer;
 use ethereum_types::{H160, U256};
-use jsonrpsee::core::Error as JsonRpseeError;
+use jsonrpsee::core::client::Error as JsonRpseeError;
 use jsonrpsee::core::RpcResult;
-use jsonrpsee::types::error::{CallError, ErrorCode, ErrorObject};
+use jsonrpsee::types::error::{ErrorObjectOwned, ErrorCode, ErrorObject};
 use rustc_hex::ToHex;
-use sc_rpc_api::DenyUnsafe;
+use sc_rpc_api::DenyUnsafe; 
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_core::{Bytes, Decode};
@@ -34,87 +34,79 @@ pub mod evm_api;
 pub const GAS_LIMIT: u64 = 100_000_000;
 pub const STORAGE_LIMIT: u32 = 1_000_000;
 
-fn internal_err<T: ToString>(message: T) -> JsonRpseeError {
-    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-        ErrorCode::InternalError.code(),
-        message.to_string(),
-        None::<()>,
-    )))
+pub fn err<T: ToString>(
+	code: i32,
+	message: T,
+	data: Option<&[u8]>,
+) -> jsonrpsee::types::error::ErrorObjectOwned {
+	jsonrpsee::types::error::ErrorObject::owned(
+		code,
+		message.to_string(),
+		data.map(|bytes| {
+			jsonrpsee::core::to_json_raw_value(&format!("0x{}", hex::encode(bytes)))
+				.expect("fail to serialize data")
+		}),
+	)
 }
 
-fn invalid_params<T: ToString>(message: T) -> JsonRpseeError {
-    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+pub fn internal_err<T: ToString>(message: T) -> jsonrpsee::types::error::ErrorObjectOwned {
+	err(jsonrpsee::types::error::INTERNAL_ERROR_CODE, message, None)
+}
+
+fn invalid_params<T: ToString>(message: T) -> ErrorObjectOwned {
+    ErrorObjectOwned::owned(
         ErrorCode::InvalidParams.code(),
         message.to_string(),
         None::<()>,
-    )))
+    )
+}
+
+pub fn internal_err_with_data<T: ToString>(
+	message: T,
+	data: &[u8],
+) -> jsonrpsee::types::error::ErrorObjectOwned {
+	err(
+		jsonrpsee::types::error::INTERNAL_ERROR_CODE,
+		message,
+		Some(data),
+	)
 }
 
 #[allow(dead_code)]
 fn error_on_execution_failure(reason: &ExitReason, data: &[u8]) -> RpcResult<()> {
     match reason {
         ExitReason::Succeed(_) => Ok(()),
-        ExitReason::Error(e) => {
-            if *e == ExitError::OutOfGas {
+        ExitReason::Error(err) => {
+            if *err == ExitError::OutOfGas {
                 // `ServerError(0)` will be useful in estimate gas
-                Err(JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-                    ErrorCode::ServerError(0).code(),
-                    "out of gas".to_string(),
-                    None::<()>,
-                ))))
+                	return Err(internal_err("out of gas"));
             } else {
-                Err(JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-                    ErrorCode::InternalError.code(),
-                    format!("execution error: {:?}", e),
-                    Some("0x".to_string()),
-                ))))
+              Err(internal_err_with_data(
+				format!("evm error: {err:?}"),
+				&[],
+			))
             }
         }
         ExitReason::Revert(_) => {
             let message = "VM Exception while processing transaction: execution revert".to_string();
-            Err(JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-                ErrorCode::InternalError.code(),
-                decode_revert_message(data)
-                    .map_or(message.clone(), |reason| format!("{} {}", message, reason)),
-                Some(format!("0x{}", data.to_hex::<String>())),
-            ))))
+            Err(crate::internal_err_with_data(message, data))
         }
-        ExitReason::Fatal(e) => Err(JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-            ErrorCode::InternalError.code(),
-            format!("execution fatal: {:?}", e),
-            Some("0x".to_string()),
-        )))),
+      ExitReason::Fatal(err) => Err(crate::internal_err_with_data(
+			format!("evm fatal: {err:?}"),
+			&[],
+		)),
     }
-}
-fn decode_revert_message(data: &[u8]) -> Option<String> {
-    // A minimum size of error function selector (4) + offset (32) + string length
-    // (32) should contain a utf-8 encoded revert reason.
-    let msg_start: usize = 68;
-    if data.len() > msg_start {
-        let message_len = U256::from(&data[36..msg_start]).saturated_into::<usize>();
-        let msg_end = msg_start + message_len;
-        if data.len() < msg_end {
-            return None;
-        }
-        let body: &[u8] = &data[msg_start..msg_end];
-        if let Ok(reason) = std::str::from_utf8(body) {
-            return Some(reason.to_string());
-        }
-    }
-    None
 }
 
 pub struct EVM<B, C, Balance> {
     client: Arc<C>,
-    _deny_unsafe: DenyUnsafe,
     _marker: PhantomData<(B, Balance)>,
 }
 
 impl<B, C, Balance> EVM<B, C, Balance> {
-    pub fn new(client: Arc<C>, _deny_unsafe: DenyUnsafe) -> Self {
+    pub fn new(client: Arc<C>) -> Self {
         Self {
             client,
-            _deny_unsafe,
             _marker: Default::default(),
         }
     }
@@ -481,22 +473,13 @@ where
                             lower, upper, mid
                         );
 
-                        // // if Err == OutofGas or OutofFund, we need more gas
-                        // if err.code == ErrorCode::ServerError(0) {
-                        // 	lower = mid;
-                        // 	mid = (lower + upper + 1) / 2;
-                        // 	if mid == lower {
-                        // 		break;
-                        // 	}
-                        // }
-                        if let JsonRpseeError::Call(CallError::Custom(e)) = &err {
-                            if e.code() == ErrorCode::ServerError(0).code() {
-                                lower = mid;
-                                mid = (lower + upper + 1) / 2;
-                                if mid == lower {
-                                    break;
-                                }
-                            }
+                        // if Err == OutofGas or OutofFund, we need more gas
+                       if err.code() == ErrorCode::ServerError(0).code() {
+                        	lower = mid;
+                        	mid = (lower + upper + 1) / 2;
+                        	if mid == lower {
+                        		break;
+                        	}
                         }
 
                         // Other errors, return directly
