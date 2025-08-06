@@ -16,79 +16,78 @@ name = 'reef-node'
 substrate-build-script-utils = { workspace = true }
 
 [dependencies]
-# hex-literal = "0.4.1"
-# jsonrpsee-core = { version = "0.24.3" }
-# structopt = '0.3.8'
-# clap = { version = "4.2.5", features = ["derive"] }
-# serde = { version = "1.0.102", features = ["derive"] }
-# serde_json = "1.0.41"
-# jsonrpsee = { version = "0.24.3", features = ["server"] }
-# futures = { version = "0.3.21", features = ["thread-pool"]}
+hex-literal = "0.4.1"
+jsonrpsee-core = { version = "0.24.3" }
+structopt = '0.3.8'
+clap = { version = "4.2.5", features = ["derive"] }
+serde = { version = "1.0.102", features = ["derive"] }
+serde_json = "1.0.41"
+jsonrpsee = { version = "0.24.3", features = ["server"] }
+futures = { version = "0.3.21", features = ["thread-pool"]}
 
-# # Substrate dependencies
-# frame-benchmarking = { workspace = true ,default-features = false }
-# frame-benchmarking-cli = { workspace = true ,default-features = false }
-# pallet-transaction-payment-rpc = { workspace = true ,default-features = false }
-# sc-chain-spec = { workspace = true }
-# sc-basic-authorship = { workspace = true }
-# sc-cli = { workspace = true }
-# sc-client-api = { workspace = true }
-# sc-executor = { workspace = true }
-# sc-rpc = { workspace = true }
-# sc-rpc-api = { workspace = true }
-# sc-service = { workspace = true }
-# sc-transaction-pool = { workspace = true }
-# sc-transaction-pool-api = { workspace = true }
-# sc-telemetry = { workspace = true }
-# sp-std = { workspace = true ,default-features = false }
-# sp-api = { workspace = true ,default-features = false }
-# sp-block-builder = { workspace = true ,default-features = false }
-# sp-blockchain = { workspace = true ,default-features = false }
-# sp-core  = { workspace = true ,default-features = false }
-# sp-inherents = { workspace = true ,default-features = false }
-# sc-network = { workspace = true }
-# sc-offchain = { workspace = true }
-# sp-runtime  = { workspace = true ,default-features = false }
-# sp-transaction-pool  = { workspace = true ,default-features = false }
-# log = { workspace = true, default-features = false }
-# sp-timestamp = { workspace = true ,default-features = false }
-# substrate-frame-rpc-system = { workspace = true ,default-features = false }
+# Substrate dependencies
+frame-benchmarking = { workspace = true ,default-features = false }
+frame-benchmarking-cli = { workspace = true ,default-features = false }
+pallet-transaction-payment-rpc = { workspace = true ,default-features = false }
+sc-chain-spec = { workspace = true }
+sc-basic-authorship = { workspace = true }
+sc-cli = { workspace = true }
+sc-client-api = { workspace = true }
+sc-executor = { workspace = true }
+sc-rpc = { workspace = true }
+sc-rpc-api = { workspace = true }
+sc-service = { workspace = true }
+sc-transaction-pool = { workspace = true }
+sc-transaction-pool-api = { workspace = true }
+sc-telemetry = { workspace = true }
+sp-std = { workspace = true ,default-features = false }
+sp-api = { workspace = true ,default-features = false }
+sp-block-builder = { workspace = true ,default-features = false }
+sp-blockchain = { workspace = true ,default-features = false }
+sp-core  = { workspace = true ,default-features = false }
+sp-inherents = { workspace = true ,default-features = false }
+sc-network = { workspace = true }
+sc-offchain = { workspace = true }
+sp-runtime  = { workspace = true ,default-features = false }
+sp-transaction-pool  = { workspace = true ,default-features = false }
+log = { workspace = true, default-features = false }
+sp-timestamp = { workspace = true ,default-features = false }
+substrate-frame-rpc-system = { workspace = true ,default-features = false }
 
-# sc-keystore = { workspace = true }
-# sp-keystore = { workspace = true ,default-features = false }
-# sc-consensus-grandpa = {  workspace = true }
-# sc-consensus-grandpa-rpc = { workspace = true }
+sc-keystore = { workspace = true }
+sp-keystore = { workspace = true ,default-features = false }
+sc-consensus-grandpa = {  workspace = true }
+sc-consensus-grandpa-rpc = { workspace = true }
 
-# sp-consensus = { workspace = true }
-# sp-consensus-babe = { workspace = true }
-# sp-consensus-grandpa = { workspace = true ,default-features=false }
-# sc-consensus = { workspace = true }
-# sc-consensus-babe = { workspace = true }
-# sc-consensus-babe-rpc = { workspace = true }
-# sp-keyring = { workspace = true, default-features=false }
-# frame-system = { workspace = true, default-features=false }
-# pallet-transaction-payment = { workspace = true, default-features=false }
-# sc-consensus-slots = { workspace = true }
+sp-consensus = { workspace = true }
+sp-consensus-babe = { workspace = true }
+sp-consensus-grandpa = { workspace = true ,default-features=false }
+sc-consensus = { workspace = true }
+sc-consensus-babe = { workspace = true }
+sc-consensus-babe-rpc = { workspace = true }
+sp-keyring = { workspace = true, default-features=false }
+frame-system = { workspace = true, default-features=false }
+pallet-transaction-payment = { workspace = true, default-features=false }
+sc-consensus-slots = { workspace = true }
 
 module-evm = { path = "../modules/evm" }
-# module-transaction-payment = { path = "../modules/transaction_payment" }
-# evm-rpc = { path = "../modules/evm/rpc" }
+module-transaction-payment = { path = "../modules/transaction_payment" }
+evm-rpc = { path = "../modules/evm/rpc" }
 
-# reef-primitives = { path = "../primitives" }
+reef-primitives = { path = "../primitives" }
 
-# runtime
-# reef-runtime = { path = '../runtime', version = '4.0.0' }
+reef-runtime = { path = '../runtime', version = '4.0.0' }
 
-# [features]
-# default = []
-# runtime-benchmarks = [
-# 	"frame-benchmarking-cli/runtime-benchmarks",
-# 	"frame-benchmarking/runtime-benchmarks",
-# 	"frame-system/runtime-benchmarks",
-# 	"reef-runtime/runtime-benchmarks",
-# 	"sc-service/runtime-benchmarks",
-# 	"sp-runtime/runtime-benchmarks",
-# ]
-# with-ethereum-compatibility = [
-# 	"reef-runtime/with-ethereum-compatibility"
-# ]
+[features]
+default = []
+runtime-benchmarks = [
+	"frame-benchmarking-cli/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"reef-runtime/runtime-benchmarks",
+	"sc-service/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+]
+with-ethereum-compatibility = [
+	"reef-runtime/with-ethereum-compatibility"
+]
