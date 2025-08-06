@@ -5,30 +5,31 @@ authors = ["Reef Developers"]
 edition = "2021"
 
 [dependencies]
-# jsonrpsee = { version = "0.24.3", features = ["server","macros"] }
-# jsonrpc-core = "18.0.0"
-# jsonrpc-derive = "18.0.0"
-# ethereum-types = { version = "0.15.0", features = ["scale-info"] }
-# sp-api = { workspace = true ,default-features = false } 
-# sp-blockchain= { workspace = true , default-features = false } 
-# sp-core= { workspace = true ,default-features = false } 
-# sp-io= { workspace = true ,default-features = false } 
-# sp-rpc = { workspace = true ,default-features = false } 
-# sc-rpc-api= { workspace = true ,default-features = false } 
-# sp-runtime= { workspace = true ,default-features = false } 
-# sp-storage= { workspace = true ,default-features = false } 
-# rustc-hex = "2.1.0"
-# serde = { version = "1.0", features = ["derive"] }
-# module-evm-rpc-runtime-api = { path = "runtime_api" }
-# module-evm = { path = ".." }
-# pallet-transaction-payment-rpc-runtime-api= { workspace = true ,default-features = false } 
-# frame-support= { workspace = true ,default-features = false } 
-# log = { version = "0.4.14", default-features = false }
+jsonrpsee = { version = "0.24.3", features = ["server","macros"] }
+jsonrpc-core = "18.0.0"
+jsonrpc-derive = "18.0.0"
+ethereum-types = { version = "0.15.0", features = ["scale-info"] }
+sp-api = { workspace = true ,default-features = false } 
+sp-blockchain= { workspace = true , default-features = false } 
+sp-core= { workspace = true ,default-features = false } 
+sp-io= { workspace = true ,default-features = false } 
+sp-rpc = { workspace = true ,default-features = false } 
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] } 
+sc-rpc-api= { workspace = true ,default-features = false } 
+sp-runtime= { workspace = true ,default-features = false } 
+sp-storage= { workspace = true ,default-features = false } 
+rustc-hex = "2.1.0"
+serde = { version = "1.0", features = ["derive"] }
+module-evm-rpc-runtime-api = { path = "runtime_api" }
+module-evm = { path = ".." }
+pallet-transaction-payment-rpc-runtime-api= { workspace = true ,default-features = false } 
+frame-support= { workspace = true ,default-features = false } 
+log = { version = "0.4.14", default-features = false }
 
-# [dev-dependencies]
-# serde_json = "1.0.41"
+[dev-dependencies]
+serde_json = "1.0.41"
 
-# [features]
-# default = [ "rpc_binary_search_estimate" ]
-# rpc_binary_search_estimate = []
-# # std = ["pallet-transaction-payment-rpc-runtime-api/std"]
+[features]
+default = [ "rpc_binary_search_estimate" ]
+rpc_binary_search_estimate = []
+std = ["pallet-transaction-payment-rpc-runtime-api/std"]
