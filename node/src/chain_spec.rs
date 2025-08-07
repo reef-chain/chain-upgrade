@@ -91,8 +91,26 @@ pub fn get_authority_keys_from_seed(
     )
 }
 
+// Default Accounts for Revive transaction
+pub fn well_known_including_eth_accounts() -> Vec<AccountId> {
+	Sr25519Keyring::well_known()
+		.map(|k| k.to_account_id())
+		.chain([
+			// subxt_signer::eth::dev::alith()
+			array_bytes::hex_n_into_unchecked(
+				"f24ff3a9cf04c71dbc94d0b566f7a27b94566caceeeeeeeeeeeeeeeeeeeeeeee",
+			),
+			// subxt_signer::eth::dev::baltathar()
+			array_bytes::hex_n_into_unchecked(
+				"3cd0a705a2dc65e5b1e1205896baa2be8a07c6e0eeeeeeeeeeeeeeeeeeeeeeee",
+			),
+		])
+		.collect::<Vec<_>>()
+}
 
 pub fn development_config() -> Result<ChainSpec, String> {
+    let endowed = well_known_including_eth_accounts();
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         Default::default(),
@@ -107,7 +125,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Sudo account
         get_account_id_from_seed::<sr25519::Public>("Alice"),
         // Pre-funded accounts
-       vec![],
+        endowed,
     ))
     .with_properties(reef_properties())
     .build())
