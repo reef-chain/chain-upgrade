@@ -7,8 +7,7 @@ use sc_client_api::Backend;
 use sc_client_api::BlockBackend;
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_executor::NativeElseWasmExecutor;
-use sc_service::WarpSyncParams;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, WarpSyncConfig,Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use std::sync::Arc;
@@ -47,7 +46,7 @@ type PartialResult = Result<
         FullBackend,
         FullSelectChain,
         sc_consensus::DefaultImportQueue<Block>,
-        sc_transaction_pool::FullPool<Block, FullClient>,
+        sc_transaction_pool::TransactionPoolHandle<Block, FullClient>,
         (
             sc_consensus_babe::BabeBlockImport<
                 Block,
@@ -92,13 +91,16 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-    let transaction_pool = sc_transaction_pool::BasicPool::new_full(
-        config.transaction_pool.clone(),
-        config.role.is_authority().into(),
-        config.prometheus_registry(),
-        task_manager.spawn_essential_handle(),
-        client.clone(),
-    );
+   let transaction_pool = Arc::from(
+		sc_transaction_pool::Builder::new(
+			task_manager.spawn_essential_handle(),
+			client.clone(),
+			config.role.is_authority().into(),
+		)
+		.with_options(config.transaction_pool.clone())
+		.with_prometheus(config.prometheus_registry())
+		.build(),
+	);
 
     let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
         client.clone(),
@@ -158,7 +160,9 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full<
+	N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
+>(config: Configuration) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
         backend,
@@ -170,19 +174,27 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         other: (block_import, grandpa_link, babe_link, babe_worker_handler, mut telemetry),
     } = new_partial(&config)?;
 
-    let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
+    let mut net_config = sc_network::config::FullNetworkConfiguration::<
+		Block,
+		<Block as sp_runtime::traits::Block>::Hash,
+		N,
+	>::new(&config.network, config.prometheus_registry().cloned());
 
-    let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
-        &client
-            .block_hash(0)
-            .ok()
-            .flatten()
-            .expect("Genesis block exists; qed"),
-        &config.chain_spec,
-    );
-    net_config.add_notification_protocol(sc_consensus_grandpa::grandpa_peers_set_config(
-        grandpa_protocol_name.clone(),
-    ));
+   	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
+		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
+		&config.chain_spec,
+	);
+    let metrics = N::register_notification_metrics(config.prometheus_registry());
+
+    let peer_store_handle = net_config.peer_store_handle();
+    
+    let (grandpa_protocol_config, grandpa_notification_service) =
+		sc_consensus_grandpa::grandpa_peers_set_config::<_, N>(
+			grandpa_protocol_name.clone(),
+			metrics.clone(),
+			peer_store_handle,
+		);
+    net_config.add_notification_protocol(grandpa_protocol_config);
 
     let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
         backend.clone(),
@@ -190,7 +202,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         Vec::default(),
     ));
 
-    let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
+    let (network, system_rpc_tx, tx_handler_controller, sync_service) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             net_config,
@@ -199,7 +211,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             spawn_handle: task_manager.spawn_handle(),
             import_queue,
             block_announce_validator_builder: None,
-            warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+            warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
+            block_relay: None,
+			metrics,
         })?;
 
     if config.offchain_worker.enabled {
@@ -214,10 +228,10 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
                 transaction_pool: Some(OffchainTransactionPoolFactory::new(
                     transaction_pool.clone(),
                 )),
-                network_provider: network.clone(),
+                network_provider: Arc::new(network.clone()),
                 enable_http_requests: true,
                 custom_extensions: |_| vec![],
-            })
+            })?
             .run(client.clone(), task_manager.spawn_handle())
             .boxed(),
         );
@@ -244,12 +258,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         let keystore = keystore_container.keystore();
         let select_chain = select_chain.clone();
 
-        Box::new(move |deny_unsafe, subscription_executor| {
+        Box::new(move | subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
-                deny_unsafe,
                 babe: crate::rpc::BabeDeps {
                     babe_worker_handle: babe_worker_handler.clone(),
                     keystore: keystore.clone(),
@@ -364,6 +377,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             prometheus_registry,
             shared_voter_state: SharedVoterState::empty(),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
+            notification_service: grandpa_notification_service,
         };
 
         // the GRANDPA voter task is considered infallible, i.e.
@@ -374,7 +388,5 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?,
         );
     }
-
-    network_starter.start_network();
     Ok(task_manager)
 }
