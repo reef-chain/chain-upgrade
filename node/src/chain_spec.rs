@@ -336,7 +336,6 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 		Default::default(),
 	))
 }
-
 fn testnet_genesis(
     wasm_binary: &[u8],
     initial_authorities: Vec<(
@@ -349,7 +348,7 @@ fn testnet_genesis(
     )>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
-) -> RuntimeGenesisConfig {
+) -> serde_json::Value {
     let evm_genesis_accounts = evm_genesis();
 
     const INITIAL_BALANCE: u128 = 100_000_000 * REEF;
@@ -386,17 +385,10 @@ fn testnet_genesis(
         .into_iter()
         .collect::<Vec<(AccountId, Balance)>>();
 
-    RuntimeGenesisConfig {
-        system: SystemConfig {
-            // Add Wasm runtime to storage.
-            code: wasm_binary.to_vec(),
-            ..Default::default() // changes_trie_config: Default::default(),
-        },
-        assets: Default::default(),
-        indices: IndicesConfig { indices: vec![] },
-        balances: BalancesConfig { balances },
-        session: SessionConfig {
-            keys: initial_authorities
+    serde_json::json!({
+        "balances":  { "balances":balances },
+        "session":  {
+            "keys": initial_authorities
                 .iter()
                 .map(|x| {
                     (
@@ -412,7 +404,7 @@ fn testnet_genesis(
                 })
                 .collect::<Vec<_>>(),
         },
-        staking: StakingConfig {
+        "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: initial_authorities.len() as u32,
             stakers: initial_authorities
@@ -430,16 +422,12 @@ fn testnet_genesis(
             slash_reward_fraction: sp_runtime::Perbill::from_percent(10),
             ..Default::default()
         },
-        babe: BabeConfig {
+        "babe": BabeConfig {
             authorities: Default::default(),
-            epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG),
+            epoch_config: BABE_GENESIS_EPOCH_CONFIG,
             ..Default::default()
         },
-        grandpa: Default::default(),
-        authority_discovery: Default::default(),
-        im_online: Default::default(),
-        nomination_pools: Default::default(),
-        tokens: TokensConfig {
+        "tokens": TokensConfig {
             balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
@@ -451,14 +439,14 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
-        evm: EVMConfig {
+        "evm": EVMConfig {
             accounts: evm_genesis_accounts,
         },
-        sudo: SudoConfig {
-            key: Some(root_key),
+        "sudo": {
+            "key": Some(root_key),
         },
-        tech_council: Default::default(),
-    }
+      "revive": ReviveConfig { mapped_accounts: endowed_accounts.iter().filter(|x| ! is_eth_derived(x)).cloned().collect() },
+    })
 }
 
 fn mainnet_genesis(

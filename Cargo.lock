@@ -12315,6 +12315,7 @@ dependencies = [
 name = "reef-node"
 version = "4.0.2"
 dependencies = [
+ "array-bytes",
  "clap 4.5.13",
  "evm-rpc",
  "frame-benchmarking",
@@ -12327,6 +12328,7 @@ dependencies = [
  "log",
  "module-evm",
  "module-transaction-payment",
+ "pallet-revive",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "reef-primitives",

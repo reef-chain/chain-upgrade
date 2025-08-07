@@ -16,6 +16,7 @@ name = 'reef-node'
 substrate-build-script-utils = { workspace = true }
 
 [dependencies]
+array-bytes = "6.1"
 hex-literal = "0.4.1"
 jsonrpsee-core = { version = "0.24.3" }
 structopt = '0.3.8'
@@ -68,6 +69,7 @@ sc-consensus-babe-rpc = { workspace = true }
 sp-keyring = { workspace = true, default-features=false }
 frame-system = { workspace = true, default-features=false }
 pallet-transaction-payment = { workspace = true, default-features=false }
+pallet-revive = { workspace = true, default-features=false }
 sc-consensus-slots = { workspace = true }
 
 module-evm = { path = "../modules/evm" }
