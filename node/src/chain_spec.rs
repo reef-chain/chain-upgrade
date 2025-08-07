@@ -91,42 +91,26 @@ pub fn get_authority_keys_from_seed(
     )
 }
 
+
 pub fn development_config() -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-    Ok(ChainSpec::from_genesis(
-        // Name
-        "Development",
-        // ID
-        "dev",
-        ChainType::Development,
-        move || {
-            testnet_genesis(
-                wasm_binary,
-                // Initial PoS authorities
-                vec![get_authority_keys_from_seed("Alice")],
-                // Sudo account
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                // Pre-funded accounts
-                vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                ],
-            )
-        },
-        // Bootnodes
-        vec![],
-        // Telemetry
-        None,
-        // Protocol ID
-        None,
-        None,
-        // Properties
-        Some(reef_properties()),
-        // Extensions
+    Ok(ChainSpec::builder(
+        WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         Default::default(),
+    )
+    .with_name("Development")
+    .with_id("dev")
+    .with_chain_type(ChainType::Development)
+    .with_genesis_config_patch(testnet_genesis(
+        WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
+        // Initial PoS authorities
+        vec![get_authority_keys_from_seed("Alice")],
+        // Sudo account
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        // Pre-funded accounts
+       vec![],
     ))
+    .with_properties(reef_properties())
+    .build())
 }
 
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
