@@ -54,8 +54,6 @@ pub struct FullDeps<C, P, SC, B> {
     pub pool: Arc<P>,
     /// The SelectChain Strategy
     pub select_chain: SC,
-    /// Whether to deny unsafe calls
-    pub deny_unsafe: DenyUnsafe,
     /// BABE specific dependencies.
     pub babe: BabeDeps,
     /// GRANDPA specific dependencies.
@@ -90,7 +88,6 @@ where
         client,
         pool,
         select_chain,
-        deny_unsafe,
         babe,
         grandpa,
     } = deps;
@@ -106,7 +103,7 @@ where
         finality_provider,
     } = grandpa;
 
-    io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    io.merge(System::new(client.clone(), pool).into_rpc())?;
 
     io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
@@ -121,7 +118,6 @@ where
             babe_worker_handle.clone(),
             keystore,
             select_chain,
-            deny_unsafe,
         )
         .into_rpc(),
     )?;
@@ -135,7 +131,7 @@ where
         )
         .into_rpc(),
     )?;
-    io.merge(EVM::new(client.clone(), deny_unsafe).into_rpc())?;
+    io.merge(EVM::new(client.clone()).into_rpc())?;
 
     Ok(io)
 }
