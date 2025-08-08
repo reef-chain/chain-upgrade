@@ -204,7 +204,7 @@ pub fn run(cmd: CliCommand) -> anyhow::Result<()> {
 		task_manager.spawn_handle().spawn(
 			"prometheus-endpoint",
 			None,
-			prometheus_endpoint::init_prometheus(port, registry).map(drop),
+			substrate_prometheus_endpoint::init_prometheus(port, registry).map(drop),
 		);
 	}
 

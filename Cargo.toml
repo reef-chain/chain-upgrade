@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     'node',
     'modules/*',
+    'modules/revive/rpc',
     'runtime',
 ]
 
@@ -131,7 +132,7 @@ pallet-core-fellowship = { git = "https://github.com/paritytech/polkadot-sdk", b
 pallet-delegated-staking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-revive = { path="modules/revive", default-features = false }
-pallet-revive-eth-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
+pallet-revive-eth-rpc = { path="modules/revive/rpc", default-features = false }
 pallet-revive-fixtures = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-revive-proc-macro  = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
 pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2506", default-features = false}
@@ -149,7 +150,7 @@ pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-multisig = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
-pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
+pallet-staking = { path="modules/staking",default-features = false }
 pallet-bags-list = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-collective = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
