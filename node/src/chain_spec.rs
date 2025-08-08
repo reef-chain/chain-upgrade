@@ -256,15 +256,17 @@ pub fn live_testnet_config() -> Result<ChainSpec, String> {
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
-    Ok(ChainSpec::from_genesis(
+    Ok(ChainSpec::builder(
+		WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
+		Default::default(),
+	)
 		// Name
-		"Reef Mainnet",
+		.with_name("Reef Mainnet")
 		// ID
-		"reef_mainnet",
-		ChainType::Live,
-		move || mainnet_genesis(
-			wasm_binary,
+		.with_id("reef_mainnet")
+		.with_chain_type(ChainType::Live)
+		.with_genesis_config_patch(mainnet_genesis(
+			WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
 			// Initial authorities keys:
 			// stash
 			// controller
@@ -318,24 +320,22 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 				// Developer pool & faucet
 				(hex!["1acc4a5c6361770eac4da9be1c37ac37ea91a55f57121c03240ceabf0b7c1c5e"].into(), 10_000_000 as u128),
 			],
-		),
+		))
 		// Bootnodes
-		vec![
+		.with_boot_nodes(vec![
 			"/dns/bootnode.reefscan.com/tcp/30333/p2p/12D3KooWFHSc9cUcyNtavUkLg4VBAeBnYNgy713BnovUa9WNY5pp".parse().unwrap(),
 			"/dns/bootnode.reef.finance/tcp/30333/p2p/12D3KooWAQqcXvcvt4eVEgogpDLAdGWgR5bY1drew44We6FfJAYq".parse().unwrap(),
 			"/dns/bootnode.reef-chain.com/tcp/30333/p2p/12D3KooWCT7rnUmEK7anTp7svwr4GTs6k3XXnSjmgTcNvdzWzgWU".parse().unwrap(),
-		],
+		])
 		// Telemetry
-		TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+		.with_telemetry_endpoints(TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).expect("Staging telemetry url is valid"))
 		// Protocol ID
-		Some("reef_mainnet"),
-		None,
+		.with_protocol_id("reef_mainnet")
 		// Properties
-		Some(reef_properties()),
-		// Extensions
-		Default::default(),
-	))
+		.with_properties(reef_properties())
+	.build())
 }
+
 fn testnet_genesis(
     wasm_binary: &[u8],
     initial_authorities: Vec<(
