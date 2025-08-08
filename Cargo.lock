@@ -982,7 +982,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-asset-conversion",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-session",
@@ -1012,8 +1012,8 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples 0.2.3",
  "pallet-asset-conversion",
- "pallet-assets",
- "pallet-revive",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
+ "pallet-revive 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-revive-uapi",
  "pallet-xcm",
  "parachains-common",
@@ -4793,7 +4793,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "num-format",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "sp-staking",
 ]
 
@@ -8466,6 +8466,25 @@ dependencies = [
 [[package]]
 name = "pallet-assets"
 version = "43.0.0"
+dependencies = [
+ "ethereum-standards",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples 0.2.3",
+ "log",
+ "pallet-balances",
+ "pallet-revive 0.7.0",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-assets"
+version = "43.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
 dependencies = [
  "ethereum-standards",
@@ -8474,7 +8493,7 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples 0.2.3",
  "log",
- "pallet-revive",
+ "pallet-revive 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -8484,10 +8503,22 @@ dependencies = [
 [[package]]
 name = "pallet-assets-freezer"
 version = "0.8.0"
+dependencies = [
+ "log",
+ "pallet-assets 43.0.0",
+ "pallet-balances",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
+name = "pallet-assets-freezer"
+version = "0.8.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
 dependencies = [
  "log",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "scale-info",
@@ -8502,7 +8533,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -8887,7 +8918,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07
 dependencies = [
  "frame-support",
  "frame-system",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-balances",
  "pallet-contracts",
  "pallet-contracts-uapi",
@@ -9382,7 +9413,7 @@ version = "24.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
 dependencies = [
  "log",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-nfts",
  "parity-scale-codec",
  "polkadot-sdk-frame",
@@ -9466,7 +9497,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-delegated-staking",
  "pallet-nomination-pools",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -9515,7 +9546,7 @@ dependencies = [
  "pallet-im-online",
  "pallet-offences",
  "pallet-session",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -9677,6 +9708,62 @@ dependencies = [
 [[package]]
 name = "pallet-revive"
 version = "0.7.0"
+dependencies = [
+ "alloy-core",
+ "array-bytes",
+ "assert_matches",
+ "derive_more 0.99.17",
+ "environmental",
+ "ethereum-standards",
+ "ethereum-types 0.15.1",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.4.1",
+ "humantime-serde",
+ "impl-trait-for-tuples 0.2.3",
+ "log",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-revive-fixtures",
+ "pallet-revive-proc-macro",
+ "pallet-revive-uapi",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-utility",
+ "parity-scale-codec",
+ "paste",
+ "polkavm 0.21.0",
+ "polkavm-common 0.21.0",
+ "pretty_assertions",
+ "rand 0.8.5",
+ "rand_pcg",
+ "ripemd",
+ "rlp 0.6.1",
+ "scale-info",
+ "secp256k1 0.28.2",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-arithmetic",
+ "sp-consensus-aura",
+ "sp-consensus-babe",
+ "sp-consensus-slots",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-tracing",
+ "substrate-bn",
+ "subxt-signer",
+]
+
+[[package]]
+name = "pallet-revive"
+version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
 dependencies = [
  "alloy-core",
@@ -9731,7 +9818,7 @@ dependencies = [
  "hex",
  "jsonrpsee",
  "log",
- "pallet-revive",
+ "pallet-revive 0.7.0",
  "pallet-revive-fixtures",
  "parity-scale-codec",
  "pretty_assertions",
@@ -9801,7 +9888,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -9908,7 +9995,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "parity-scale-codec",
  "rand 0.8.5",
  "sp-runtime",
@@ -9942,6 +10029,35 @@ dependencies = [
  "sp-arithmetic",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-staking"
+version = "41.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-authorship",
+ "pallet-bags-list",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rand_chacha 0.3.1",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-staking",
+ "sp-tracing",
+ "substrate-test-utils",
 ]
 
 [[package]]
@@ -10329,7 +10445,7 @@ dependencies = [
  "frame-system",
  "hex-literal 0.4.1",
  "pallet-balances",
- "pallet-revive",
+ "pallet-revive 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
@@ -10414,7 +10530,7 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-asset-tx-payment",
- "pallet-assets",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
@@ -10470,8 +10586,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes 0.13.0",
- "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand 0.7.3",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
 ]
@@ -10964,7 +11080,7 @@ dependencies = [
  "pallet-fast-unstake",
  "pallet-identity",
  "pallet-session",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-staking-reward-fn",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -11025,7 +11141,7 @@ dependencies = [
  "pallet-message-queue",
  "pallet-mmr",
  "pallet-session",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-timestamp",
  "parity-scale-codec",
  "polkadot-core-primitives",
@@ -11118,8 +11234,8 @@ dependencies = [
  "pallet-asset-rate",
  "pallet-asset-rewards",
  "pallet-asset-tx-payment",
- "pallet-assets",
- "pallet-assets-freezer",
+ "pallet-assets 43.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
+ "pallet-assets-freezer 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-assets-holder",
  "pallet-atomic-swap",
  "pallet-aura",
@@ -11189,7 +11305,7 @@ dependencies = [
  "pallet-recovery",
  "pallet-referenda",
  "pallet-remark",
- "pallet-revive",
+ "pallet-revive 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-revive-proc-macro",
  "pallet-revive-uapi",
  "pallet-root-offences",
@@ -11202,7 +11318,7 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-skip-feeless-payment",
  "pallet-society",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-staking-async",
  "pallet-staking-async-ah-client",
  "pallet-staking-async-rc-client",
@@ -12328,7 +12444,7 @@ dependencies = [
  "log",
  "module-evm",
  "module-transaction-payment",
- "pallet-revive",
+ "pallet-revive 0.7.0",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "reef-primitives",
@@ -12424,8 +12540,8 @@ dependencies = [
  "pallet-asset-rate",
  "pallet-asset-rewards",
  "pallet-asset-tx-payment",
- "pallet-assets",
- "pallet-assets-freezer",
+ "pallet-assets 43.0.0",
+ "pallet-assets-freezer 0.8.0",
  "pallet-assets-holder",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -12452,14 +12568,14 @@ dependencies = [
  "pallet-preimage",
  "pallet-ranked-collective",
  "pallet-referenda",
- "pallet-revive",
+ "pallet-revive 0.7.0",
  "pallet-revive-proc-macro",
  "pallet-revive-uapi",
  "pallet-salary",
  "pallet-scheduler",
  "pallet-session",
  "pallet-skip-feeless-payment",
- "pallet-staking",
+ "pallet-staking 41.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-staking-reward-curve",
  "pallet-staking-runtime-api",
  "pallet-sudo",
@@ -16722,6 +16838,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "substrate-test-utils"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
+
+[[package]]
 name = "substrate-wasm-builder"
 version = "27.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
@@ -17658,7 +17779,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
