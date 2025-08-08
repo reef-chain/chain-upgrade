@@ -10,12 +10,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use sp_std::{borrow::Cow, prelude::*};
 
 // Codec and Encoding
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeLimit, Encode, MaxEncodedLen};
 
 // FRAME Support
 use frame_support::{
     construct_runtime, derive_impl,
     dynamic_params::{dynamic_pallet_params, dynamic_params},
+    genesis_builder_helper::{build_state, get_preset},
     instances::{Instance1, Instance2},
     ord_parameter_types,
     pallet_prelude::{ConstU32, DispatchClass, Get},
@@ -35,7 +36,7 @@ use frame_support::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
         ConstantMultiplier, IdentityFee, Weight,
     },
-    BoundedVec, PalletId,
+    BoundedVec, PalletId, MAX_EXTRINSIC_DEPTH,
 };
 
 // FRAME System
@@ -87,6 +88,8 @@ pub use pallet_timestamp::Call as TimestampCall;
 
 // Balances
 pub use pallet_balances::Call as BalancesCall;
+
+use pallet_asset_conversion_tx_payment::SwapAssetAdapter;
 
 // Identity
 use pallet_identity::legacy::IdentityInfo;
@@ -161,7 +164,6 @@ mod benchmarking;
 parameter_types! {
     pub BurnAccount: AccountId = AccountId::from([0u8; 32]);
     pub const SevenDays: BlockNumber = 7 * DAYS;
-    // pub TreasuryModuleAccount: AccountId = ReefTreasuryModuleId::get().into_account();
 }
 
 pub fn get_all_module_accounts() -> Vec<AccountId> {
@@ -417,7 +419,7 @@ impl pallet_revive::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type DepositPerItem = DepositPerItem;
     type DepositPerByte = DepositPerByte;
-    type WeightPrice = module_transaction_payment::Pallet<Self>;
+    type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
     type Precompiles = (
         ERC20<Self, InlineIdConfig<0x1>, Instance1>,
@@ -431,8 +433,8 @@ impl pallet_revive::Config for Runtime {
     type InstantiateOrigin = EnsureSigned<Self::AccountId>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-    type ChainId = ConstU64<420_420_420>;
-    type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
+    type ChainId = ConstU64<13939>;
+    type NativeToEthRatio = ConstU32<1>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
     type EthGasEncoder = ();
     type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 }
@@ -1014,7 +1016,7 @@ impl module_evm_accounts::Handler<AccountId> for EvmAccountsOnClaimHandler {
         if System::providers(who) == 0 {
             // no provider. i.e. no native tokens
             // ensure there are some native tokens, which will add provider
-            TransactionPayment::ensure_can_charge_fee(
+            EvmTransactionPayment::ensure_can_charge_fee(
                 who,
                 NativeTokenExistentialDeposit::get(),
                 WithdrawReasons::TRANSACTION_PAYMENT,
@@ -1451,6 +1453,25 @@ impl pallet_assets::Config<Instance1> for Runtime {
     type BenchmarkHelper = ();
 }
 
+impl pallet_skip_feeless_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+}
+
+impl pallet_asset_conversion_tx_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AssetId = NativeOrWithId<u32>;
+	type OnChargeAssetTransaction = SwapAssetAdapter<
+		Native,
+		NativeAndAssets,
+		AssetConversion,
+		ResolveAssetTo<TreasuryAccount, NativeAndAssets>,
+	>;
+	type WeightInfo = pallet_asset_conversion_tx_payment::weights::SubstrateWeight<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetConversionTxHelper;
+}
+
+
 ord_parameter_types! {
     pub const AssetConversionOrigin: AccountId = AccountIdConversion::<AccountId>::into_account_truncating(&AssetConversionPalletId::get());
 }
@@ -1853,7 +1874,7 @@ mod runtime {
     pub type Tokens = orml_tokens::Pallet<Runtime>;
 
     #[runtime::pallet_index(9)]
-    pub type TransactionPayment = module_transaction_payment::Pallet<Runtime>;
+    pub type EvmTransactionPayment = module_transaction_payment::Pallet<Runtime>;
 
     // Authorization + Utility
     #[runtime::pallet_index(10)]
@@ -1871,6 +1892,7 @@ mod runtime {
 
     #[runtime::pallet_index(21)]
     pub type EVM = module_evm::Pallet<Runtime>;
+    // type EVM = module_evm::{Pallet, Config<T>, Call, Storage, Event<T>};
 
     #[runtime::pallet_index(22)]
     pub type EVMBridge = module_evm_bridge::Pallet<Runtime>;
@@ -1976,7 +1998,7 @@ mod runtime {
     pub type Parameters = pallet_parameters::Pallet<Runtime>;
 
     #[runtime::pallet_index(65)]
-    pub type SubstrateTransactionPayment = pallet_transaction_payment::Pallet<Runtime>;
+    pub type TransactionPayment = pallet_transaction_payment::Pallet<Runtime>;
 
     #[runtime::pallet_index(66)]
     pub type Treasury = pallet_treasury::Pallet<Runtime>;
@@ -1990,7 +2012,13 @@ mod runtime {
     #[runtime::pallet_index(69)]
     pub type AssetRate = pallet_asset_rate::Pallet<Runtime>;
 
+    #[runtime::pallet_index(70)]
+	pub type SkipFeelessPayment = pallet_skip_feeless_payment::Pallet<Runtime>;
+
+    #[runtime::pallet_index(71)]
+	pub type AssetConversionTxPayment = pallet_asset_conversion_tx_payment::Pallet<Runtime>;
 }
+
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, AccountIndex>;
@@ -2015,17 +2043,16 @@ pub type SignedExtra = (
 );
 
 pub type TxExtension = (
-    frame_system::AuthorizeCall<Runtime>,
-    frame_system::CheckNonZeroSender<Runtime>,
     frame_system::CheckSpecVersion<Runtime>,
     frame_system::CheckTxVersion<Runtime>,
     frame_system::CheckGenesis<Runtime>,
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
-    frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-    frame_system::WeightReclaim<Runtime>,
-    module_transaction_payment::ChargeTransactionPayment<Runtime>,
+    pallet_skip_feeless_payment::SkipCheckIfFeeless<
+		Runtime,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+	>,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2038,17 +2065,14 @@ impl EthExtra for EthExtraImpl {
 
     fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
         (
-            frame_system::AuthorizeCall::<Runtime>::new(),
-            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
             frame_system::CheckEra::from(crate::generic::Era::Immortal),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-            frame_system::WeightReclaim::<Runtime>::new(),
-            module_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
+				.into(),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
@@ -2057,6 +2081,9 @@ impl EthExtra for EthExtraImpl {
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
     pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
+
+pub type UncheckedExtrinsic2 =
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 /// Extrinsic type that has already been checked.
@@ -2088,6 +2115,17 @@ where
     }
 }
 
+impl<LocalCall> frame_system::offchain::CreateTransaction<LocalCall> for Runtime
+where
+    RuntimeCall: From<LocalCall>,
+{
+    type Extension = TxExtension;
+
+    fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
+        generic::UncheckedExtrinsic::new_transaction(call, extension).into()
+    }
+}
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
     RuntimeCall: From<LocalCall>,
@@ -2112,17 +2150,17 @@ where
             .saturating_sub(1);
         let tip = 0;
         let tx_ext: TxExtension = (
-            frame_system::AuthorizeCall::<Runtime>::new(),
-            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
             frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            frame_metadata_hash_extension::CheckMetadataHash::new(false),
-            frame_system::WeightReclaim::<Runtime>::new(),
-            module_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+					tip, None,
+				),
+			),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)
@@ -2192,6 +2230,20 @@ pallet_revive::impl_runtime_apis_plus_revive!(
             data: sp_inherents::InherentData,
         ) -> sp_inherents::CheckInherentsResult {
             data.check_extrinsics(&block)
+        }
+    }
+
+    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+        fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+            build_state::<RuntimeGenesisConfig>(config)
+        }
+
+        fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
+            get_preset::<RuntimeGenesisConfig>(id, |_| None)
+        }
+
+        fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+            vec![]
         }
     }
 
@@ -2380,20 +2432,6 @@ pallet_revive::impl_runtime_apis_plus_revive!(
         }
     }
 
-    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-        fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
-            build_state::<RuntimeGenesisConfig>(config)
-        }
-
-        fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-            get_preset::<RuntimeGenesisConfig>(id, |_| None)
-        }
-
-        fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-            vec![]
-        }
-    }
-
     impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
         fn query_info(
             uxt: <Block as BlockT>::Extrinsic,
@@ -2468,10 +2506,10 @@ pallet_revive::impl_runtime_apis_plus_revive!(
             extrinsic: Vec<u8>,
         ) -> Result<EstimateResourcesRequest, sp_runtime::DispatchError> {
 
-            let utx = UncheckedExtrinsic::decode(&mut &*extrinsic)
+          let utx = UncheckedExtrinsic2::decode(&mut &*extrinsic)
                 .map_err(|_| sp_runtime::DispatchError::Other("Invalid parameter extrinsic, decode failed"))?;
 
-            let request = match utx.0.function {
+            let request = match utx.function {
                 RuntimeCall::EVM(module_evm::Call::call{target, input, value, gas_limit, storage_limit}) => {
                     Some(EstimateResourcesRequest {
                         from: None,
