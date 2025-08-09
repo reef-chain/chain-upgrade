@@ -12463,7 +12463,7 @@ dependencies = [
 
 [[package]]
 name = "reef-node"
-version = "4.0.2"
+version = "7.0.0"
 dependencies = [
  "array-bytes",
  "clap 4.5.13",
