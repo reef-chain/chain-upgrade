@@ -1,13 +1,13 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 use futures::FutureExt;
-use sc_consensus_grandpa::FinalityProofProvider;
-use sc_consensus_grandpa::SharedVoterState;
 use reef_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::Backend;
 use sc_client_api::BlockBackend;
 use sc_consensus_babe::BabeWorkerHandle;
+use sc_consensus_grandpa::FinalityProofProvider;
+use sc_consensus_grandpa::SharedVoterState;
 use sc_executor::NativeElseWasmExecutor;
-use sc_service::{error::Error as ServiceError, WarpSyncConfig,Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use std::sync::Arc;
@@ -51,7 +51,12 @@ type PartialResult = Result<
             sc_consensus_babe::BabeBlockImport<
                 Block,
                 FullClient,
-                sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+                sc_consensus_grandpa::GrandpaBlockImport<
+                    FullBackend,
+                    Block,
+                    FullClient,
+                    FullSelectChain,
+                >,
             >,
             sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
             sc_consensus_babe::BabeLink<Block>,
@@ -91,16 +96,16 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-   let transaction_pool = Arc::from(
-		sc_transaction_pool::Builder::new(
-			task_manager.spawn_essential_handle(),
-			client.clone(),
-			config.role.is_authority().into(),
-		)
-		.with_options(config.transaction_pool.clone())
-		.with_prometheus(config.prometheus_registry())
-		.build(),
-	);
+    let transaction_pool = Arc::from(
+        sc_transaction_pool::Builder::new(
+            task_manager.spawn_essential_handle(),
+            client.clone(),
+            config.role.is_authority().into(),
+        )
+        .with_options(config.transaction_pool.clone())
+        .with_prometheus(config.prometheus_registry())
+        .build(),
+    );
 
     let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
         client.clone(),
@@ -161,8 +166,10 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
 
 /// Builds a new service for a full client.
 pub fn new_full<
-	N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
->(config: Configuration) -> Result<TaskManager, ServiceError> {
+    N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
+>(
+    config: Configuration,
+) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
         backend,
@@ -175,25 +182,29 @@ pub fn new_full<
     } = new_partial(&config)?;
 
     let mut net_config = sc_network::config::FullNetworkConfiguration::<
-		Block,
-		<Block as sp_runtime::traits::Block>::Hash,
-		N,
-	>::new(&config.network, config.prometheus_registry().cloned());
+        Block,
+        <Block as sp_runtime::traits::Block>::Hash,
+        N,
+    >::new(&config.network, config.prometheus_registry().cloned());
 
-   	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
-		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
-		&config.chain_spec,
-	);
+    let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
+        &client
+            .block_hash(0)
+            .ok()
+            .flatten()
+            .expect("Genesis block exists; qed"),
+        &config.chain_spec,
+    );
     let metrics = N::register_notification_metrics(config.prometheus_registry());
 
     let peer_store_handle = net_config.peer_store_handle();
-    
+
     let (grandpa_protocol_config, grandpa_notification_service) =
-		sc_consensus_grandpa::grandpa_peers_set_config::<_, N>(
-			grandpa_protocol_name.clone(),
-			metrics.clone(),
-			peer_store_handle,
-		);
+        sc_consensus_grandpa::grandpa_peers_set_config::<_, N>(
+            grandpa_protocol_name.clone(),
+            metrics.clone(),
+            peer_store_handle,
+        );
     net_config.add_notification_protocol(grandpa_protocol_config);
 
     let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
@@ -213,7 +224,7 @@ pub fn new_full<
             block_announce_validator_builder: None,
             warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
             block_relay: None,
-			metrics,
+            metrics,
         })?;
 
     if config.offchain_worker.enabled {
@@ -258,7 +269,7 @@ pub fn new_full<
         let keystore = keystore_container.keystore();
         let select_chain = select_chain.clone();
 
-        Box::new(move | subscription_executor| {
+        Box::new(move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),

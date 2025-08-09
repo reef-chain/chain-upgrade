@@ -21,38 +21,47 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-	let client = Arc::new(HttpClientBuilder::default().build("http://localhost:8545")?);
+    let client = Arc::new(HttpClientBuilder::default().build("http://localhost:8545")?);
 
-	let alith = Account::default();
-	let alith_address = alith.address();
-	let ethan = Account::from(subxt_signer::eth::dev::ethan());
-	let value = 1_000_000_000_000_000_000_000u128.into();
+    let alith = Account::default();
+    let alith_address = alith.address();
+    let ethan = Account::from(subxt_signer::eth::dev::ethan());
+    let value = 1_000_000_000_000_000_000_000u128.into();
 
-	let print_balance = || async {
-		let balance = client.get_balance(alith_address, BlockTag::Latest.into()).await?;
-		println!("Alith     {alith_address:?} balance: {balance:?}");
-		let balance = client.get_balance(ethan.address(), BlockTag::Latest.into()).await?;
-		println!("ethan {:?} balance: {balance:?}", ethan.address());
-		anyhow::Result::<()>::Ok(())
-	};
+    let print_balance = || async {
+        let balance = client
+            .get_balance(alith_address, BlockTag::Latest.into())
+            .await?;
+        println!("Alith     {alith_address:?} balance: {balance:?}");
+        let balance = client
+            .get_balance(ethan.address(), BlockTag::Latest.into())
+            .await?;
+        println!("ethan {:?} balance: {balance:?}", ethan.address());
+        anyhow::Result::<()>::Ok(())
+    };
 
-	print_balance().await?;
-	println!("\n\n=== Transferring  ===\n\n");
+    print_balance().await?;
+    println!("\n\n=== Transferring  ===\n\n");
 
-	let tx = TransactionBuilder::new(&client)
-		.signer(alith)
-		.value(value)
-		.to(ethan.address())
-		.send()
-		.await?;
-	println!("Transaction hash: {:?}", tx.hash());
+    let tx = TransactionBuilder::new(&client)
+        .signer(alith)
+        .value(value)
+        .to(ethan.address())
+        .send()
+        .await?;
+    println!("Transaction hash: {:?}", tx.hash());
 
-	let ReceiptInfo { block_number, gas_used, status, .. } = tx.wait_for_receipt().await?;
-	println!("Receipt: ");
-	println!("- Block number: {block_number}");
-	println!("- Gas used: {gas_used}");
-	println!("- Success: {status:?}");
+    let ReceiptInfo {
+        block_number,
+        gas_used,
+        status,
+        ..
+    } = tx.wait_for_receipt().await?;
+    println!("Receipt: ");
+    println!("- Block number: {block_number}");
+    println!("- Gas used: {gas_used}");
+    println!("- Success: {status:?}");
 
-	print_balance().await?;
-	Ok(())
+    print_balance().await?;
+    Ok(())
 }

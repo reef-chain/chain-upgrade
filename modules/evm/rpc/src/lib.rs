@@ -4,9 +4,9 @@ pub use crate::evm_api::EVMApiServer;
 use ethereum_types::{H160, U256};
 use jsonrpsee::core::client::Error as JsonRpseeError;
 use jsonrpsee::core::RpcResult;
-use jsonrpsee::types::error::{ErrorObjectOwned, ErrorCode, ErrorObject};
+use jsonrpsee::types::error::{ErrorCode, ErrorObject, ErrorObjectOwned};
 use rustc_hex::ToHex;
-use sc_rpc_api::DenyUnsafe; 
+use sc_rpc_api::DenyUnsafe;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_core::{Bytes, Decode};
@@ -35,22 +35,22 @@ pub const GAS_LIMIT: u64 = 100_000_000;
 pub const STORAGE_LIMIT: u32 = 1_000_000;
 
 pub fn err<T: ToString>(
-	code: i32,
-	message: T,
-	data: Option<&[u8]>,
+    code: i32,
+    message: T,
+    data: Option<&[u8]>,
 ) -> jsonrpsee::types::error::ErrorObjectOwned {
-	jsonrpsee::types::error::ErrorObject::owned(
-		code,
-		message.to_string(),
-		data.map(|bytes| {
-			jsonrpsee::core::to_json_raw_value(&format!("0x{}", hex::encode(bytes)))
-				.expect("fail to serialize data")
-		}),
-	)
+    jsonrpsee::types::error::ErrorObject::owned(
+        code,
+        message.to_string(),
+        data.map(|bytes| {
+            jsonrpsee::core::to_json_raw_value(&format!("0x{}", hex::encode(bytes)))
+                .expect("fail to serialize data")
+        }),
+    )
 }
 
 pub fn internal_err<T: ToString>(message: T) -> jsonrpsee::types::error::ErrorObjectOwned {
-	err(jsonrpsee::types::error::INTERNAL_ERROR_CODE, message, None)
+    err(jsonrpsee::types::error::INTERNAL_ERROR_CODE, message, None)
 }
 
 fn invalid_params<T: ToString>(message: T) -> ErrorObjectOwned {
@@ -62,14 +62,14 @@ fn invalid_params<T: ToString>(message: T) -> ErrorObjectOwned {
 }
 
 pub fn internal_err_with_data<T: ToString>(
-	message: T,
-	data: &[u8],
+    message: T,
+    data: &[u8],
 ) -> jsonrpsee::types::error::ErrorObjectOwned {
-	err(
-		jsonrpsee::types::error::INTERNAL_ERROR_CODE,
-		message,
-		Some(data),
-	)
+    err(
+        jsonrpsee::types::error::INTERNAL_ERROR_CODE,
+        message,
+        Some(data),
+    )
 }
 
 #[allow(dead_code)]
@@ -79,22 +79,19 @@ fn error_on_execution_failure(reason: &ExitReason, data: &[u8]) -> RpcResult<()>
         ExitReason::Error(err) => {
             if *err == ExitError::OutOfGas {
                 // `ServerError(0)` will be useful in estimate gas
-                	return Err(internal_err("out of gas"));
+                return Err(internal_err("out of gas"));
             } else {
-              Err(internal_err_with_data(
-				format!("evm error: {err:?}"),
-				&[],
-			))
+                Err(internal_err_with_data(format!("evm error: {err:?}"), &[]))
             }
         }
         ExitReason::Revert(_) => {
             let message = "VM Exception while processing transaction: execution revert".to_string();
             Err(crate::internal_err_with_data(message, data))
         }
-      ExitReason::Fatal(err) => Err(crate::internal_err_with_data(
-			format!("evm fatal: {err:?}"),
-			&[],
-		)),
+        ExitReason::Fatal(err) => Err(crate::internal_err_with_data(
+            format!("evm fatal: {err:?}"),
+            &[],
+        )),
     }
 }
 
@@ -474,12 +471,12 @@ where
                         );
 
                         // if Err == OutofGas or OutofFund, we need more gas
-                       if err.code() == ErrorCode::ServerError(0).code() {
-                        	lower = mid;
-                        	mid = (lower + upper + 1) / 2;
-                        	if mid == lower {
-                        		break;
-                        	}
+                        if err.code() == ErrorCode::ServerError(0).code() {
+                            lower = mid;
+                            mid = (lower + upper + 1) / 2;
+                            if mid == lower {
+                                break;
+                            }
                         }
 
                         // Other errors, return directly

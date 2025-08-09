@@ -29,8 +29,8 @@ mod benchmarking;
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::{
-	precompiles::{ExtWithInfo, Instance, Precompiles},
-	Config,
+    precompiles::{ExtWithInfo, Instance, Precompiles},
+    Config,
 };
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -43,16 +43,16 @@ pub type Builtin<T> = Production<T>;
 pub type Builtin<T> = (Production<T>, Benchmarking<T>);
 
 type Production<T> = (
-	ecrecover::EcRecover<T>,
-	sha256::Sha256<T>,
-	ripemd160::Ripemd160<T>,
-	identity::Identity<T>,
-	modexp::Modexp<T>,
-	bn128::Bn128Add<T>,
-	bn128::Bn128Mul<T>,
-	bn128::Bn128Pairing<T>,
-	blake2f::Blake2F<T>,
-	point_eval::PointEval<T>,
+    ecrecover::EcRecover<T>,
+    sha256::Sha256<T>,
+    ripemd160::Ripemd160<T>,
+    identity::Identity<T>,
+    modexp::Modexp<T>,
+    bn128::Bn128Add<T>,
+    bn128::Bn128Mul<T>,
+    bn128::Bn128Pairing<T>,
+    blake2f::Blake2F<T>,
+    point_eval::PointEval<T>,
 );
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -60,12 +60,12 @@ type Benchmarking<T> = (benchmarking::WithInfo<T>, benchmarking::NoInfo<T>);
 
 #[cfg(feature = "runtime-benchmarks")]
 impl<T: Config> Precompiles<T> for (Production<T>, Benchmarking<T>) {
-	const CHECK_COLLISION: () = ();
-	const USES_EXTERNAL_RANGE: bool =
-		Production::<T>::USES_EXTERNAL_RANGE || Benchmarking::<T>::USES_EXTERNAL_RANGE;
+    const CHECK_COLLISION: () = ();
+    const USES_EXTERNAL_RANGE: bool =
+        Production::<T>::USES_EXTERNAL_RANGE || Benchmarking::<T>::USES_EXTERNAL_RANGE;
 
-	fn get<E: ExtWithInfo<T = T>>(address: &[u8; 20]) -> Option<Instance<E>> {
-		let _ = <Self as Precompiles<T>>::CHECK_COLLISION;
-		<Production<T>>::get(address).or_else(|| Benchmarking::<T>::get(address))
-	}
+    fn get<E: ExtWithInfo<T = T>>(address: &[u8; 20]) -> Option<Instance<E>> {
+        let _ = <Self as Precompiles<T>>::CHECK_COLLISION;
+        <Production<T>>::get(address).or_else(|| Benchmarking::<T>::get(address))
+    }
 }

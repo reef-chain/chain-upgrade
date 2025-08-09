@@ -28,22 +28,22 @@ use hex_literal::hex;
 use sp_core::H160;
 
 const fn ee_suffix(mut account: [u8; 32]) -> AccountId32 {
-	let mut i = 20;
-	while i < 32 {
-		account[i] = 0xee;
-		i += 1;
-	}
-	AccountId32::new(account)
+    let mut i = 20;
+    while i < 32 {
+        account[i] = 0xee;
+        i += 1;
+    }
+    AccountId32::new(account)
 }
 
 const fn ee_extend(address: [u8; 20]) -> AccountId32 {
-	let mut account = [0xEEu8; 32];
-	let mut i = 0;
-	while i < 20 {
-		account[i] = address[i];
-		i += 1;
-	}
-	AccountId32::new(account)
+    let mut account = [0xEEu8; 32];
+    let mut i = 0;
+    while i < 20 {
+        account[i] = address[i];
+        i += 1;
+    }
+    AccountId32::new(account)
 }
 
 // All those accounts ids end in `ee` which means they don't
@@ -75,5 +75,5 @@ pub const EVE_FALLBACK: AccountId32 = ee_extend(EVE_ADDR.0);
 pub const GAS_LIMIT: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024);
 
 pub fn deposit_limit<T: Config>() -> BalanceOf<T> {
-	10_000_000u32.into()
+    10_000_000u32.into()
 }

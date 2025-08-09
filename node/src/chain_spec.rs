@@ -1,4 +1,5 @@
 use pallet_revive::is_eth_derived;
+use reef_runtime::ReviveConfig;
 use reef_runtime::{
     get_all_module_accounts, opaque::SessionKeys, AccountId, AuthorityDiscoveryConfig,
     AuthorityDiscoveryId, BabeConfig, BalancesConfig, CurrencyId, EVMConfig, ImOnlineId,
@@ -7,12 +8,11 @@ use reef_runtime::{
     WASM_BINARY,
 };
 use sc_service::ChainType;
-use sp_keyring::Sr25519Keyring;
-use reef_runtime::ReviveConfig;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{sr25519, Bytes, Pair, Public, H160};
+use sp_keyring::Sr25519Keyring;
 use sp_runtime::traits::IdentifyAccount;
 
 use sc_chain_spec::ChainSpecExtension;
@@ -313,32 +313,32 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 
 /// Extract some accounts from endowed to be put into the collective.
 fn collective(endowed: &[AccountId]) -> Vec<AccountId> {
-	const MAX_COLLECTIVE_SIZE: usize = 50;
-	let endowed_accounts_count = endowed.len();
-	endowed
-		.iter()
-		.take((endowed_accounts_count.div_ceil(2)).min(MAX_COLLECTIVE_SIZE))
-		.cloned()
-		.collect()
+    const MAX_COLLECTIVE_SIZE: usize = 50;
+    let endowed_accounts_count = endowed.len();
+    endowed
+        .iter()
+        .take((endowed_accounts_count.div_ceil(2)).min(MAX_COLLECTIVE_SIZE))
+        .cloned()
+        .collect()
 }
 
 /// The Keyring's wellknown accounts + Alith and Baltathar.
 ///
 /// Some integration tests require these ETH accounts.
 pub fn well_known_including_eth_accounts() -> Vec<AccountId> {
-	Sr25519Keyring::well_known()
-		.map(|k| k.to_account_id())
-		.chain([
-			// subxt_signer::eth::dev::alith()
-			array_bytes::hex_n_into_unchecked(
-				"f24ff3a9cf04c71dbc94d0b566f7a27b94566caceeeeeeeeeeeeeeeeeeeeeeee",
-			),
-			// subxt_signer::eth::dev::baltathar()
-			array_bytes::hex_n_into_unchecked(
-				"3cd0a705a2dc65e5b1e1205896baa2be8a07c6e0eeeeeeeeeeeeeeeeeeeeeeee",
-			),
-		])
-		.collect::<Vec<_>>()
+    Sr25519Keyring::well_known()
+        .map(|k| k.to_account_id())
+        .chain([
+            // subxt_signer::eth::dev::alith()
+            array_bytes::hex_n_into_unchecked(
+                "f24ff3a9cf04c71dbc94d0b566f7a27b94566caceeeeeeeeeeeeeeeeeeeeeeee",
+            ),
+            // subxt_signer::eth::dev::baltathar()
+            array_bytes::hex_n_into_unchecked(
+                "3cd0a705a2dc65e5b1e1205896baa2be8a07c6e0eeeeeeeeeeeeeeeeeeeeeeee",
+            ),
+        ])
+        .collect::<Vec<_>>()
 }
 
 fn testnet_genesis(
@@ -592,4 +592,3 @@ pub fn evm_genesis() -> BTreeMap<H160, module_evm::GenesisAccount<Balance, Nonce
     }
     accounts
 }
-

@@ -17,8 +17,8 @@
 
 use super::{deposit_limit, GAS_LIMIT};
 use crate::{
-	address::AddressMapper, AccountIdOf, BalanceOf, Code, Config, ContractResult, DepositLimit,
-	ExecReturnValue, InstantiateReturnValue, OriginFor, Pallet, Weight,
+    address::AddressMapper, AccountIdOf, BalanceOf, Code, Config, ContractResult, DepositLimit,
+    ExecReturnValue, InstantiateReturnValue, OriginFor, Pallet, Weight,
 };
 use alloc::{vec, vec::Vec};
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
@@ -75,147 +75,147 @@ macro_rules! builder {
 }
 
 pub struct Contract<T: Config> {
-	pub account_id: AccountIdOf<T>,
-	pub addr: H160,
+    pub account_id: AccountIdOf<T>,
+    pub addr: H160,
 }
 
 builder!(
-	instantiate_with_code(
-		origin: OriginFor<T>,
-		value: BalanceOf<T>,
-		gas_limit: Weight,
-		storage_deposit_limit: BalanceOf<T>,
-		code: Vec<u8>,
-		data: Vec<u8>,
-		salt: Option<[u8; 32]>,
-	) -> DispatchResultWithPostInfo;
+    instantiate_with_code(
+        origin: OriginFor<T>,
+        value: BalanceOf<T>,
+        gas_limit: Weight,
+        storage_deposit_limit: BalanceOf<T>,
+        code: Vec<u8>,
+        data: Vec<u8>,
+        salt: Option<[u8; 32]>,
+    ) -> DispatchResultWithPostInfo;
 
-	/// Create an [`InstantiateWithCodeBuilder`] with default values.
-	pub fn instantiate_with_code(origin: OriginFor<T>, code: Vec<u8>) -> Self {
-		Self {
-			origin,
-			value: 0u32.into(),
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: deposit_limit::<T>(),
-			code,
-			data: vec![],
-			salt: Some([0; 32]),
-		}
-	}
+    /// Create an [`InstantiateWithCodeBuilder`] with default values.
+    pub fn instantiate_with_code(origin: OriginFor<T>, code: Vec<u8>) -> Self {
+        Self {
+            origin,
+            value: 0u32.into(),
+            gas_limit: GAS_LIMIT,
+            storage_deposit_limit: deposit_limit::<T>(),
+            code,
+            data: vec![],
+            salt: Some([0; 32]),
+        }
+    }
 );
 
 builder!(
-	instantiate(
-		origin: OriginFor<T>,
-		value: BalanceOf<T>,
-		gas_limit: Weight,
-		storage_deposit_limit: BalanceOf<T>,
-		code_hash: sp_core::H256,
-		data: Vec<u8>,
-		salt: Option<[u8; 32]>,
-	) -> DispatchResultWithPostInfo;
+    instantiate(
+        origin: OriginFor<T>,
+        value: BalanceOf<T>,
+        gas_limit: Weight,
+        storage_deposit_limit: BalanceOf<T>,
+        code_hash: sp_core::H256,
+        data: Vec<u8>,
+        salt: Option<[u8; 32]>,
+    ) -> DispatchResultWithPostInfo;
 
-	/// Create an [`InstantiateBuilder`] with default values.
-	pub fn instantiate(origin: OriginFor<T>, code_hash: sp_core::H256) -> Self {
-		Self {
-			origin,
-			value: 0u32.into(),
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: deposit_limit::<T>(),
-			code_hash,
-			data: vec![],
-			salt: Some([0; 32]),
-		}
-	}
+    /// Create an [`InstantiateBuilder`] with default values.
+    pub fn instantiate(origin: OriginFor<T>, code_hash: sp_core::H256) -> Self {
+        Self {
+            origin,
+            value: 0u32.into(),
+            gas_limit: GAS_LIMIT,
+            storage_deposit_limit: deposit_limit::<T>(),
+            code_hash,
+            data: vec![],
+            salt: Some([0; 32]),
+        }
+    }
 );
 
 builder!(
-	bare_instantiate(
-		origin: OriginFor<T>,
-		value: BalanceOf<T>,
-		gas_limit: Weight,
-		storage_deposit_limit: DepositLimit<BalanceOf<T>>,
-		code: Code,
-		data: Vec<u8>,
-		salt: Option<[u8; 32]>,
-	) -> ContractResult<InstantiateReturnValue, BalanceOf<T>>;
+    bare_instantiate(
+        origin: OriginFor<T>,
+        value: BalanceOf<T>,
+        gas_limit: Weight,
+        storage_deposit_limit: DepositLimit<BalanceOf<T>>,
+        code: Code,
+        data: Vec<u8>,
+        salt: Option<[u8; 32]>,
+    ) -> ContractResult<InstantiateReturnValue, BalanceOf<T>>;
 
-	/// Build the instantiate call and unwrap the result.
-	pub fn build_and_unwrap_result(self) -> InstantiateReturnValue {
-		self.build().result.unwrap()
-	}
+    /// Build the instantiate call and unwrap the result.
+    pub fn build_and_unwrap_result(self) -> InstantiateReturnValue {
+        self.build().result.unwrap()
+    }
 
-	/// Build the instantiate call and unwrap the account id.
-	pub fn build_and_unwrap_contract(self) -> Contract<T> {
-		let result = self.build().result.unwrap();
-		assert!(!result.result.did_revert(), "instantiation did revert");
+    /// Build the instantiate call and unwrap the account id.
+    pub fn build_and_unwrap_contract(self) -> Contract<T> {
+        let result = self.build().result.unwrap();
+        assert!(!result.result.did_revert(), "instantiation did revert");
 
-		let addr = result.addr;
-		let account_id = T::AddressMapper::to_account_id(&addr);
-		Contract{ account_id,  addr }
-	}
+        let addr = result.addr;
+        let account_id = T::AddressMapper::to_account_id(&addr);
+        Contract{ account_id,  addr }
+    }
 
-	/// Create a [`BareInstantiateBuilder`] with default values.
-	pub fn bare_instantiate(origin: OriginFor<T>, code: Code) -> Self {
-		Self {
-			origin,
-			value: 0u32.into(),
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: DepositLimit::Balance(deposit_limit::<T>()),
-			code,
-			data: vec![],
-			salt: Some([0; 32]),
-		}
-	}
+    /// Create a [`BareInstantiateBuilder`] with default values.
+    pub fn bare_instantiate(origin: OriginFor<T>, code: Code) -> Self {
+        Self {
+            origin,
+            value: 0u32.into(),
+            gas_limit: GAS_LIMIT,
+            storage_deposit_limit: DepositLimit::Balance(deposit_limit::<T>()),
+            code,
+            data: vec![],
+            salt: Some([0; 32]),
+        }
+    }
 );
 
 builder!(
-	call(
-		origin: OriginFor<T>,
-		dest: H160,
-		value: BalanceOf<T>,
-		gas_limit: Weight,
-		storage_deposit_limit: BalanceOf<T>,
-		data: Vec<u8>,
-	) -> DispatchResultWithPostInfo;
+    call(
+        origin: OriginFor<T>,
+        dest: H160,
+        value: BalanceOf<T>,
+        gas_limit: Weight,
+        storage_deposit_limit: BalanceOf<T>,
+        data: Vec<u8>,
+    ) -> DispatchResultWithPostInfo;
 
-	/// Create a [`CallBuilder`] with default values.
-	pub fn call(origin: OriginFor<T>, dest: H160) -> Self {
-		CallBuilder {
-			origin,
-			dest,
-			value: 0u32.into(),
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: deposit_limit::<T>(),
-			data: vec![],
-		}
-	}
+    /// Create a [`CallBuilder`] with default values.
+    pub fn call(origin: OriginFor<T>, dest: H160) -> Self {
+        CallBuilder {
+            origin,
+            dest,
+            value: 0u32.into(),
+            gas_limit: GAS_LIMIT,
+            storage_deposit_limit: deposit_limit::<T>(),
+            data: vec![],
+        }
+    }
 );
 
 builder!(
-	bare_call(
-		origin: OriginFor<T>,
-		dest: H160,
-		value: BalanceOf<T>,
-		gas_limit: Weight,
-		storage_deposit_limit: DepositLimit<BalanceOf<T>>,
-		data: Vec<u8>,
-	) -> ContractResult<ExecReturnValue, BalanceOf<T>>;
+    bare_call(
+        origin: OriginFor<T>,
+        dest: H160,
+        value: BalanceOf<T>,
+        gas_limit: Weight,
+        storage_deposit_limit: DepositLimit<BalanceOf<T>>,
+        data: Vec<u8>,
+    ) -> ContractResult<ExecReturnValue, BalanceOf<T>>;
 
-	/// Build the call and unwrap the result.
-	pub fn build_and_unwrap_result(self) -> ExecReturnValue {
-		self.build().result.unwrap()
-	}
+    /// Build the call and unwrap the result.
+    pub fn build_and_unwrap_result(self) -> ExecReturnValue {
+        self.build().result.unwrap()
+    }
 
-	/// Create a [`BareCallBuilder`] with default values.
-	pub fn bare_call(origin: OriginFor<T>, dest: H160) -> Self {
-		Self {
-			origin,
-			dest,
-			value: 0u32.into(),
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: DepositLimit::Balance(deposit_limit::<T>()),
-			data: vec![],
-		}
-	}
+    /// Create a [`BareCallBuilder`] with default values.
+    pub fn bare_call(origin: OriginFor<T>, dest: H160) -> Self {
+        Self {
+            origin,
+            dest,
+            value: 0u32.into(),
+            gas_limit: GAS_LIMIT,
+            storage_deposit_limit: DepositLimit::Balance(deposit_limit::<T>()),
+            data: vec![],
+        }
+    }
 );

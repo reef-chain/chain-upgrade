@@ -18,14 +18,14 @@
 //! Precompiles added to the test runtime.
 
 use crate::{
-	exec::{ErrorOrigin, ExecError},
-	precompiles::{AddressMatcher, Error, Ext, ExtWithInfo, Precompile, Token},
-	Config, DispatchError, Origin, Weight,
+    exec::{ErrorOrigin, ExecError},
+    precompiles::{AddressMatcher, Error, Ext, ExtWithInfo, Precompile, Token},
+    Config, DispatchError, Origin, Weight,
 };
 use alloc::vec::Vec;
 use alloy_core::{
-	sol,
-	sol_types::{PanicKind, SolValue},
+    sol,
+    sol_types::{PanicKind, SolValue},
 };
 use codec::Decode;
 use core::{marker::PhantomData, num::NonZero};
@@ -33,87 +33,92 @@ use frame_system::RawOrigin;
 use sp_runtime::traits::Dispatchable;
 
 sol! {
-	interface IWithInfo {
-		function dummy() external;
-	}
+    interface IWithInfo {
+        function dummy() external;
+    }
 
-	interface INoInfo {
-		function identity(uint64 number) external returns (uint64);
-		function reverts(string calldata error) external;
-		function panics() external;
-		function errors() external;
-		function consumeMaxGas() external;
-		function callRuntime(bytes memory call) external;
-	}
+    interface INoInfo {
+        function identity(uint64 number) external returns (uint64);
+        function reverts(string calldata error) external;
+        function panics() external;
+        function errors() external;
+        function consumeMaxGas() external;
+        function callRuntime(bytes memory call) external;
+    }
 }
 
 pub struct WithInfo<T>(PhantomData<T>);
 
 impl<T: Config> Precompile for WithInfo<T> {
-	type T = T;
-	type Interface = IWithInfo::IWithInfoCalls;
-	const MATCHER: AddressMatcher = AddressMatcher::Fixed(NonZero::new(0xFF_FF).unwrap());
-	const HAS_CONTRACT_INFO: bool = true;
+    type T = T;
+    type Interface = IWithInfo::IWithInfoCalls;
+    const MATCHER: AddressMatcher = AddressMatcher::Fixed(NonZero::new(0xFF_FF).unwrap());
+    const HAS_CONTRACT_INFO: bool = true;
 
-	fn call_with_info(
-		_address: &[u8; 20],
-		_input: &Self::Interface,
-		_env: &mut impl ExtWithInfo<T = Self::T>,
-	) -> Result<Vec<u8>, Error> {
-		Ok(Vec::new())
-	}
+    fn call_with_info(
+        _address: &[u8; 20],
+        _input: &Self::Interface,
+        _env: &mut impl ExtWithInfo<T = Self::T>,
+    ) -> Result<Vec<u8>, Error> {
+        Ok(Vec::new())
+    }
 }
 
 pub struct NoInfo<T>(PhantomData<T>);
 
 impl<T: Config> Precompile for NoInfo<T> {
-	type T = T;
-	type Interface = INoInfo::INoInfoCalls;
-	const MATCHER: AddressMatcher = AddressMatcher::Fixed(NonZero::new(0xEF_FF).unwrap());
-	const HAS_CONTRACT_INFO: bool = false;
+    type T = T;
+    type Interface = INoInfo::INoInfoCalls;
+    const MATCHER: AddressMatcher = AddressMatcher::Fixed(NonZero::new(0xEF_FF).unwrap());
+    const HAS_CONTRACT_INFO: bool = false;
 
-	fn call(
-		_address: &[u8; 20],
-		input: &Self::Interface,
-		env: &mut impl Ext<T = Self::T>,
-	) -> Result<Vec<u8>, Error> {
-		use INoInfo::INoInfoCalls;
+    fn call(
+        _address: &[u8; 20],
+        input: &Self::Interface,
+        env: &mut impl Ext<T = Self::T>,
+    ) -> Result<Vec<u8>, Error> {
+        use INoInfo::INoInfoCalls;
 
-		match input {
-			INoInfoCalls::identity(INoInfo::identityCall { number }) => Ok(number.abi_encode()),
-			INoInfoCalls::reverts(INoInfo::revertsCall { error }) =>
-				Err(Error::Revert(error.as_str().into())),
-			INoInfoCalls::panics(INoInfo::panicsCall {}) =>
-				Err(Error::Panic(PanicKind::Assert.into())),
-			INoInfoCalls::errors(INoInfo::errorsCall {}) =>
-				Err(Error::Error(DispatchError::Other("precompile failed").into())),
-			INoInfoCalls::consumeMaxGas(INoInfo::consumeMaxGasCall {}) => {
-				env.gas_meter_mut().charge(MaxGasToken)?;
-				Ok(Vec::new())
-			},
-			INoInfoCalls::callRuntime(INoInfo::callRuntimeCall { call }) => {
-				let origin = env.caller();
-				let frame_origin = match origin {
-					Origin::Root => RawOrigin::Root.into(),
-					Origin::Signed(account_id) => RawOrigin::Signed(account_id.clone()).into(),
-				};
+        match input {
+            INoInfoCalls::identity(INoInfo::identityCall { number }) => Ok(number.abi_encode()),
+            INoInfoCalls::reverts(INoInfo::revertsCall { error }) => {
+                Err(Error::Revert(error.as_str().into()))
+            }
+            INoInfoCalls::panics(INoInfo::panicsCall {}) => {
+                Err(Error::Panic(PanicKind::Assert.into()))
+            }
+            INoInfoCalls::errors(INoInfo::errorsCall {}) => Err(Error::Error(
+                DispatchError::Other("precompile failed").into(),
+            )),
+            INoInfoCalls::consumeMaxGas(INoInfo::consumeMaxGasCall {}) => {
+                env.gas_meter_mut().charge(MaxGasToken)?;
+                Ok(Vec::new())
+            }
+            INoInfoCalls::callRuntime(INoInfo::callRuntimeCall { call }) => {
+                let origin = env.caller();
+                let frame_origin = match origin {
+                    Origin::Root => RawOrigin::Root.into(),
+                    Origin::Signed(account_id) => RawOrigin::Signed(account_id.clone()).into(),
+                };
 
-				let call = <T as Config>::RuntimeCall::decode(&mut &call[..]).unwrap();
-				match call.dispatch(frame_origin) {
-					Ok(_) => Ok(Vec::new()),
-					Err(e) =>
-						Err(Error::Error(ExecError { error: e.error, origin: ErrorOrigin::Caller })),
-				}
-			},
-		}
-	}
+                let call = <T as Config>::RuntimeCall::decode(&mut &call[..]).unwrap();
+                match call.dispatch(frame_origin) {
+                    Ok(_) => Ok(Vec::new()),
+                    Err(e) => Err(Error::Error(ExecError {
+                        error: e.error,
+                        origin: ErrorOrigin::Caller,
+                    })),
+                }
+            }
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 struct MaxGasToken;
 
 impl<T: Config> Token<T> for MaxGasToken {
-	fn weight(&self) -> Weight {
-		Weight::MAX
-	}
+    fn weight(&self) -> Weight {
+        Weight::MAX
+    }
 }

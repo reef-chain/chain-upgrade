@@ -1454,23 +1454,22 @@ impl pallet_assets::Config<Instance1> for Runtime {
 }
 
 impl pallet_skip_feeless_payment::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type AssetId = NativeOrWithId<u32>;
-	type OnChargeAssetTransaction = SwapAssetAdapter<
-		Native,
-		NativeAndAssets,
-		AssetConversion,
-		ResolveAssetTo<TreasuryAccount, NativeAndAssets>,
-	>;
-	type WeightInfo = pallet_asset_conversion_tx_payment::weights::SubstrateWeight<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = AssetConversionTxHelper;
+    type RuntimeEvent = RuntimeEvent;
+    type AssetId = NativeOrWithId<u32>;
+    type OnChargeAssetTransaction = SwapAssetAdapter<
+        Native,
+        NativeAndAssets,
+        AssetConversion,
+        ResolveAssetTo<TreasuryAccount, NativeAndAssets>,
+    >;
+    type WeightInfo = pallet_asset_conversion_tx_payment::weights::SubstrateWeight<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = AssetConversionTxHelper;
 }
-
 
 ord_parameter_types! {
     pub const AssetConversionOrigin: AccountId = AccountIdConversion::<AccountId>::into_account_truncating(&AssetConversionPalletId::get());
@@ -2013,12 +2012,11 @@ mod runtime {
     pub type AssetRate = pallet_asset_rate::Pallet<Runtime>;
 
     #[runtime::pallet_index(70)]
-	pub type SkipFeelessPayment = pallet_skip_feeless_payment::Pallet<Runtime>;
+    pub type SkipFeelessPayment = pallet_skip_feeless_payment::Pallet<Runtime>;
 
     #[runtime::pallet_index(71)]
-	pub type AssetConversionTxPayment = pallet_asset_conversion_tx_payment::Pallet<Runtime>;
+    pub type AssetConversionTxPayment = pallet_asset_conversion_tx_payment::Pallet<Runtime>;
 }
-
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, AccountIndex>;
@@ -2050,9 +2048,9 @@ pub type TxExtension = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     pallet_skip_feeless_payment::SkipCheckIfFeeless<
-		Runtime,
-		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-	>,
+        Runtime,
+        pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+    >,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2072,7 +2070,7 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
-				.into(),
+                .into(),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
@@ -2157,10 +2155,10 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
-				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
-					tip, None,
-				),
-			),
+                pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+                    tip, None,
+                ),
+            ),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)
