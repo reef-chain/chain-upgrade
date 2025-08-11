@@ -941,7 +941,7 @@ parameter_types! {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 1 * MILLI_REEF;
+    pub const TransactionByteFee: Balance =  DOLLARS / 1_0;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier:  Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000 as u128);
@@ -984,7 +984,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = IdentityFee<Balance>;
-    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+    type LengthToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = SubstrateTargetedFeeAdjustment<
         Self,
         TargetBlockFullness,
@@ -2047,10 +2047,7 @@ pub type TxExtension = (
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
-    pallet_skip_feeless_payment::SkipCheckIfFeeless<
-        Runtime,
-        pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-    >,
+    pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2069,8 +2066,7 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckEra::from(crate::generic::Era::Immortal),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
-                .into(),
+            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
@@ -2154,11 +2150,7 @@ where
             frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
-                pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
-                    tip, None,
-                ),
-            ),
+            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)

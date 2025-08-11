@@ -1354,27 +1354,8 @@ where
 
     /// Convert a gas value into a substrate fee
     fn evm_gas_to_fee(gas: U256, gas_price: U256) -> Result<BalanceOf<T>, Error<T>> {
-        log::info!(
-            target: LOG_TARGET,
-            "💰 evm_gas_to_fee: gas = {:?}, gas_price = {:?}",
-            gas,
-            gas_price
-        );
-
         let fee = gas.saturating_mul(gas_price);
-        log::info!(
-            target: LOG_TARGET,
-            "💰 evm_gas_to_fee: raw ETH fee (gas * gas_price) = {:?}",
-            fee
-        );
-
         let native_fee = Self::convert_evm_to_native(fee, ConversionPrecision::RoundUp)?;
-        log::info!(
-            target: LOG_TARGET,
-            "💰 evm_gas_to_fee: converted native fee = {:?}",
-            native_fee
-        );
-
         Ok(native_fee)
     }
 
@@ -1485,15 +1466,10 @@ where
 
     /// Convert a native balance to EVM balance.
     fn convert_native_to_evm(value: BalanceOf<T>) -> U256 {
-        log::info!(
-            "Converting native to EVM: input_native_balance = {:?}, ratio = {:?}",
-            value,
-            T::NativeToEthRatio::get()
-        );
         let result = value
             .into()
             .saturating_mul(T::NativeToEthRatio::get().into());
-        log::info!("Conversion result (EVM) = {:?}", result);
+
         result
     }
 
@@ -1502,32 +1478,14 @@ where
         value: U256,
         precision: ConversionPrecision,
     ) -> Result<BalanceOf<T>, Error<T>> {
-        log::info!(
-            target: LOG_TARGET,
-            "🔄 convert_evm_to_native: value = {:?}, precision = {:?}",
-            value,
-            precision
-        );
-
+      
         if value.is_zero() {
-            log::info!(target: LOG_TARGET, "🔄 convert_evm_to_native: value is zero, returning 0");
             return Ok(Zero::zero());
         }
 
         let ratio: U256 = T::NativeToEthRatio::get().into();
-        log::info!(
-            target: LOG_TARGET,
-            "🔄 convert_evm_to_native: NativeToEthRatio = {:?}",
-            ratio
-        );
 
         let (quotient, remainder) = value.div_mod(ratio);
-        log::info!(
-            target: LOG_TARGET,
-            "🔄 convert_evm_to_native: quotient = {:?}, remainder = {:?}",
-            quotient,
-            remainder
-        );
 
         match (precision, remainder.is_zero()) {
             (ConversionPrecision::Exact, false) => {
@@ -1548,11 +1506,6 @@ where
                     );
                     Error::<T>::BalanceConversionFailed
                 })?;
-                log::info!(
-                    target: LOG_TARGET,
-                    "🔄 convert_evm_to_native: exact division, result = {:?}",
-                    result
-                );
                 Ok(result)
             }
             (_, false) => {
@@ -1565,11 +1518,7 @@ where
                     );
                     Error::<T>::BalanceConversionFailed
                 })?;
-                log::info!(
-                    target: LOG_TARGET,
-                    "🔄 convert_evm_to_native: rounded up result = {:?}",
-                    result
-                );
+
                 Ok(result)
             }
         }

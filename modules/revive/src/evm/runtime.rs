@@ -313,14 +313,6 @@ pub trait EthExtra {
             ..
         } = GenericTransaction::from_signed(tx, crate::GAS_PRICE.into(), None);
 
-        log::info!(target: LOG_TARGET, "Decoded transaction details:");
-        log::info!(target: LOG_TARGET, "- Nonce: {:?}", nonce);
-        log::info!(target: LOG_TARGET, "- Chain ID: {:?}", chain_id);
-        log::info!(target: LOG_TARGET, "- To: {:?}", to);
-        log::info!(target: LOG_TARGET, "- Value: {:?}", value);
-        log::info!(target: LOG_TARGET, "- Gas: {:?}", gas);
-        log::info!(target: LOG_TARGET, "- Gas Price: {:?}", gas_price);
-
         let Some(gas) = gas else {
             log::debug!(target: LOG_TARGET, "No gas provided");
             return Err(InvalidTransaction::Call);
@@ -388,32 +380,13 @@ pub trait EthExtra {
             .map_err(|_| InvalidTransaction::Call)?;
         let gas_price = gas_price.unwrap_or_default();
 
-        let base_evm_fee = gas.saturating_mul(gas_price);
+        // let base_evm_fee = gas.saturating_mul(gas_price);
         info.extension_weight = Self::get_eth_extension(nonce, 0u32.into()).weight(&function);
 
-        let estimated_actual_fee: BalanceOf<Self::Config> =
-            pallet_transaction_payment::Pallet::<Self::Config>::compute_fee(
-                encoded_len as u32,
-                &info,
-                Default::default(), // No tip for estimation
-            )
-            .into();
-
-        // Convert to U256 for comparison
-        let estimated_actual_u256: U256 = estimated_actual_fee.into();
-
-        // Use the higher of EVM calculation or estimated actual fee
-        let final_fee = base_evm_fee.max(estimated_actual_u256);
-
-        let eth_fee =
-            Pallet::<Self::Config>::convert_evm_to_native(final_fee, ConversionPrecision::RoundUp)
-                .map_err(|_| InvalidTransaction::Call)?;
-
-        // let eth_fee = Pallet::<Self::Config>::evm_gas_to_fee(gas, gas_price)
-        //     .map_err(|_| InvalidTransaction::Call)?;
+        let eth_fee = Pallet::<Self::Config>::evm_gas_to_fee(gas, gas_price)
+           .map_err(|_| InvalidTransaction::Call)?;
 
         // Fees calculated from the extrinsic, without the tip.
-
         let actual_fee: BalanceOf<Self::Config> =
             pallet_transaction_payment::Pallet::<Self::Config>::compute_fee(
                 encoded_len as u32,
@@ -422,12 +395,9 @@ pub trait EthExtra {
             )
             .into();
 
-        log::info!(target: LOG_TARGET, "try_into_checked_extrinsic: gas_price: {gas_price:?}, encoded_len: {encoded_len:?} actual_fee: {actual_fee:?} eth_fee: {eth_fee:?}");
-
         // The fees from the Ethereum transaction should be greater or equal to the actual fees paid
         // by the account.
         if eth_fee < actual_fee {
-            log::info!(target: LOG_TARGET, "eth fees {eth_fee:?} too low, actual fees: {actual_fee:?}");
             return Err(InvalidTransaction::Payment.into());
         }
 
@@ -436,7 +406,6 @@ pub trait EthExtra {
                 .unwrap_or_default()
                 .min(actual_fee);
 
-        log::info!(target: LOG_TARGET, "Created checked Ethereum transaction with nonce: {nonce:?} and tip: {tip:?}");
         Ok(CheckedExtrinsic {
             format: ExtrinsicFormat::Signed(signer.into(), Self::get_eth_extension(nonce, tip)),
             function,
