@@ -28,7 +28,6 @@ use reef_runtime::BABE_GENESIS_EPOCH_CONFIG;
 
 // The URL for the telemetry server.
 const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
-const ALITH: &str = "0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac";
 
 /// Node `ChainSpec` extensions.
 ///
@@ -309,17 +308,6 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 		// Properties
 		.with_properties(reef_properties())
 	.build())
-}
-
-/// Extract some accounts from endowed to be put into the collective.
-fn collective(endowed: &[AccountId]) -> Vec<AccountId> {
-    const MAX_COLLECTIVE_SIZE: usize = 50;
-    let endowed_accounts_count = endowed.len();
-    endowed
-        .iter()
-        .take((endowed_accounts_count.div_ceil(2)).min(MAX_COLLECTIVE_SIZE))
-        .cloned()
-        .collect()
 }
 
 /// The Keyring's wellknown accounts + Alith and Baltathar.
