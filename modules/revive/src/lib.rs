@@ -67,6 +67,7 @@ use frame_support::{
         tokens::{Fortitude::Polite, Preservation::Preserve},
         ConstU32, ConstU64, EnsureOrigin, Get, IsType, OriginTrait, Time,
     },
+    
     weights::WeightMeter,
     BoundedVec, RuntimeDebugNoBound,
 };
@@ -123,6 +124,8 @@ const LOG_TARGET: &str = "runtime::revive";
 
 #[frame_support::pallet]
 pub mod pallet {
+    use core::result::Result::Ok;
+
     use super::*;
     use frame_support::{pallet_prelude::*, traits::FindAuthor};
     use frame_system::pallet_prelude::*;
@@ -358,6 +361,16 @@ pub mod pallet {
             /// Number of topics is capped by [`limits::NUM_EVENT_TOPICS`].
             topics: Vec<H256>,
         },
+       /// transfer occurs from a Substrate account to an Ethereum address.
+        Transfer {
+            /// The Substrate account initiating the transfer.
+            who: T::AccountId,
+            /// The destination Ethereum address (H160 format).
+            dest: H160,
+            /// The amount transferred, denominated in the native balance type.
+            amount: BalanceOf<T>,
+        }
+
     }
 
     #[pallet::error]
@@ -959,6 +972,17 @@ pub mod pallet {
                 T::AddressMapper::to_fallback_account_id(&T::AddressMapper::to_address(&origin));
             call.dispatch(RawOrigin::Signed(unmapped_account).into())
         }
+
+        #[pallet::call_index(10)]
+        #[pallet::weight(Weight::zero())]
+        pub fn transfer(origin: OriginFor<T>, dest: H160, amount:BalanceOf<T>) -> DispatchResult {
+            let origin = ensure_signed(origin)?;
+            let to = T::AddressMapper::to_account_id(&dest);
+            T::Currency::transfer(&origin, &to, amount, Preserve)?;
+            Self::deposit_event(Event::Transfer { who: origin, dest: dest, amount: amount });
+            Ok(()) 
+        }
+
     }
 }
 

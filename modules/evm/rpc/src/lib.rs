@@ -2,11 +2,8 @@
 
 pub use crate::evm_api::EVMApiServer;
 use ethereum_types::{H160, U256};
-use jsonrpsee::core::client::Error as JsonRpseeError;
 use jsonrpsee::core::RpcResult;
-use jsonrpsee::types::error::{ErrorCode, ErrorObject, ErrorObjectOwned};
-use rustc_hex::ToHex;
-use sc_rpc_api::DenyUnsafe;
+use jsonrpsee::types::error::{ErrorCode, ErrorObjectOwned};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_core::{Bytes, Decode};
@@ -14,7 +11,6 @@ use sp_rpc::number::NumberOrHex;
 use sp_runtime::{
     codec::Codec,
     traits::{self, Block as BlockT, MaybeDisplay, MaybeFromStr},
-    SaturatedConversion,
 };
 use std::convert::{TryFrom, TryInto};
 use std::{marker::PhantomData, sync::Arc};
