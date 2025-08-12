@@ -31,31 +31,27 @@ const SCALE: u128 = 100;
 /// Panics if the `mask` is zero.
 fn round_up<T>(value: T, mask: T) -> T
 where
-    T: One + Zero + Copy + Rem<Output = T> + Div<Output = T>,
-    <T as Rem>::Output: PartialEq,
+	T: One + Zero + Copy + Rem<Output = T> + Div<Output = T>,
+	<T as Rem>::Output: PartialEq,
 {
-    let rest = if value % mask == T::zero() {
-        T::zero()
-    } else {
-        T::one()
-    };
-    value / mask + rest
+	let rest = if value % mask == T::zero() { T::zero() } else { T::one() };
+	value / mask + rest
 }
 
 /// Rounds up the log2 of the given value to the nearest integer.
 fn log2_round_up<T>(val: T) -> u128
 where
-    T: Into<u128>,
+	T: Into<u128>,
 {
-    let val = val.into();
-    val.checked_ilog2()
-        .map(|v| if 1u128 << v == val { v } else { v + 1 })
-        .unwrap_or(0) as u128
+	let val = val.into();
+	val.checked_ilog2()
+		.map(|v| if 1u128 << v == val { v } else { v + 1 })
+		.unwrap_or(0) as u128
 }
 
 mod private {
-    pub trait Sealed {}
-    impl Sealed for () {}
+	pub trait Sealed {}
+	impl Sealed for () {}
 }
 
 /// Encodes/Decodes EVM gas values.
@@ -69,160 +65,152 @@ mod private {
 ///
 /// This trait is sealed and cannot be implemented by downstream crates.
 pub trait GasEncoder<Balance>: private::Sealed {
-    /// Encodes all components (deposit limit, weight reference time, and proof size) into a single
-    /// gas value.
-    fn encode(gas_limit: U256, weight: Weight, deposit: Balance) -> U256;
+	/// Encodes all components (deposit limit, weight reference time, and proof size) into a single
+	/// gas value.
+	fn encode(gas_limit: U256, weight: Weight, deposit: Balance) -> U256;
 
-    /// Decodes the weight and deposit from the encoded gas value.
-    /// Returns `None` if the gas value is invalid
-    fn decode(gas: U256) -> Option<(Weight, Balance)>;
+	/// Decodes the weight and deposit from the encoded gas value.
+	/// Returns `None` if the gas value is invalid
+	fn decode(gas: U256) -> Option<(Weight, Balance)>;
 
-    /// Returns the encoded values of the specified weight and deposit.
-    fn as_encoded_values(weight: Weight, deposit: Balance) -> (Weight, Balance) {
-        let encoded = Self::encode(U256::zero(), weight, deposit);
-        Self::decode(encoded).expect("encoded values should be decodable; qed")
-    }
+	/// Returns the encoded values of the specified weight and deposit.
+	fn as_encoded_values(weight: Weight, deposit: Balance) -> (Weight, Balance) {
+		let encoded = Self::encode(U256::zero(), weight, deposit);
+		Self::decode(encoded).expect("encoded values should be decodable; qed")
+	}
 }
 
 impl<Balance> GasEncoder<Balance> for ()
 where
-    Balance: Zero + One + CheckedShl + Into<u128>,
+	Balance: Zero + One + CheckedShl + Into<u128>,
 {
-    /// The encoding follows the pattern `g...grrppdd`, where:
-    /// - `dd`: log2 Deposit value, encoded in the lowest 2 digits.
-    /// - `pp`: log2 Proof size, encoded in the next 2 digits.
-    /// - `rr`: log2 Reference time, encoded in the next 2 digits.
-    /// - `g...g`: Gas limit, encoded in the highest digits.
-    ///
-    /// # Note
-    /// - The deposit value is maxed by 2^99 for u128 balance, and 2^63 for u64 balance.
-    fn encode(gas_limit: U256, weight: Weight, deposit: Balance) -> U256 {
-        let deposit: u128 = deposit.into();
-        let deposit_component = log2_round_up(deposit);
+	/// The encoding follows the pattern `g...grrppdd`, where:
+	/// - `dd`: log2 Deposit value, encoded in the lowest 2 digits.
+	/// - `pp`: log2 Proof size, encoded in the next 2 digits.
+	/// - `rr`: log2 Reference time, encoded in the next 2 digits.
+	/// - `g...g`: Gas limit, encoded in the highest digits.
+	///
+	/// # Note
+	/// - The deposit value is maxed by 2^99 for u128 balance, and 2^63 for u64 balance.
+	fn encode(gas_limit: U256, weight: Weight, deposit: Balance) -> U256 {
+		let deposit: u128 = deposit.into();
+		let deposit_component = log2_round_up(deposit);
 
-        let proof_size = weight.proof_size();
-        let proof_size_component = SCALE * log2_round_up(proof_size);
+		let proof_size = weight.proof_size();
+		let proof_size_component = SCALE * log2_round_up(proof_size);
 
-        let ref_time = weight.ref_time();
-        let ref_time_component = SCALE.pow(2) * log2_round_up(ref_time);
+		let ref_time = weight.ref_time();
+		let ref_time_component = SCALE.pow(2) * log2_round_up(ref_time);
 
-        let components = U256::from(deposit_component + proof_size_component + ref_time_component);
+		let components = U256::from(deposit_component + proof_size_component + ref_time_component);
 
-        let raw_gas_mask = U256::from(SCALE).pow(3.into());
-        let raw_gas_component = if gas_limit <= components {
-            U256::zero()
-        } else {
-            round_up(gas_limit, raw_gas_mask).saturating_mul(raw_gas_mask)
-        };
+		let raw_gas_mask = U256::from(SCALE).pow(3.into());
+		let raw_gas_component = if gas_limit <= components {
+			U256::zero()
+		} else {
+			round_up(gas_limit, raw_gas_mask).saturating_mul(raw_gas_mask)
+		};
 
-        components.saturating_add(raw_gas_component)
-    }
+		components.saturating_add(raw_gas_component)
+	}
 
-    fn decode(gas: U256) -> Option<(Weight, Balance)> {
-        let deposit = gas % SCALE;
+	fn decode(gas: U256) -> Option<(Weight, Balance)> {
+		let deposit = gas % SCALE;
 
-        // Casting with as_u32 is safe since all values are maxed by `SCALE`.
-        let deposit = deposit.as_u32();
-        let proof_time = ((gas / SCALE) % SCALE).as_u32();
-        let ref_time = ((gas / SCALE.pow(2)) % SCALE).as_u32();
+		// Casting with as_u32 is safe since all values are maxed by `SCALE`.
+		let deposit = deposit.as_u32();
+		let proof_time = ((gas / SCALE) % SCALE).as_u32();
+		let ref_time = ((gas / SCALE.pow(2)) % SCALE).as_u32();
 
-        let ref_weight = match ref_time {
-            0 => 0,
-            64 => u64::MAX,
-            _ => 1u64.checked_shl(ref_time)?,
-        };
+		let ref_weight = match ref_time {
+			0 => 0,
+			64 => u64::MAX,
+			_ => 1u64.checked_shl(ref_time)?,
+		};
 
-        let proof_weight = match proof_time {
-            0 => 0,
-            64 => u64::MAX,
-            _ => 1u64.checked_shl(proof_time)?,
-        };
+		let proof_weight = match proof_time {
+			0 => 0,
+			64 => u64::MAX,
+			_ => 1u64.checked_shl(proof_time)?,
+		};
 
-        let weight = Weight::from_parts(ref_weight, proof_weight);
+		let weight = Weight::from_parts(ref_weight, proof_weight);
 
-        let deposit = match deposit {
-            0 => Balance::zero(),
-            _ => Balance::one().checked_shl(deposit)?,
-        };
+		let deposit = match deposit {
+			0 => Balance::zero(),
+			_ => Balance::one().checked_shl(deposit)?,
+		};
 
-        Some((weight, deposit))
-    }
+		Some((weight, deposit))
+	}
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+	use super::*;
 
-    #[test]
-    fn test_gas_encoding_decoding_works() {
-        let raw_gas_limit = 111_111_999_999_999u128;
-        let weight = Weight::from_parts(222_999_999, 333_999_999);
-        let deposit = 444_999_999u64;
+	#[test]
+	fn test_gas_encoding_decoding_works() {
+		let raw_gas_limit = 111_111_999_999_999u128;
+		let weight = Weight::from_parts(222_999_999, 333_999_999);
+		let deposit = 444_999_999u64;
 
-        let encoded_gas = <() as GasEncoder<u64>>::encode(raw_gas_limit.into(), weight, deposit);
-        assert_eq!(encoded_gas, U256::from(111_112_000_282_929u128));
-        assert!(encoded_gas > raw_gas_limit.into());
+		let encoded_gas = <() as GasEncoder<u64>>::encode(raw_gas_limit.into(), weight, deposit);
+		assert_eq!(encoded_gas, U256::from(111_112_000_282_929u128));
+		assert!(encoded_gas > raw_gas_limit.into());
 
-        let (decoded_weight, decoded_deposit) =
-            <() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
-        assert!(decoded_weight.all_gte(weight));
-        assert!(weight.mul(2).all_gte(weight));
+		let (decoded_weight, decoded_deposit) =
+			<() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
+		assert!(decoded_weight.all_gte(weight));
+		assert!(weight.mul(2).all_gte(weight));
 
-        assert!(decoded_deposit >= deposit);
-        assert!(deposit * 2 >= decoded_deposit);
+		assert!(decoded_deposit >= deposit);
+		assert!(deposit * 2 >= decoded_deposit);
 
-        assert_eq!(
-            (decoded_weight, decoded_deposit),
-            <() as GasEncoder<u64>>::as_encoded_values(weight, deposit)
-        );
-    }
+		assert_eq!(
+			(decoded_weight, decoded_deposit),
+			<() as GasEncoder<u64>>::as_encoded_values(weight, deposit)
+		);
+	}
 
-    #[test]
-    fn test_encoding_zero_values_work() {
-        let encoded_gas = <() as GasEncoder<u64>>::encode(
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        );
+	#[test]
+	fn test_encoding_zero_values_work() {
+		let encoded_gas = <() as GasEncoder<u64>>::encode(
+			Default::default(),
+			Default::default(),
+			Default::default(),
+		);
 
-        assert_eq!(encoded_gas, U256::from(0));
+		assert_eq!(encoded_gas, U256::from(0));
 
-        let (decoded_weight, decoded_deposit) =
-            <() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
-        assert_eq!(Weight::default(), decoded_weight);
-        assert_eq!(0u64, decoded_deposit);
+		let (decoded_weight, decoded_deposit) =
+			<() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
+		assert_eq!(Weight::default(), decoded_weight);
+		assert_eq!(0u64, decoded_deposit);
 
-        let encoded_gas =
-            <() as GasEncoder<u64>>::encode(U256::from(1), Default::default(), Default::default());
-        assert_eq!(encoded_gas, U256::from(1000000));
-    }
+		let encoded_gas =
+			<() as GasEncoder<u64>>::encode(U256::from(1), Default::default(), Default::default());
+		assert_eq!(encoded_gas, U256::from(1000000));
+	}
 
-    #[test]
-    fn test_encoding_max_values_work() {
-        let max_weight = Weight::from_parts(u64::MAX, u64::MAX);
-        let max_deposit = 1u64 << 63;
-        let encoded_gas =
-            <() as GasEncoder<u64>>::encode(Default::default(), max_weight, max_deposit);
+	#[test]
+	fn test_encoding_max_values_work() {
+		let max_weight = Weight::from_parts(u64::MAX, u64::MAX);
+		let max_deposit = 1u64 << 63;
+		let encoded_gas =
+			<() as GasEncoder<u64>>::encode(Default::default(), max_weight, max_deposit);
 
-        assert_eq!(encoded_gas, U256::from(646463));
+		assert_eq!(encoded_gas, U256::from(646463));
 
-        let (decoded_weight, decoded_deposit) =
-            <() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
-        assert_eq!(max_weight, decoded_weight);
-        assert_eq!(max_deposit, decoded_deposit);
-    }
+		let (decoded_weight, decoded_deposit) =
+			<() as GasEncoder<u64>>::decode(encoded_gas).unwrap();
+		assert_eq!(max_weight, decoded_weight);
+		assert_eq!(max_deposit, decoded_deposit);
+	}
 
-    #[test]
-    fn test_overflow() {
-        assert_eq!(
-            None,
-            <() as GasEncoder<u64>>::decode(65_00u128.into()),
-            "Invalid proof size"
-        );
-        assert_eq!(
-            None,
-            <() as GasEncoder<u64>>::decode(65_00_00u128.into()),
-            "Invalid ref_time"
-        );
-    }
+	#[test]
+	fn test_overflow() {
+		assert_eq!(None, <() as GasEncoder<u64>>::decode(65_00u128.into()), "Invalid proof size");
+		assert_eq!(None, <() as GasEncoder<u64>>::decode(65_00_00u128.into()), "Invalid ref_time");
+	}
 }

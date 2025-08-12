@@ -21,18 +21,18 @@ use alloc::{vec, vec::Vec};
 use alloy_core::hex;
 use codec::{Decode, Encode};
 use core::{
-    fmt::{Debug, Display, Formatter, Result as FmtResult},
-    str::FromStr,
+	fmt::{Debug, Display, Formatter, Result as FmtResult},
+	str::FromStr,
 };
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 
 impl FromStr for Bytes {
-    type Err = hex::FromHexError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = hex::decode(s.trim_start_matches("0x"))?;
-        Ok(Bytes(data))
-    }
+	type Err = hex::FromHexError;
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let data = hex::decode(s.trim_start_matches("0x"))?;
+		Ok(Bytes(data))
+	}
 }
 
 macro_rules! impl_hex {
@@ -71,10 +71,10 @@ macro_rules! impl_hex {
 }
 
 impl Bytes {
-    /// See `Vec::is_empty`
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+	/// See `Vec::is_empty`
+	pub fn is_empty(&self) -> bool {
+		self.0.is_empty()
+	}
 }
 
 impl_hex!(Byte, u8, 0u8);
@@ -84,20 +84,20 @@ impl_hex!(Bytes256, [u8; 256], [0u8; 256]);
 
 #[test]
 fn serialize_works() {
-    let a = Byte(42);
-    let s = serde_json::to_string(&a).unwrap();
-    assert_eq!(s, "\"0x2a\"");
-    let b = serde_json::from_str::<Byte>(&s).unwrap();
-    assert_eq!(a, b);
+	let a = Byte(42);
+	let s = serde_json::to_string(&a).unwrap();
+	assert_eq!(s, "\"0x2a\"");
+	let b = serde_json::from_str::<Byte>(&s).unwrap();
+	assert_eq!(a, b);
 
-    let a = Bytes(b"bello world".to_vec());
-    let s = serde_json::to_string(&a).unwrap();
-    assert_eq!(s, "\"0x62656c6c6f20776f726c64\"");
-    let b = serde_json::from_str::<Bytes>(&s).unwrap();
-    assert_eq!(a, b);
+	let a = Bytes(b"bello world".to_vec());
+	let s = serde_json::to_string(&a).unwrap();
+	assert_eq!(s, "\"0x62656c6c6f20776f726c64\"");
+	let b = serde_json::from_str::<Bytes>(&s).unwrap();
+	assert_eq!(a, b);
 
-    let a = Bytes256([42u8; 256]);
-    let s = serde_json::to_string(&a).unwrap();
-    let b = serde_json::from_str::<Bytes256>(&s).unwrap();
-    assert_eq!(a, b);
+	let a = Bytes256([42u8; 256]);
+	let s = serde_json::to_string(&a).unwrap();
+	let b = serde_json::from_str::<Bytes256>(&s).unwrap();
+	assert_eq!(a, b);
 }

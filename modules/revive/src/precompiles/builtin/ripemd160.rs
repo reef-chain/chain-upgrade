@@ -16,9 +16,9 @@
 // limitations under the License.
 
 use crate::{
-    precompiles::{BuiltinAddressMatcher, Error, Ext, PrimitivePrecompile},
-    wasm::RuntimeCosts,
-    Config,
+	precompiles::{BuiltinAddressMatcher, Error, Ext, PrimitivePrecompile},
+	vm::RuntimeCosts,
+	Config,
 };
 use alloc::vec::Vec;
 use core::{marker::PhantomData, num::NonZero};
@@ -27,30 +27,29 @@ use ripemd::Digest;
 pub struct Ripemd160<T>(PhantomData<T>);
 
 impl<T: Config> PrimitivePrecompile for Ripemd160<T> {
-    type T = T;
-    const MATCHER: BuiltinAddressMatcher = BuiltinAddressMatcher::Fixed(NonZero::new(3).unwrap());
-    const HAS_CONTRACT_INFO: bool = false;
+	type T = T;
+	const MATCHER: BuiltinAddressMatcher = BuiltinAddressMatcher::Fixed(NonZero::new(3).unwrap());
+	const HAS_CONTRACT_INFO: bool = false;
 
-    fn call(
-        _address: &[u8; 20],
-        input: Vec<u8>,
-        env: &mut impl Ext<T = Self::T>,
-    ) -> Result<Vec<u8>, Error> {
-        env.gas_meter_mut()
-            .charge(RuntimeCosts::Ripemd160(input.len() as _))?;
-        let mut ret = [0u8; 32];
-        ret[12..32].copy_from_slice(&ripemd::Ripemd160::digest(input));
-        Ok(ret.to_vec())
-    }
+	fn call(
+		_address: &[u8; 20],
+		input: Vec<u8>,
+		env: &mut impl Ext<T = Self::T>,
+	) -> Result<Vec<u8>, Error> {
+		env.gas_meter_mut().charge(RuntimeCosts::Ripemd160(input.len() as _))?;
+		let mut ret = [0u8; 32];
+		ret[12..32].copy_from_slice(&ripemd::Ripemd160::digest(input));
+		Ok(ret.to_vec())
+	}
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{precompiles::tests::run_test_vectors, tests::Test};
+	use super::*;
+	use crate::{precompiles::tests::run_test_vectors, tests::Test};
 
-    #[test]
-    fn test_ripemd160() {
-        run_test_vectors::<Ripemd160<Test>>(include_str!("./testdata/3-ripemd160.json"));
-    }
+	#[test]
+	fn test_ripemd160() {
+		run_test_vectors::<Ripemd160<Test>>(include_str!("./testdata/3-ripemd160.json"));
+	}
 }

@@ -16,8 +16,8 @@
 // limitations under the License.
 
 use crate::{
-    precompiles::{BuiltinAddressMatcher, Error, Ext, PrimitivePrecompile},
-    Config, Error as CrateError,
+	precompiles::{BuiltinAddressMatcher, Error, Ext, PrimitivePrecompile},
+	Config, Error as CrateError,
 };
 use alloc::vec::Vec;
 use core::{marker::PhantomData, num::NonZero};
@@ -25,18 +25,18 @@ use core::{marker::PhantomData, num::NonZero};
 pub struct PointEval<T>(PhantomData<T>);
 
 impl<T: Config> PrimitivePrecompile for PointEval<T> {
-    type T = T;
-    const MATCHER: BuiltinAddressMatcher =
-        BuiltinAddressMatcher::Fixed(NonZero::new(0x0a).unwrap());
-    const HAS_CONTRACT_INFO: bool = false;
+	type T = T;
+	const MATCHER: BuiltinAddressMatcher =
+		BuiltinAddressMatcher::Fixed(NonZero::new(0x0a).unwrap());
+	const HAS_CONTRACT_INFO: bool = false;
 
-    fn call(
-        _address: &[u8; 20],
-        _input: Vec<u8>,
-        _env: &mut impl Ext<T = Self::T>,
-    ) -> Result<Vec<u8>, Error> {
-        // Exists on Ethereum but we didn't implement it, yet.
-        // This fails the call instead of doing a silent balance transfer.
-        Err(<CrateError<T>>::UnsupportedPrecompileAddress.into())
-    }
+	fn call(
+		_address: &[u8; 20],
+		_input: Vec<u8>,
+		_env: &mut impl Ext<T = Self::T>,
+	) -> Result<Vec<u8>, Error> {
+		// Exists on Ethereum but we didn't implement it, yet.
+		// This fails the call instead of doing a silent balance transfer.
+		Err(<CrateError<T>>::UnsupportedPrecompileAddress.into())
+	}
 }
