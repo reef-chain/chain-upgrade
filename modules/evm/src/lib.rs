@@ -1275,8 +1275,8 @@ impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::
     fn validate(
         &self,
         origin: <<T as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin,
-        call: &<T as frame_system::Config>::RuntimeCall,
-        info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
+        _call: &<T as frame_system::Config>::RuntimeCall,
+        _info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
         _len: usize,
         _self_implicit: Self::Implicit,
         _inherited_implication: &impl Encode,
