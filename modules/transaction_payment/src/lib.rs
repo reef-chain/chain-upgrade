@@ -704,7 +704,7 @@ where
         _call: &<T as frame_system::Config>::RuntimeCall,
         info: &DispatchInfoOf<T::RuntimeCall>,
         len: usize,
-    ) -> Result<(PalletBalanceOf<T>), TransactionValidityError>
+    ) -> Result<PalletBalanceOf<T>, TransactionValidityError>
     where
         T::RuntimeCall: Dispatchable<Info = DispatchInfo>,
     {

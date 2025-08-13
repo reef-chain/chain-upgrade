@@ -23,7 +23,7 @@ use frame_support::{
     parameter_types,
     traits::{
         fungible::{
-            Credit, HoldConsideration, ItemOf, NativeFromLeft, NativeOrWithId, UnionOf,
+            HoldConsideration, NativeFromLeft, NativeOrWithId, UnionOf,
         },
         schedule::Priority,
         tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
@@ -46,6 +46,7 @@ use frame_system::{
 };
 
 // Substrate Transaction Payment
+#[allow(deprecated)]
 pub use pallet_transaction_payment::{
     CurrencyAdapter, TargetedFeeAdjustment as SubstrateTargetedFeeAdjustment,
 };
@@ -2046,7 +2047,10 @@ pub type TxExtension = (
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
-    pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    pallet_skip_feeless_payment::SkipCheckIfFeeless<
+		Runtime,
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+	>,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2065,7 +2069,8 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckEra::from(crate::generic::Era::Immortal),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
+				.into(),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
@@ -2149,7 +2154,11 @@ where
             frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
-            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
+				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+					tip, None,
+				),
+			),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)

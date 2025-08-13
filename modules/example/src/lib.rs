@@ -29,6 +29,7 @@ pub mod module {
             + MaybeSerializeDeserialize;
         #[pallet::constant]
         type SomeConst: Get<Self::Balance>;
+        #[allow(deprecated)]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
