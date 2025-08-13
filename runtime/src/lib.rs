@@ -14,7 +14,7 @@ use codec::{Decode, DecodeLimit, Encode, MaxEncodedLen};
 
 // FRAME Support
 use frame_support::{
-    construct_runtime, derive_impl,
+    derive_impl,
     dynamic_params::{dynamic_pallet_params, dynamic_params},
     genesis_builder_helper::{build_state, get_preset},
     instances::{Instance1, Instance2},

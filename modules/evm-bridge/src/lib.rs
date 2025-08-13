@@ -7,7 +7,6 @@ use frame_system::pallet_prelude::*;
 use hex_literal::hex;
 use module_evm::{ExitReason, ExitSucceed};
 use sp_core::{H160, H256, U256};
-use sp_runtime::ArithmeticError;
 use sp_runtime::SaturatedConversion;
 use sp_std::vec::Vec;
 use support::{EVMBridge as EVMBridgeTrait, ExecutionMode, InvokeContext, EVM};

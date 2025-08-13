@@ -8,13 +8,11 @@
 use jsonrpsee::RpcModule;
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_rpc::SubscriptionTaskExecutor;
-pub use sc_rpc_api::DenyUnsafe;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_keystore::KeystorePtr;
 use std::sync::Arc;
-// pub use sc_rpc_api::DenyUnsafe;
 use evm_rpc::evm_api::EVMApiServer;
 use sc_transaction_pool_api::TransactionPool;
 

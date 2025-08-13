@@ -37,7 +37,7 @@ use sha3::{Digest, Keccak256};
 use sp_runtime::{
     impl_tx_ext_default,
     traits::{
-        Convert, DispatchInfoOf, Dispatchable, One, PostDispatchInfoOf, SignedExtension,
+        Convert, DispatchInfoOf, Dispatchable, One,
         TransactionExtension, UniqueSaturatedInto, Zero,
     },
     transaction_validity::TransactionValidityError,
@@ -1256,40 +1256,6 @@ impl<T: Config + Send + Sync> SetEvmOrigin<T> {
 impl<T: Config + Send + Sync> Default for SetEvmOrigin<T> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl<T: Config + Send + Sync> SignedExtension for SetEvmOrigin<T> {
-    const IDENTIFIER: &'static str = "SetEvmOrigin";
-    type AccountId = T::AccountId;
-    type Call = T::RuntimeCall;
-    type AdditionalSigned = ();
-    type Pre = ();
-
-    fn additional_signed(&self) -> sp_std::result::Result<(), TransactionValidityError> {
-        Ok(())
-    }
-
-    fn pre_dispatch(
-        self,
-        who: &Self::AccountId,
-        _call: &Self::Call,
-        _info: &DispatchInfoOf<Self::Call>,
-        _len: usize,
-    ) -> Result<(), TransactionValidityError> {
-        ExtrinsicOrigin::<T>::set(Some(who.clone()));
-        Ok(())
-    }
-
-    fn post_dispatch(
-        _pre: Option<Self::Pre>,
-        _info: &DispatchInfoOf<Self::Call>,
-        _post_info: &PostDispatchInfoOf<Self::Call>,
-        _len: usize,
-        _result: &DispatchResult,
-    ) -> Result<(), TransactionValidityError> {
-        ExtrinsicOrigin::<T>::kill();
-        Ok(())
     }
 }
 

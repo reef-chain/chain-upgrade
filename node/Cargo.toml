@@ -62,6 +62,8 @@ sc-consensus-grandpa-rpc = { workspace = true }
 
 sp-consensus = { workspace = true }
 sp-consensus-babe = { workspace = true }
+sp-io = { workspace = true }
+sp-statement-store = { workspace = true }
 sp-consensus-grandpa = { workspace = true ,default-features=false }
 sc-consensus = { workspace = true }
 sc-consensus-babe = { workspace = true }
