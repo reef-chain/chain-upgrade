@@ -2,9 +2,9 @@ use pallet_revive::is_eth_derived;
 use reef_runtime::ReviveConfig;
 use reef_runtime::{
     get_all_module_accounts, opaque::SessionKeys, AccountId, AuthorityDiscoveryConfig,
-    AuthorityDiscoveryId, BabeConfig, BalancesConfig, CurrencyId, EVMConfig, ImOnlineId,
-    IndicesConfig, MaxNativeTokenExistentialDeposit, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, SudoConfig, SystemConfig, TokenSymbol, TokensConfig, REEF,
+    AuthorityDiscoveryId, BabeConfig, CurrencyId, EVMConfig, ImOnlineId,
+    MaxNativeTokenExistentialDeposit, SessionConfig,StakerStatus, StakingConfig,
+    SudoConfig, TokenSymbol, TokensConfig, REEF,
     WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -105,7 +105,6 @@ pub fn development_config() -> Result<ChainSpec, String> {
     .with_id("dev")
     .with_chain_type(ChainType::Development)
     .with_genesis_config_patch(testnet_genesis(
-        WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         // Initial PoS authorities
         vec![get_authority_keys_from_seed("Alice")],
         // Sudo account
@@ -128,7 +127,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
     .with_id("local_testnet")
     .with_chain_type(ChainType::Local)
     .with_genesis_config_patch(testnet_genesis(
-        WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         // Initial PoS authorities
         vec![
             get_authority_keys_from_seed("Alice"),
@@ -168,7 +166,6 @@ pub fn public_testnet_config() -> Result<ChainSpec, String> {
 		.with_id("reef_testnet")
 		.with_chain_type(ChainType::Live)
 		.with_genesis_config_patch(testnet_genesis(
-			WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
 			// Initial authorities keys:
 			// stash
 			// controller
@@ -240,7 +237,6 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 		.with_id("reef_mainnet")
 		.with_chain_type(ChainType::Live)
 		.with_genesis_config_patch(mainnet_genesis(
-			WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
 			// Initial authorities keys:
 			// stash
 			// controller
@@ -330,7 +326,6 @@ pub fn well_known_including_eth_accounts() -> Vec<AccountId> {
 }
 
 fn testnet_genesis(
-    wasm_binary: &[u8],
     initial_authorities: Vec<(
         AccountId,
         AccountId,
@@ -443,7 +438,6 @@ fn testnet_genesis(
 }
 
 fn mainnet_genesis(
-    wasm_binary: &[u8],
     initial_authorities: Vec<(
         AccountId,
         AccountId,

@@ -10,7 +10,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use sp_std::{borrow::Cow, prelude::*};
 
 // Codec and Encoding
-use codec::{Decode, DecodeLimit, Encode, MaxEncodedLen};
+use codec::{Decode, Encode, MaxEncodedLen};
 
 // FRAME Support
 use frame_support::{
@@ -23,7 +23,7 @@ use frame_support::{
     parameter_types,
     traits::{
         fungible::{
-            Balanced, Credit, HoldConsideration, ItemOf, NativeFromLeft, NativeOrWithId, UnionOf,
+            Credit, HoldConsideration, ItemOf, NativeFromLeft, NativeOrWithId, UnionOf,
         },
         schedule::Priority,
         tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
@@ -36,7 +36,7 @@ use frame_support::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
         ConstantMultiplier, IdentityFee, Weight,
     },
-    BoundedVec, PalletId, MAX_EXTRINSIC_DEPTH,
+    BoundedVec, PalletId,
 };
 
 // FRAME System
@@ -115,7 +115,6 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160};
 
 // sp_runtime Core Traits and Types
 use sp_runtime::{
-    create_runtime_str,
     curve::PiecewiseLinear,
     generic, impl_opaque_keys, str_array as s,
     traits::{
@@ -298,8 +297,8 @@ pub mod fee {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("reef"),
-    impl_name: create_runtime_str!("reef"),
+    spec_name: alloc::borrow::Cow::Borrowed("reef"),
+    impl_name: alloc::borrow::Cow::Borrowed("reef"),
     authoring_version: 1,
     spec_version: 13,
     impl_version: 11,
@@ -448,8 +447,8 @@ parameter_types! {
 
 impl pallet_session::historical::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
+    type FullIdentification = ();
+	type FullIdentificationOf = pallet_staking::UnitIdentificationOf<Self>;
 }
 
 pallet_staking_reward_curve::build! {

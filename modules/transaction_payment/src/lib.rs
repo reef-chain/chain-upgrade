@@ -27,10 +27,10 @@ use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{
         CheckedSub, Convert, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SaturatedConversion,
-        Saturating, SignedExtension, TransactionExtension, Zero,
+        Saturating, TransactionExtension, Zero,
     },
     transaction_validity::{
-        InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError,
+        InvalidTransaction, TransactionPriority, TransactionValidityError,
         ValidTransaction,
     },
     FixedPointNumber, FixedPointOperand, FixedU128, Perquintill,
