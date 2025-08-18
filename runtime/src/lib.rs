@@ -561,6 +561,8 @@ const MAX_QUOTA_NOMINATIONS: u32 = 16;
 
 impl pallet_staking::Config for Runtime {
     type OldCurrency = Balances;
+    type Validators = Historical;
+	type ValidatorId = pallet_staking::StashOf<Self>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Currency = Balances;
     type MaxExposurePageSize = ConstU32<256>;

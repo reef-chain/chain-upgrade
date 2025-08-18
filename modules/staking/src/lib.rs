@@ -321,6 +321,7 @@ use frame_support::{
     weights::Weight,
     BoundedVec, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
+use sp_staking::StakingAccount;
 use scale_info::TypeInfo;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -1087,6 +1088,15 @@ impl Default for Forcing {
     }
 }
 
+/// A `Convert` implementation that finds the stash of the given controller account,
+/// if any.
+pub struct StashOf<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: Config> Convert<T::AccountId, Option<T::AccountId>> for StashOf<T> {
+	fn convert(controller: T::AccountId) -> Option<T::AccountId> {
+		StakingLedger::<T>::paired_account(StakingAccount::Controller(controller))
+	}
+}
 /// A typed conversion from stash account ID to the active exposure of nominators
 /// on that account.
 ///

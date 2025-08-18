@@ -25,17 +25,17 @@ use frame_support::{
     traits::{
         fungible::{
             hold::{Balanced as FunHoldBalanced, Mutate as FunHoldMutate},
-            Mutate as FunMutate,
+            Mutate as FunMutate
         },
         Contains, Defensive, EnsureOrigin, EstimateNextNewSession, Get, InspectLockableCurrency,
-        Nothing, OnUnbalanced, UnixTime,
+        Nothing, OnUnbalanced, UnixTime, ValidatorSet
     },
     weights::Weight,
     BoundedVec,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-    traits::{SaturatedConversion, StaticLookup, Zero},
+    traits::{SaturatedConversion, Convert, StaticLookup, Zero},
     ArithmeticError, Perbill, Percent,
 };
 
@@ -323,6 +323,19 @@ pub mod pallet {
         /// another way (such as pools).
         type Filter: Contains<Self::AccountId>;
 
+        // Returns the Active set of Validators
+        #[pallet::no_default_bounds]
+		type Validators: frame_support::traits::ValidatorSet<Self::AccountId>;
+
+		// Converts the default validator id into account id
+        #[pallet::no_default_bounds]
+		type ValidatorId: Convert<
+			<<Self as Config>::Validators as ValidatorSet<
+				<Self as frame_system::Config>::AccountId,
+			>>::ValidatorId,
+			Option<Self::AccountId>,
+		>;
+
         /// Some parameters of the benchmarking.
         #[cfg(feature = "std")]
         type BenchmarkingConfig: BenchmarkingConfig;
@@ -381,6 +394,8 @@ pub mod pallet {
             type MaxControllersInDeprecationBatch = ConstU32<100>;
             type EventListeners = ();
             type Filter = Nothing;
+            type Validators = ();
+            type ValidatorId = ();
             #[cfg(feature = "std")]
             type BenchmarkingConfig = crate::TestBenchmarkingConfig;
             type WeightInfo = ();

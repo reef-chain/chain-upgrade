@@ -22,7 +22,7 @@ use frame_support::{
     migrations::VersionedMigration,
     pallet_prelude::ValueQuery,
     storage_alias,
-    traits::{GetStorageVersion, OnRuntimeUpgrade, UncheckedOnRuntimeUpgrade},
+    traits::{GetStorageVersion, OnRuntimeUpgrade, ValidatorSet, UncheckedOnRuntimeUpgrade},
 };
 
 #[cfg(feature = "try-runtime")]
@@ -52,6 +52,72 @@ impl Default for ObsoleteReleases {
 /// Alias to the old storage item used for release versioning. Obsolete since v13.
 #[storage_alias]
 type StorageVersion<T: Config> = StorageValue<Pallet<T>, ObsoleteReleases, ValueQuery>;
+
+
+/// Migration of era exposure storage items to paged exposures.
+/// Changelog: [v18.](https://github.com/paritytech/substrate/blob/ankan/paged-rewards-rebased2/frame/staking/CHANGELOG.md#14)
+pub mod v18 {
+	use super::*;
+	pub struct MigrateToV18<T>(core::marker::PhantomData<T>);
+	impl<T: Config> OnRuntimeUpgrade for MigrateToV18<T> {
+		fn on_runtime_upgrade() -> Weight {
+			let in_code = Pallet::<T>::in_code_storage_version();
+			let on_chain = Pallet::<T>::on_chain_storage_version();
+
+			let active_era = Pallet::<T>::active_era().map(|info| info.index);
+			let current_era = Pallet::<T>::current_era();
+			let mut eras = sp_std::collections::btree_set::BTreeSet::new();
+			if let Some(active) = active_era {
+				eras.insert(active);
+			}
+			if let Some(current) = current_era {
+				eras.insert(current);
+			}
+			for era in eras {
+				// Fetch the active validators for the era
+				let active_validators = T::Validators::validators();
+				// Iterate through each active validator
+				for validator in active_validators {
+					// Convert the validator to its associated identifier type
+					if let Some(validator_id) = T::ValidatorId::convert(validator.clone()) {
+						// Retrieve the exposure details for the validator in the current era
+						let validator_exposure = ErasStakers::<T>::get(era, validator_id.clone());
+
+						let page_size = T::MaxExposurePageSize::get().defensive_max(1);
+
+						// Split the validator's exposure into metadata and pages
+						let (exposure_metadata, exposure_pages) =
+							validator_exposure.into_pages(page_size);
+
+						// Store the exposure metadata in the ErasStakersOverview storage
+						<ErasStakersOverview<T>>::insert(
+							era,
+							&validator_id.clone(),
+							&exposure_metadata,
+						);
+
+						// Store each exposure page in the ErasStakersPaged storage
+						exposure_pages.iter().enumerate().for_each(|(page, paged_exposure)| {
+							<ErasStakersPaged<T>>::insert(
+								(era, &validator_id.clone(), page as Page),
+								&paged_exposure,
+							);
+						});
+					}
+				}
+			}
+			if in_code == 18 && on_chain == 17 {
+				in_code.put::<Pallet<T>>();
+				log!(info, "v18 applied successfully.");
+				T::DbWeight::get().reads_writes(1, 1)
+			} else {
+				log!(warn, "v18 not applied.");
+				T::DbWeight::get().reads(1)
+			}
+		}
+
+	}
+}
 
 /// Supports the migration of Validator Disabling from pallet-staking to pallet-session
 pub mod v17 {

@@ -26,6 +26,7 @@ sp-application-crypto = { features = ["serde"], workspace = true }
 sp-io.workspace = true
 sp-runtime = { features = ["serde"], workspace = true }
 sp-staking = { features = ["serde"], workspace = true }
+sp-std = { workspace = true ,default-features = false }
 
 [dev-dependencies]
 frame-benchmarking = { default-features = true, workspace = true }
@@ -58,6 +59,7 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-staking/std",
+	"sp-std/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
