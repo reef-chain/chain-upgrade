@@ -14,7 +14,7 @@ use frame_support::{
     dispatch::{DispatchInfo, DispatchResult, GetDispatchInfo, Pays, PostDispatchInfo},
     pallet_prelude::*,
     traits::{
-        Currency, ExistenceRequirement, Imbalance, IsSubType, OnUnbalanced, ReservableCurrency,
+        Currency, ExistenceRequirement, Imbalance, OnUnbalanced, ReservableCurrency,
         WithdrawReasons,
     },
     weights::WeightToFeePolynomial,

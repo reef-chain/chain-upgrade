@@ -955,27 +955,11 @@ parameter_types! {
 type NegativeImbalance =
     <Balances as frame_support::traits::Currency<AccountId>>::NegativeImbalance;
 
-pub struct Author;
-impl frame_support::traits::OnUnbalanced<NegativeImbalance> for Author {
-    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-        if let Some(author) = Authorship::author() {
-            Balances::resolve_creating(&author, amount);
-        }
-    }
-}
-
 pub struct DealWithFees;
 impl frame_support::traits::OnUnbalanced<NegativeImbalance> for DealWithFees {
     fn on_unbalanceds(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
         if let Some(fees) = fees_then_tips.next() {
-            // for fees, 80% to treasury, 20% to author
-            let mut split = fees.ration(80, 20);
-            if let Some(tips) = fees_then_tips.next() {
-                // for tips, if any, 80% to treasury, 20% to author (though this can be anything)
-                tips.ration_merge_into(80, 20, &mut split);
-            }
-            Treasury::on_unbalanced(split.0);
-            Author::on_unbalanced(split.1);
+           let _ = <pallet_balances::Pallet<Runtime> as Currency<<Runtime as frame_system::Config>::AccountId>>::burn(fees.peek());
         }
     }
 }
