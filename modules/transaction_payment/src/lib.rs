@@ -219,6 +219,7 @@ pub mod module {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
+            type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// All non-native currency ids in Reef.
         #[pallet::constant]
         type AllNonNativeCurrencyIds: Get<Vec<CurrencyId>>;
@@ -294,6 +295,17 @@ pub mod module {
     #[pallet::getter(fn default_fee_currency_id)]
     pub type DefaultFeeCurrencyId<T: Config> =
         StorageMap<_, Twox64Concat, T::AccountId, CurrencyId, OptionQuery>;
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub fn deposit_event)]
+    pub enum Event<T: Config> {
+        // Transaction fee is paid (includes the account, actual fee, and tip).
+		TransactionFeePaid {
+			who: T::AccountId,
+			actual_fee: PalletBalanceOf<T>,
+			actual_tip: PalletBalanceOf<T>
+		},
+    }   
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -793,6 +805,12 @@ where
             <T as Config>::OnTransactionPayment::on_unbalanceds(
                 Some(imbalances.0).into_iter().chain(Some(imbalances.1)),
             );
+
+            Pallet::<T>::deposit_event(Event::<T>::TransactionFeePaid {
+            who,
+            actual_fee,
+            actual_tip: tip,
+			});
         }
         Ok(())
     }

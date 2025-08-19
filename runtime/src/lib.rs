@@ -921,6 +921,7 @@ parameter_types! {
 }
 
 impl module_transaction_payment::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;   
     type AllNonNativeCurrencyIds = AllNonNativeCurrencyIds;
     type NativeCurrencyId = GetNativeCurrencyId;
     type StableCurrencyId = GetStableCurrencyId;
@@ -1357,7 +1358,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 6,
         Currencies: module_currencies::{Pallet, Call, Event<T>} = 7,
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 8,
-        TransactionPayment: module_transaction_payment::{Pallet, Call, Storage} = 9,
+        TransactionPayment: module_transaction_payment::{Pallet, Call, Storage, Event<T>} = 9,
 
         // Authorization + Utility
         Authority: orml_authority::{Pallet, Call, Event<T>, Origin<T>} = 10,
