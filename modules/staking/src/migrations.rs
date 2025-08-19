@@ -53,15 +53,19 @@ impl Default for ObsoleteReleases {
 #[storage_alias]
 type StorageVersion<T: Config> = StorageValue<Pallet<T>, ObsoleteReleases, ValueQuery>;
 
-
 /// Migration of era exposure storage items to paged exposures.
-/// Changelog: [v18.](https://github.com/paritytech/substrate/blob/ankan/paged-rewards-rebased2/frame/staking/CHANGELOG.md#14)
-pub mod v18 {
-	use super::*;
-	pub struct MigrateToV18<T>(core::marker::PhantomData<T>);
-	impl<T: Config> OnRuntimeUpgrade for MigrateToV18<T> {
-		fn on_runtime_upgrade() -> Weight {
-			let in_code = Pallet::<T>::in_code_storage_version();
+/// Changelog: [v14.](https://github.com/paritytech/substrate/blob/ankan/paged-rewards-rebased2/frame/staking/CHANGELOG.md#14)
+pub mod v14 {
+    use super::*;
+
+    #[frame_support::storage_alias]
+    pub(crate) type OffendingValidators<T: Config> =
+        StorageValue<Pallet<T>, Vec<(u32, bool)>, ValueQuery>;
+
+    pub struct MigrateToV14<T>(core::marker::PhantomData<T>);
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV14<T> {
+        fn on_runtime_upgrade() -> Weight {
+            	let in_code = Pallet::<T>::in_code_storage_version();
 			let on_chain = Pallet::<T>::on_chain_storage_version();
 
 			let active_era = Pallet::<T>::active_era().map(|info| info.index);
@@ -106,7 +110,7 @@ pub mod v18 {
 					}
 				}
 			}
-			if in_code == 18 && on_chain == 17 {
+			if in_code == 14 && on_chain == 13 {
 				in_code.put::<Pallet<T>>();
 				log!(info, "v18 applied successfully.");
 				T::DbWeight::get().reads_writes(1, 1)
@@ -115,186 +119,6 @@ pub mod v18 {
 				T::DbWeight::get().reads(1)
 			}
 		}
-
-	}
-}
-
-/// Supports the migration of Validator Disabling from pallet-staking to pallet-session
-pub mod v17 {
-    use super::*;
-
-    #[frame_support::storage_alias]
-    pub type DisabledValidators<T: Config> =
-        StorageValue<Pallet<T>, BoundedVec<(u32, OffenceSeverity), ConstU32<333>>, ValueQuery>;
-
-    pub struct MigrateDisabledToSession<T>(core::marker::PhantomData<T>);
-    impl<T: Config> pallet_session::migrations::v1::MigrateDisabledValidators
-        for MigrateDisabledToSession<T>
-    {
-        #[cfg(feature = "try-runtime")]
-        fn peek_disabled() -> Vec<(u32, OffenceSeverity)> {
-            DisabledValidators::<T>::get().into()
-        }
-
-        fn take_disabled() -> Vec<(u32, OffenceSeverity)> {
-            DisabledValidators::<T>::take().into()
-        }
-    }
-}
-
-/// Migrating `DisabledValidators` from `Vec<u32>` to `Vec<(u32, OffenceSeverity)>` to track offense
-/// severity for re-enabling purposes.
-pub mod v16 {
-    use super::*;
-    use sp_staking::offence::OffenceSeverity;
-
-    #[frame_support::storage_alias]
-    pub(crate) type DisabledValidators<T: Config> =
-        StorageValue<Pallet<T>, Vec<(u32, OffenceSeverity)>, ValueQuery>;
-
-    pub struct VersionUncheckedMigrateV15ToV16<T>(core::marker::PhantomData<T>);
-    impl<T: Config> UncheckedOnRuntimeUpgrade for VersionUncheckedMigrateV15ToV16<T> {
-        #[cfg(feature = "try-runtime")]
-        fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-            let old_disabled_validators = v15::DisabledValidators::<T>::get();
-            Ok(old_disabled_validators.encode())
-        }
-
-        fn on_runtime_upgrade() -> Weight {
-            // Migrating `DisabledValidators` from `Vec<u32>` to `Vec<(u32, OffenceSeverity)>`.
-            // Using max severity (PerBill 100%) for the migration which effectively makes it so
-            // offenders before the migration will not be re-enabled this era unless there are
-            // other 100% offenders.
-            let max_offence = OffenceSeverity(Perbill::from_percent(100));
-            // Inject severity
-            let migrated = v15::DisabledValidators::<T>::take()
-                .into_iter()
-                .map(|v| (v, max_offence))
-                .collect::<Vec<_>>();
-
-            v16::DisabledValidators::<T>::set(migrated);
-
-            log!(info, "v16 applied successfully.");
-            T::DbWeight::get().reads_writes(1, 1)
-        }
-
-        #[cfg(feature = "try-runtime")]
-        fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-            // Decode state to get old_disabled_validators in a format of Vec<u32>
-            let old_disabled_validators =
-                Vec::<u32>::decode(&mut state.as_slice()).expect("Failed to decode state");
-            let new_disabled_validators = v17::DisabledValidators::<T>::get();
-
-            // Compare lengths
-            frame_support::ensure!(
-                old_disabled_validators.len() == new_disabled_validators.len(),
-                "DisabledValidators length mismatch"
-            );
-
-            // Compare contents
-            let new_disabled_validators = new_disabled_validators
-                .into_iter()
-                .map(|(v, _)| v)
-                .collect::<Vec<_>>();
-            frame_support::ensure!(
-                old_disabled_validators == new_disabled_validators,
-                "DisabledValidator ids mismatch"
-            );
-
-            // Verify severity
-            let max_severity = OffenceSeverity(Perbill::from_percent(100));
-            let new_disabled_validators = v17::DisabledValidators::<T>::get();
-            for (_, severity) in new_disabled_validators {
-                frame_support::ensure!(severity == max_severity, "Severity mismatch");
-            }
-
-            Ok(())
-        }
-    }
-
-    pub type MigrateV15ToV16<T> = VersionedMigration<
-        15,
-        16,
-        VersionUncheckedMigrateV15ToV16<T>,
-        Pallet<T>,
-        <T as frame_system::Config>::DbWeight,
-    >;
-}
-
-/// Migrating `OffendingValidators` from `Vec<(u32, bool)>` to `Vec<u32>`
-pub mod v15 {
-    use super::*;
-
-    // The disabling strategy used by staking pallet
-    type DefaultDisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy;
-
-    #[storage_alias]
-    pub(crate) type DisabledValidators<T: Config> = StorageValue<Pallet<T>, Vec<u32>, ValueQuery>;
-
-    pub struct VersionUncheckedMigrateV14ToV15<T>(core::marker::PhantomData<T>);
-    impl<T: Config> UncheckedOnRuntimeUpgrade for VersionUncheckedMigrateV14ToV15<T> {
-        fn on_runtime_upgrade() -> Weight {
-            let mut migrated = v14::OffendingValidators::<T>::take()
-                .into_iter()
-                .filter(|p| p.1) // take only disabled validators
-                .map(|p| p.0)
-                .collect::<Vec<_>>();
-
-            // Respect disabling limit
-            migrated.truncate(DefaultDisablingStrategy::disable_limit(
-                T::SessionInterface::validators().len(),
-            ));
-
-            DisabledValidators::<T>::set(migrated);
-
-            log!(info, "v15 applied successfully.");
-            T::DbWeight::get().reads_writes(1, 1)
-        }
-
-        #[cfg(feature = "try-runtime")]
-        fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
-            frame_support::ensure!(
-                v14::OffendingValidators::<T>::decode_len().is_none(),
-                "OffendingValidators is not empty after the migration"
-            );
-            Ok(())
-        }
-    }
-
-    pub type MigrateV14ToV15<T> = VersionedMigration<
-        14,
-        15,
-        VersionUncheckedMigrateV14ToV15<T>,
-        Pallet<T>,
-        <T as frame_system::Config>::DbWeight,
-    >;
-}
-
-/// Migration of era exposure storage items to paged exposures.
-/// Changelog: [v14.](https://github.com/paritytech/substrate/blob/ankan/paged-rewards-rebased2/frame/staking/CHANGELOG.md#14)
-pub mod v14 {
-    use super::*;
-
-    #[frame_support::storage_alias]
-    pub(crate) type OffendingValidators<T: Config> =
-        StorageValue<Pallet<T>, Vec<(u32, bool)>, ValueQuery>;
-
-    pub struct MigrateToV14<T>(core::marker::PhantomData<T>);
-    impl<T: Config> OnRuntimeUpgrade for MigrateToV14<T> {
-        fn on_runtime_upgrade() -> Weight {
-            let in_code = Pallet::<T>::in_code_storage_version();
-            let on_chain = Pallet::<T>::on_chain_storage_version();
-
-            if in_code == 14 && on_chain == 13 {
-                in_code.put::<Pallet<T>>();
-
-                log!(info, "staking v14 applied successfully.");
-                T::DbWeight::get().reads_writes(1, 1)
-            } else {
-                log!(warn, "staking v14 not applied.");
-                T::DbWeight::get().reads(1)
-            }
-        }
 
         #[cfg(feature = "try-runtime")]
         fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {

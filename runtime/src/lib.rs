@@ -385,7 +385,7 @@ pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
-    pub type Unreleased = pallet_staking::migrations::v18::MigrateToV18<crate::Runtime>;
+    pub type Unreleased = pallet_staking::migrations::v14::MigrateToV14<crate::Runtime>;
 }
 
 parameter_types! {
@@ -538,7 +538,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 2; // 24 hours
+    pub const SessionsPerEra: sp_staking::SessionIndex = 24; // 24 hours
     pub const BondingDuration: sp_staking::EraIndex = 28; // 28 days
     pub const SlashDeferDuration: sp_staking::EraIndex = 27; // 27 days
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
