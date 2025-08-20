@@ -855,6 +855,8 @@ impl<T: Config> Pallet<T> {
         }
 
         Accounts::<T>::remove(address);
+
+        #[allow(deprecated)]
         AccountStorages::<T>::remove_prefix(address, None);
 
         Ok(size)
@@ -1091,6 +1093,7 @@ impl<T: Config> Pallet<T> {
                 .take()
                 .ok_or(Error::<T>::ContractNotFound)?;
 
+            #[allow(deprecated)]
             AccountStorages::<T>::remove_prefix(contract, None);
 
             CodeInfos::<T>::mutate_exists(&contract_info.code_hash, |maybe_code_info| {
