@@ -19,10 +19,9 @@
 
 use super::*;
 use frame_support::{
-    migrations::VersionedMigration,
     pallet_prelude::ValueQuery,
     storage_alias,
-    traits::{GetStorageVersion, OnRuntimeUpgrade, ValidatorSet, UncheckedOnRuntimeUpgrade},
+    traits::{GetStorageVersion, OnRuntimeUpgrade, ValidatorSet},
 };
 
 #[cfg(feature = "try-runtime")]

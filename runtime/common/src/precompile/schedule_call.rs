@@ -1,6 +1,6 @@
 // Disable the following lints
 #![allow(clippy::type_complexity)]
-
+#[allow(deprecated)]
 use frame_support::{
     ensure, parameter_types,
     traits::{
@@ -89,6 +89,7 @@ type NegativeImbalanceOf<T> = <<T as module_evm::Config>::Currency as Currency<
     <T as frame_system::Config>::AccountId,
 >>::NegativeImbalance;
 
+#[allow(deprecated)]
 impl<
         AccountId,
         AddressMapping,
@@ -244,6 +245,7 @@ where
                     ExitError::Other("NoPermission".into())
                 );
 
+                
                 Scheduler::cancel_named(task_id)
                     .map_err(|_| ExitError::Other("Cancel schedule failed".into()))?;
 
