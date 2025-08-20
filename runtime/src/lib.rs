@@ -28,7 +28,7 @@ use frame_support::{
         schedule::Priority,
         tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, ConstantStoragePrice,
-        Currency, EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly, Imbalance,
+        EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly,
         KeyOwnerProofSystem, LinearStoragePrice, Nothing, OriginTrait, VariantCountOf,
         WithdrawReasons,
     },
@@ -538,7 +538,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 24; // 24 hours
+    pub const SessionsPerEra: sp_staking::SessionIndex = 2; // 24 hours
     pub const BondingDuration: sp_staking::EraIndex = 28; // 28 days
     pub const SlashDeferDuration: sp_staking::EraIndex = 27; // 27 days
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
@@ -952,22 +952,10 @@ parameter_types! {
     pub TipPerWeightStep: Balance = 0;
 }
 
-type NegativeImbalance =
-    <Balances as frame_support::traits::Currency<AccountId>>::NegativeImbalance;
-
-pub struct DealWithFees;
-impl frame_support::traits::OnUnbalanced<NegativeImbalance> for DealWithFees {
-    fn on_unbalanceds(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
-        if let Some(fees) = fees_then_tips.next() {
-           let _ = <pallet_balances::Pallet<Runtime> as Currency<<Runtime as frame_system::Config>::AccountId>>::burn(fees.peek());
-        }
-    }
-}
-
 #[allow(deprecated)]
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
+    type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = ConstantMultiplier<Balance,TransactionByteFee>;
