@@ -301,7 +301,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: alloc::borrow::Cow::Borrowed("reef"),
     impl_name: alloc::borrow::Cow::Borrowed("reef"),
     authoring_version: 1,
-    spec_version: 13,
+    spec_version: 14,
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -538,7 +538,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 2; // 24 hours
+    pub const SessionsPerEra: sp_staking::SessionIndex = 24; // 24 hours
     pub const BondingDuration: sp_staking::EraIndex = 28; // 28 days
     pub const SlashDeferDuration: sp_staking::EraIndex = 27; // 27 days
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
@@ -562,7 +562,7 @@ const MAX_QUOTA_NOMINATIONS: u32 = 16;
 impl pallet_staking::Config for Runtime {
     type OldCurrency = Balances;
     type Validators = Historical;
-	type ValidatorId = pallet_staking::StashOf<Self>;
+	type ValidatorId = sp_runtime::traits::ConvertInto;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Currency = Balances;
     type MaxExposurePageSize = ConstU32<256>;
