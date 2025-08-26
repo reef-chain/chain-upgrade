@@ -78,6 +78,7 @@ pallet-offences = { workspace = true ,default-features = false }
 sp-authority-discovery ={ workspace = true ,default-features = false }
 pallet-authority-discovery ={ workspace = true ,default-features = false }
 pallet-identity = { workspace = true ,default-features = false }
+pallet-elections-phragmen = { workspace = true ,default-features = false }
 pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
 pallet-treasury = { workspace = true ,default-features = false }
 pallet-parameters = { workspace = true ,default-features = false }
@@ -181,6 +182,7 @@ std = [
 	"sp-authority-discovery/std",
  	"pallet-authority-discovery/std",
 	"pallet-im-online/std",
+	"pallet-elections-phragmen/std",
  	"pallet-election-provider-multi-phase/std",
  	"pallet-offences/std",
  	"pallet-identity/std",
@@ -236,5 +238,14 @@ runtime-benchmarks = [
 	'sp-runtime/runtime-benchmarks',
 	"orml-authority/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
-	"module-poc/runtime-benchmarks"
+	"module-poc/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"pallet-babe/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
+	"pallet-election-provider-multi-phase/runtime-benchmarks",
+	"pallet-elections-phragmen/runtime-benchmarks",
+	"pallet-sudo/runtime-benchmarks",
+	"pallet-treasury/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 ]
