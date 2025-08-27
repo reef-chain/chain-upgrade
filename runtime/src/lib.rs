@@ -385,7 +385,7 @@ pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
-    pub type Unreleased = pallet_staking::migrations::v14::MigrateToV14<crate::Runtime>;
+    pub type Unreleased = pallet_staking::migrations::v2::MigrateToV2<crate::Runtime>;
 }
 
 parameter_types! {

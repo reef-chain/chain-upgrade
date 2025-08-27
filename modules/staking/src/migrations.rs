@@ -54,17 +54,17 @@ type StorageVersion<T: Config> = StorageValue<Pallet<T>, ObsoleteReleases, Value
 
 /// Migration of era exposure storage items to paged exposures.
 /// Changelog: [v14.](https://github.com/paritytech/substrate/blob/ankan/paged-rewards-rebased2/frame/staking/CHANGELOG.md#14)
-pub mod v14 {
+pub mod v2 {
     use super::*;
 
     #[frame_support::storage_alias]
     pub(crate) type OffendingValidators<T: Config> =
         StorageValue<Pallet<T>, Vec<(u32, bool)>, ValueQuery>;
 
-    pub struct MigrateToV14<T>(core::marker::PhantomData<T>);
-    impl<T: Config> OnRuntimeUpgrade for MigrateToV14<T> {
+    pub struct MigrateToV2<T>(core::marker::PhantomData<T>);
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV2<T> {
         fn on_runtime_upgrade() -> Weight {
-            	let in_code = Pallet::<T>::in_code_storage_version();
+            let in_code = Pallet::<T>::in_code_storage_version();
 			let on_chain = Pallet::<T>::on_chain_storage_version();
 
 			let active_era = Pallet::<T>::active_era().map(|info| info.index);
@@ -109,12 +109,12 @@ pub mod v14 {
 					}
 				}
 			}
-			if in_code == 14 && on_chain == 13 {
+			if in_code == 2 && on_chain == 1 {
 				in_code.put::<Pallet<T>>();
-				log!(info, "v18 applied successfully.");
+				log!(info, "v2 applied successfully.");
 				T::DbWeight::get().reads_writes(1, 1)
 			} else {
-				log!(warn, "v18 not applied.");
+				log!(warn, "v2 not applied.");
 				T::DbWeight::get().reads(1)
 			}
 		}
