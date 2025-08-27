@@ -164,6 +164,7 @@ pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", default-fea
 pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-preimage = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-session = {  git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506", features = ["historical"] }
+pallet-session-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-staking-reward-curve = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
 pallet-babe = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2506" }
