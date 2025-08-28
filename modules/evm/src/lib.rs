@@ -816,6 +816,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[allow(deprecated)]
     /// Remove an account.
     pub fn remove_account(address: &EvmAddress) -> Result<u32, ExitError> {
         let mut size = 0u32;
@@ -1067,6 +1068,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[transactional]
+    #[allow(deprecated)]
     fn remove_contract(caller: &EvmAddress, contract: &EvmAddress) -> DispatchResult {
         Accounts::<T>::try_mutate_exists(contract, |account_info| -> DispatchResult {
             let account_info = account_info.as_mut().ok_or(Error::<T>::ContractNotFound)?;

@@ -262,6 +262,7 @@ pub mod module {
                 <CurrentEra<T>>::set(new_era);
 
                 // clear old voter rewards (to save space)
+                #[allow(deprecated)]
                 <VoterRewards<T>>::remove_prefix(&current_era.index, None);
 
                 // set winners on new era

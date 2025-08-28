@@ -5436,6 +5436,7 @@ name = "pallet-elections-phragmen"
 version = "5.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -5575,6 +5576,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-nomination-pools-benchmarking"
+version = "1.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
+dependencies = [
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "pallet-bags-list",
+ "pallet-nomination-pools",
+ "pallet-staking",
+ "parity-scale-codec 3.6.12",
+ "scale-info 2.11.3",
+ "sp-runtime",
+ "sp-runtime-interface",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-nomination-pools-runtime-api"
 version = "1.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
@@ -5711,6 +5732,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-session-benchmarking"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-session",
+ "pallet-staking",
+ "parity-scale-codec 3.6.12",
+ "rand 0.8.5",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-staking"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#e57fad1b8e70be8942733d58137dbbcf9636bfca"
@@ -5723,6 +5761,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-session",
  "parity-scale-codec 3.6.12",
+ "rand_chacha 0.2.2",
  "scale-info 2.11.3",
  "serde",
  "sp-application-crypto",
@@ -6831,6 +6870,7 @@ dependencies = [
  "pallet-collective",
  "pallet-conviction-voting",
  "pallet-election-provider-multi-phase",
+ "pallet-elections-phragmen",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -6838,6 +6878,7 @@ dependencies = [
  "pallet-insecure-randomness-collective-flip",
  "pallet-multisig",
  "pallet-nomination-pools",
+ "pallet-nomination-pools-benchmarking",
  "pallet-nomination-pools-runtime-api",
  "pallet-offences",
  "pallet-preimage",
@@ -6845,6 +6886,7 @@ dependencies = [
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-session-benchmarking",
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-staking-runtime-api",
