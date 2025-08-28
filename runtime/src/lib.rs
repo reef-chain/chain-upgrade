@@ -30,7 +30,7 @@ use frame_support::{
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, ConstantStoragePrice,
         EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly,
         KeyOwnerProofSystem, LinearStoragePrice, Nothing, OriginTrait, VariantCountOf,
-        WithdrawReasons, LockIdentifier
+        WithdrawReasons
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -538,7 +538,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 24; // 24 hours
+    pub const SessionsPerEra: sp_staking::SessionIndex = 2; // 24 hours
     pub const BondingDuration: sp_staking::EraIndex = 28; // 28 days
     pub const SlashDeferDuration: sp_staking::EraIndex = 27; // 27 days
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
@@ -891,44 +891,6 @@ impl pallet_identity::Config for Runtime {
     type ForceOrigin = EnsureRootOrTwoThridsTechCouncil;
     type RegistrarOrigin = EnsureRootOrTwoThridsTechCouncil;
     type WeightInfo = ();
-}
-
-parameter_types! {
-	pub const CandidacyBond: Balance = 10 * DOLLARS;
-	// 1 storage item created, key size is 32 bytes, value size is 16+16.
-	pub const VotingBondBase: Balance = deposit(1, 64);
-	// additional data per vote is 32 bytes (account id).
-	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const TermDuration: BlockNumber = 7 * DAYS;
-	pub const DesiredMembers: u32 = 13;
-	pub const DesiredRunnersUp: u32 = 7;
-	pub const MaxVotesPerVoter: u32 = 16;
-	pub const MaxVoters: u32 = 256;
-	pub const MaxCandidates: u32 = 128;
-	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-}
-
-impl pallet_elections_phragmen::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = ElectionsPhragmenPalletId;
-	type Currency = Balances;
-	type ChangeMembers = TechCouncil;
-	// NOTE: this implies that council's genesis members cannot be set directly and must come from
-	// this module.
-	type InitializeMembers = TechCouncil;
-	type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
-	type CandidacyBond = CandidacyBond;
-	type VotingBondBase = VotingBondBase;
-	type VotingBondFactor = VotingBondFactor;
-	type LoserCandidate = ();
-	type KickedMember = ();
-	type DesiredMembers = DesiredMembers;
-	type DesiredRunnersUp = DesiredRunnersUp;
-	type TermDuration = TermDuration;
-	type MaxVoters = MaxVoters;
-	type MaxVotesPerVoter = MaxVotesPerVoter;
-	type MaxCandidates = MaxCandidates;
-	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -2028,9 +1990,6 @@ mod runtime {
 
     #[runtime::pallet_index(71)]
     pub type AssetConversionTxPayment = pallet_asset_conversion_tx_payment::Pallet<Runtime>;
-
-    #[runtime::pallet_index(72)]
-	pub type Elections = pallet_elections_phragmen::Pallet<Runtime>;
 
 }
 
