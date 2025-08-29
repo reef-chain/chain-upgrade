@@ -471,7 +471,7 @@ impl onchain::Config for OnChainSeqPhragmen {
         AccountId,
         pallet_election_provider_multi_phase::SolutionAccuracyOf<Runtime>,
     >;
-    type DataProvider = <Runtime as pallet_election_provider_multi_phase::Config>::DataProvider;
+    type DataProvider = Staking;
     type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
     type Bounds = ElectionBoundsOnChain;
     type Sort = ConstBool<true>;
@@ -538,7 +538,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 2; // 24 hours
+    pub const SessionsPerEra: sp_staking::SessionIndex = 24; // 24 hours
     pub const BondingDuration: sp_staking::EraIndex = 28; // 28 days
     pub const SlashDeferDuration: sp_staking::EraIndex = 27; // 27 days
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
