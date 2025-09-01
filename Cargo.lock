@@ -9111,6 +9111,32 @@ dependencies = [
 [[package]]
 name = "pallet-election-provider-multi-phase"
 version = "40.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-remote-externalities",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "parking_lot 0.12.3",
+ "rand 0.8.5",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-tracing",
+ "strum 0.26.3",
+ "tokio",
+]
+
+[[package]]
+name = "pallet-election-provider-multi-phase"
+version = "40.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2506#03e07b69039c399ddc6f5e32f9477e186d0f9779"
 dependencies = [
  "frame-benchmarking",
@@ -11135,7 +11161,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-broker",
- "pallet-election-provider-multi-phase",
+ "pallet-election-provider-multi-phase 40.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-fast-unstake",
  "pallet-identity",
  "pallet-session",
@@ -11326,7 +11352,7 @@ dependencies = [
  "pallet-dev-mode",
  "pallet-dummy-dim",
  "pallet-election-provider-multi-block",
- "pallet-election-provider-multi-phase",
+ "pallet-election-provider-multi-phase 40.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2506)",
  "pallet-election-provider-support-benchmarking",
  "pallet-elections-phragmen",
  "pallet-fast-unstake",
@@ -12710,7 +12736,7 @@ dependencies = [
  "pallet-conviction-voting",
  "pallet-core-fellowship",
  "pallet-delegated-staking",
- "pallet-election-provider-multi-phase",
+ "pallet-election-provider-multi-phase 40.0.0",
  "pallet-elections-phragmen",
  "pallet-grandpa",
  "pallet-identity",
