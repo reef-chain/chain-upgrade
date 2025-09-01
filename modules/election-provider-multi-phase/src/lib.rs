@@ -1417,11 +1417,10 @@ impl<T: Config> Pallet<T> {
 	fn asap() {
 		// prepare our snapshot so we can "hopefully" run a fallback.
 		if !Snapshot::<T>::exists() {
-			Self::create_snapshot()
+			let _ = Self::create_snapshot()
 				.inspect_err(|e| {
 					crate::log!(error, "failed to create snapshot while asap-preparing: {:?}", e)
-				})
-				.unwrap()
+				});
 		}
 	}
 
@@ -1862,17 +1861,6 @@ impl<T: Config> ElectionProvider for Pallet<T> {
 		}
 	}
 
-	// #[cfg(feature = "runtime-benchmarks")]
-	// fn asap() {
-	// 	// prepare our snapshot so we can "hopefully" run a fallback.
-	// 	if !Snapshot::<T>::exists() {
-	// 		Self::create_snapshot()
-	// 			.inspect_err(|e| {
-	// 				crate::log!(error, "failed to create snapshot while asap-preparing: {:?}", e)
-	// 			})
-	// 			.unwrap()
-	// 	}
-	// }
 }
 
 /// convert a DispatchError to a custom InvalidTransaction with the inner code being the error
