@@ -362,6 +362,16 @@ pub mod pallet {
 			topics: Vec<H256>,
 		},
 
+		/// transfer occurs from a Substrate account to an Ethereum address.
+        Transfer {
+            /// The Substrate account initiating the transfer.
+            who: T::AccountId,
+            /// The destination Ethereum address (H160 format).
+            dest: H160,
+            /// The amount transferred, denominated in the native balance type.
+            amount: BalanceOf<T>,
+        },
+
 		/// Contract deployed by deployer at the specified address.
 		Instantiated { deployer: H160, contract: H160 },
 	}
@@ -1009,6 +1019,16 @@ pub mod pallet {
 				T::AddressMapper::to_fallback_account_id(&T::AddressMapper::to_address(&origin));
 			call.dispatch(RawOrigin::Signed(unmapped_account).into())
 		}
+
+		#[pallet::call_index(11)]
+        #[pallet::weight(Weight::zero())]
+        pub fn transfer(origin: OriginFor<T>, dest: H160, amount:BalanceOf<T>) -> DispatchResult {
+            let origin = ensure_signed(origin)?;
+            let to = T::AddressMapper::to_account_id(&dest);
+            T::Currency::transfer(&origin, &to, amount, Preserve)?;
+            Self::deposit_event(Event::Transfer { who: origin, dest: dest, amount: amount });
+            Ok(()) 
+        }
 	}
 }
 
