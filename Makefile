@@ -113,16 +113,16 @@ run-local:
 	@make build
 	@# Clean up previous chain data
 	@echo "\n[2/7] Cleaning up previous chain data..."
-	@rm -rf /tmp/alice /tmp/bob /tmp/bootnode /tmp/validator1.txt /tmp/validator2.txt /tmp/v1_seed.txt /tmp/v2_seed.txt /tmp/v1_addr.txt /tmp/v2_addr.txt /tmp/bootnode_peer_id.txt /tmp/bootnode_node_key.txt /tmp/v1_node_key.txt /tmp/v2_node_key.txt /tmp/local-chain-spec.json /tmp/local-chain-spec-updated.json /tmp/local-chain-spec-raw.json
+	@rm -rf /tmp/validator1 /tmp/validator2 /tmp/bootnode /tmp/validator1.txt /tmp/validator2.txt /tmp/v1_seed.txt /tmp/v2_seed.txt /tmp/v1_addr.txt /tmp/v2_addr.txt /tmp/bootnode_peer_id.txt /tmp/bootnode_node_key.txt /tmp/v1_node_key.txt /tmp/v2_node_key.txt /tmp/local-chain-spec.json /tmp/local-chain-spec-updated.json /tmp/local-chain-spec-raw.json
 	@# Generate new accounts and update chain spec
 	@echo "\n[3/7] Generating new validator accounts..."
 	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator1.txt
 	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator2.txt
 	@# Generate random node keys
 	@echo "\n[4/7] Generating random node keys..."
-	@./target/release/reef-node key generate-node-key > /tmp/bootnode_node_key.txt
-	@./target/release/reef-node key generate-node-key > /tmp/v1_node_key.txt
-	@./target/release/reef-node key generate-node-key > /tmp/v2_node_key.txt
+	@./target/release/reef-node key generate-node-key --chain local > /tmp/bootnode_node_key.txt
+	@./target/release/reef-node key generate-node-key --chain local > /tmp/v1_node_key.txt
+	@./target/release/reef-node key generate-node-key --chain local > /tmp/v2_node_key.txt
 	@echo "\n[5/7] Generating and updating chain spec..."
 	@./target/release/reef-node build-spec --chain local --disable-default-bootnode > /tmp/local-chain-spec.json
 	@# Extract keys and update chain spec using a shell script
@@ -161,22 +161,22 @@ run-local:
 	@echo "\n[6/8] Inserting keys for Validator 1..."
 	@bash -c ' \
 		V1_SEED=$$(cat /tmp/v1_seed.txt); \
-		./target/release/reef-node key insert --base-path /tmp/alice \
+		./target/release/reef-node key insert --base-path /tmp/validator1 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V1_SEED//babe" \
 			--key-type babe; \
-		./target/release/reef-node key insert --base-path /tmp/alice \
+		./target/release/reef-node key insert --base-path /tmp/validator1 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Ed25519 \
 			--suri "$$V1_SEED//grandpa" \
 			--key-type gran; \
-		./target/release/reef-node key insert --base-path /tmp/alice \
+		./target/release/reef-node key insert --base-path /tmp/validator1 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V1_SEED//im_online" \
 			--key-type imon; \
-		./target/release/reef-node key insert --base-path /tmp/alice \
+		./target/release/reef-node key insert --base-path /tmp/validator1 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V1_SEED//authority_discovery" \
@@ -186,22 +186,22 @@ run-local:
 	@echo "\n[7/8] Inserting keys for Validator 2..."
 	@bash -c ' \
 		V2_SEED=$$(cat /tmp/v2_seed.txt); \
-		./target/release/reef-node key insert --base-path /tmp/bob \
+		./target/release/reef-node key insert --base-path /tmp/validator2 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V2_SEED//babe" \
 			--key-type babe; \
-		./target/release/reef-node key insert --base-path /tmp/bob \
+		./target/release/reef-node key insert --base-path /tmp/validator2 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Ed25519 \
 			--suri "$$V2_SEED//grandpa" \
 			--key-type gran; \
-		./target/release/reef-node key insert --base-path /tmp/bob \
+		./target/release/reef-node key insert --base-path /tmp/validator2 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V2_SEED//im_online" \
 			--key-type imon; \
-		./target/release/reef-node key insert --base-path /tmp/bob \
+		./target/release/reef-node key insert --base-path /tmp/validator2 \
 			--chain=/tmp/local-chain-spec-raw.json \
 			--scheme Sr25519 \
 			--suri "$$V2_SEED//authority_discovery" \
@@ -245,7 +245,7 @@ run-local:
 	@# Start Validator 1 in a new terminal
 	@bash -c 'BOOTNODE_PEER_ID=$$(cat /tmp/bootnode_peer_id.txt); \
 	osascript -e "tell app \"Terminal\" to do script \"cd $(PWD) && ./target/release/reef-node \
-		--base-path /tmp/alice \
+		--base-path /tmp/validator1 \
 		--chain /tmp/local-chain-spec-raw.json \
 		--port 30333 \
 		--rpc-port 9944 \
@@ -260,7 +260,7 @@ run-local:
 	@# Start Validator 2 in a new terminal
 	@bash -c 'BOOTNODE_PEER_ID=$$(cat /tmp/bootnode_peer_id.txt); \
 	osascript -e "tell app \"Terminal\" to do script \"cd $(PWD) && ./target/release/reef-node \
-		--base-path /tmp/bob \
+		--base-path /tmp/validator2 \
 		--chain /tmp/local-chain-spec-raw.json \
 		--port 30334 \
 		--rpc-port 9945 \
