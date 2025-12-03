@@ -207,11 +207,14 @@ run-local:
 	@bash -c ' \
 		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
 		V2_ADDR=$$(cat /tmp/v2_addr.txt); \
+		V1_PEER_ID=$$(./target/release/reef-node key inspect-node-key --file <(echo "0000000000000000000000000000000000000000000000000000000000000001") 2>/dev/null | tail -n1); \
+		echo "$$V1_PEER_ID" > /tmp/v1_peer_id.txt; \
 		echo ""; \
 		echo "Validator 1 ($$V1_ADDR) will run on:"; \
 		echo "  - P2P port: 30333"; \
 		echo "  - RPC port: 9944"; \
 		echo "  - WebSocket: ws://127.0.0.1:9944"; \
+		echo "  - Peer ID: $$V1_PEER_ID"; \
 		echo ""; \
 		echo "Validator 2 ($$V2_ADDR) will run on:"; \
 		echo "  - P2P port: 30334"; \
@@ -236,18 +239,19 @@ run-local:
 		--name Validator1Node"' &
 	@sleep 2
 	@# Start Validator 2 in a new terminal
-	@osascript -e 'tell app "Terminal" to do script "cd $(PWD) && ./target/release/reef-node \
+	@bash -c 'V1_PEER_ID=$$(cat /tmp/v1_peer_id.txt); \
+	osascript -e "tell app \"Terminal\" to do script \"cd $(PWD) && ./target/release/reef-node \
 		--base-path /tmp/bob \
 		--chain /tmp/local-chain-spec-raw.json \
 		--port 30334 \
 		--rpc-port 9945 \
 		--node-key 0000000000000000000000000000000000000000000000000000000000000002 \
-		--bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp \
+		--bootnodes /ip4/127.0.0.1/tcp/30333/p2p/$$V1_PEER_ID \
 		--validator \
 		--rpc-cors all \
 		--rpc-methods Unsafe \
 		--rpc-external \
-		--name Validator2Node"' &
+		--name Validator2Node\""' &
 	@sleep 1
 	@bash -c ' \
 		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
