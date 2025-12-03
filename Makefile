@@ -113,12 +113,17 @@ run-local:
 	@make build
 	@# Clean up previous chain data
 	@echo "\n[2/7] Cleaning up previous chain data..."
-	@rm -rf /tmp/alice /tmp/bob /tmp/validator1.txt /tmp/validator2.txt /tmp/v1_seed.txt /tmp/v2_seed.txt /tmp/v1_addr.txt /tmp/v2_addr.txt /tmp/local-chain-spec.json /tmp/local-chain-spec-updated.json /tmp/local-chain-spec-raw.json
+	@rm -rf /tmp/alice /tmp/bob /tmp/bootnode /tmp/validator1.txt /tmp/validator2.txt /tmp/v1_seed.txt /tmp/v2_seed.txt /tmp/v1_addr.txt /tmp/v2_addr.txt /tmp/bootnode_peer_id.txt /tmp/bootnode_node_key.txt /tmp/v1_node_key.txt /tmp/v2_node_key.txt /tmp/local-chain-spec.json /tmp/local-chain-spec-updated.json /tmp/local-chain-spec-raw.json
 	@# Generate new accounts and update chain spec
 	@echo "\n[3/7] Generating new validator accounts..."
 	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator1.txt
 	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator2.txt
-	@echo "\n[4/7] Generating and updating chain spec..."
+	@# Generate random node keys
+	@echo "\n[4/7] Generating random node keys..."
+	@./target/release/reef-node key generate-node-key > /tmp/bootnode_node_key.txt
+	@./target/release/reef-node key generate-node-key > /tmp/v1_node_key.txt
+	@./target/release/reef-node key generate-node-key > /tmp/v2_node_key.txt
+	@echo "\n[5/7] Generating and updating chain spec..."
 	@./target/release/reef-node build-spec --chain local --disable-default-bootnode > /tmp/local-chain-spec.json
 	@# Extract keys and update chain spec using a shell script
 	@bash -c ' \
@@ -153,7 +158,7 @@ run-local:
 	'
 	@./target/release/reef-node build-spec --chain /tmp/local-chain-spec-updated.json --disable-default-bootnode --raw > /tmp/local-chain-spec-raw.json
 	@# Insert keys for Validator 1
-	@echo "\n[5/7] Inserting keys for Validator 1..."
+	@echo "\n[6/8] Inserting keys for Validator 1..."
 	@bash -c ' \
 		V1_SEED=$$(cat /tmp/v1_seed.txt); \
 		./target/release/reef-node key insert --base-path /tmp/alice \
@@ -178,7 +183,7 @@ run-local:
 			--key-type audi \
 	'
 	@# Insert keys for Validator 2
-	@echo "\n[6/7] Inserting keys for Validator 2..."
+	@echo "\n[7/8] Inserting keys for Validator 2..."
 	@bash -c ' \
 		V2_SEED=$$(cat /tmp/v2_seed.txt); \
 		./target/release/reef-node key insert --base-path /tmp/bob \
@@ -203,18 +208,22 @@ run-local:
 			--key-type audi \
 	'
 	@# Start the validator nodes
-	@echo "\n[7/7] Starting validator nodes..."
+	@echo "\n[8/8] Starting bootnode and validator nodes..."
 	@bash -c ' \
 		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
 		V2_ADDR=$$(cat /tmp/v2_addr.txt); \
-		V1_PEER_ID=$$(./target/release/reef-node key inspect-node-key --file <(echo "0000000000000000000000000000000000000000000000000000000000000001") 2>/dev/null | tail -n1); \
-		echo "$$V1_PEER_ID" > /tmp/v1_peer_id.txt; \
+		BOOTNODE_NODE_KEY=$$(cat /tmp/bootnode_node_key.txt); \
+		BOOTNODE_PEER_ID=$$(./target/release/reef-node key inspect-node-key --file /tmp/bootnode_node_key.txt 2>/dev/null | tail -n1); \
+		echo "$$BOOTNODE_PEER_ID" > /tmp/bootnode_peer_id.txt; \
+		echo ""; \
+		echo "Bootnode will run on:"; \
+		echo "  - P2P port: 30335"; \
+		echo "  - Peer ID: $$BOOTNODE_PEER_ID"; \
 		echo ""; \
 		echo "Validator 1 ($$V1_ADDR) will run on:"; \
 		echo "  - P2P port: 30333"; \
 		echo "  - RPC port: 9944"; \
 		echo "  - WebSocket: ws://127.0.0.1:9944"; \
-		echo "  - Peer ID: $$V1_PEER_ID"; \
 		echo ""; \
 		echo "Validator 2 ($$V2_ADDR) will run on:"; \
 		echo "  - P2P port: 30334"; \
@@ -225,28 +234,38 @@ run-local:
 	@echo "Starting nodes in separate terminals..."
 	@echo "Press Ctrl+C in each terminal to stop"
 	@echo "=========================================="
-	@# Start Validator 1 in a new terminal
+	@# Start Bootnode in a new terminal
 	@osascript -e 'tell app "Terminal" to do script "cd $(PWD) && ./target/release/reef-node \
+		--base-path /tmp/bootnode \
+		--chain /tmp/local-chain-spec-raw.json \
+		--port 30335 \
+		--node-key-file /tmp/bootnode_node_key.txt \
+		--name Bootnode"' &
+	@sleep 2
+	@# Start Validator 1 in a new terminal
+	@bash -c 'BOOTNODE_PEER_ID=$$(cat /tmp/bootnode_peer_id.txt); \
+	osascript -e "tell app \"Terminal\" to do script \"cd $(PWD) && ./target/release/reef-node \
 		--base-path /tmp/alice \
 		--chain /tmp/local-chain-spec-raw.json \
 		--port 30333 \
 		--rpc-port 9944 \
-		--node-key 0000000000000000000000000000000000000000000000000000000000000001 \
+		--node-key-file /tmp/v1_node_key.txt \
+		--bootnodes /ip4/127.0.0.1/tcp/30335/p2p/$$BOOTNODE_PEER_ID \
 		--validator \
 		--rpc-cors all \
 		--rpc-methods Unsafe \
 		--rpc-external \
-		--name Validator1Node"' &
+		--name Validator1Node\""' &
 	@sleep 2
 	@# Start Validator 2 in a new terminal
-	@bash -c 'V1_PEER_ID=$$(cat /tmp/v1_peer_id.txt); \
+	@bash -c 'BOOTNODE_PEER_ID=$$(cat /tmp/bootnode_peer_id.txt); \
 	osascript -e "tell app \"Terminal\" to do script \"cd $(PWD) && ./target/release/reef-node \
 		--base-path /tmp/bob \
 		--chain /tmp/local-chain-spec-raw.json \
 		--port 30334 \
 		--rpc-port 9945 \
-		--node-key 0000000000000000000000000000000000000000000000000000000000000002 \
-		--bootnodes /ip4/127.0.0.1/tcp/30333/p2p/$$V1_PEER_ID \
+		--node-key-file /tmp/v2_node_key.txt \
+		--bootnodes /ip4/127.0.0.1/tcp/30335/p2p/$$BOOTNODE_PEER_ID \
 		--validator \
 		--rpc-cors all \
 		--rpc-methods Unsafe \
@@ -256,8 +275,10 @@ run-local:
 	@bash -c ' \
 		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
 		V2_ADDR=$$(cat /tmp/v2_addr.txt); \
+		BOOTNODE_PEER_ID=$$(cat /tmp/bootnode_peer_id.txt); \
 		echo ""; \
 		echo "✅ Local validator network started!"; \
+		echo "Bootnode ($$BOOTNODE_PEER_ID): P2P 127.0.0.1:30335"; \
 		echo "Validator 1 ($$V1_ADDR): ws://127.0.0.1:9944"; \
 		echo "Validator 2 ($$V2_ADDR): ws://127.0.0.1:9945" \
 	'
