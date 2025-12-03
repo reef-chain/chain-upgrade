@@ -109,78 +109,123 @@ run-local:
 	@echo "Setting up local validator network..."
 	@echo "=========================================="
 	@# Build the node binary
-	@echo "\n[1/6] Building release binary..."
+	@echo "\n[1/7] Building release binary..."
 	@make build
 	@# Clean up previous chain data
-	@echo "\n[2/6] Cleaning up previous chain data..."
-	@rm -rf /tmp/alice /tmp/bob
-	@# Generate chain spec
-	@echo "\n[3/6] Generating local chain spec..."
+	@echo "\n[2/7] Cleaning up previous chain data..."
+	@rm -rf /tmp/alice /tmp/bob /tmp/validator1.txt /tmp/validator2.txt /tmp/v1_seed.txt /tmp/v2_seed.txt /tmp/v1_addr.txt /tmp/v2_addr.txt /tmp/local-chain-spec.json /tmp/local-chain-spec-updated.json /tmp/local-chain-spec-raw.json
+	@# Generate new accounts and update chain spec
+	@echo "\n[3/7] Generating new validator accounts..."
+	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator1.txt
+	@./target/release/reef-node key generate --scheme Sr25519 --output-type json > /tmp/validator2.txt
+	@echo "\n[4/7] Generating and updating chain spec..."
 	@./target/release/reef-node build-spec --chain local --disable-default-bootnode > /tmp/local-chain-spec.json
-	@./target/release/reef-node build-spec --chain /tmp/local-chain-spec.json --disable-default-bootnode --raw > /tmp/local-chain-spec-raw.json
-	@# Insert keys for Alice
-	@echo "\n[4/6] Inserting keys for Alice..."
-	@./target/release/reef-node key insert --base-path /tmp/alice \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Alice \
-		--key-type babe
-	@./target/release/reef-node key insert --base-path /tmp/alice \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Ed25519 \
-		--suri //Alice \
-		--key-type gran
-	@./target/release/reef-node key insert --base-path /tmp/alice \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Alice \
-		--key-type imon
-	@./target/release/reef-node key insert --base-path /tmp/alice \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Alice \
-		--key-type audi
-	@# Insert keys for Bob
-	@echo "\n[5/6] Inserting keys for Bob..."
-	@./target/release/reef-node key insert --base-path /tmp/bob \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Bob \
-		--key-type babe
-	@./target/release/reef-node key insert --base-path /tmp/bob \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Ed25519 \
-		--suri //Bob \
-		--key-type gran
-	@./target/release/reef-node key insert --base-path /tmp/bob \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Bob \
-		--key-type imon
-	@./target/release/reef-node key insert --base-path /tmp/bob \
-		--chain=/tmp/local-chain-spec-raw.json \
-		--scheme Sr25519 \
-		--suri //Bob \
-		--key-type audi
+	@# Extract keys and update chain spec using a shell script
+	@bash -c ' \
+		set -e; \
+		V1_SEED=$$(grep -o "\"secretSeed\": \"[^\"]*\"" /tmp/validator1.txt | cut -d"\"" -f4); \
+		V1_ADDR=$$(grep -o "\"ss58Address\": \"[^\"]*\"" /tmp/validator1.txt | cut -d"\"" -f4); \
+		V2_SEED=$$(grep -o "\"secretSeed\": \"[^\"]*\"" /tmp/validator2.txt | cut -d"\"" -f4); \
+		V2_ADDR=$$(grep -o "\"ss58Address\": \"[^\"]*\"" /tmp/validator2.txt | cut -d"\"" -f4); \
+		echo "Validator 1: $$V1_ADDR"; \
+		echo "Validator 2: $$V2_ADDR"; \
+		echo "Deriving session keys..."; \
+		V1_BABE=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V1_SEED//babe" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V1_GRAN=$$(./target/release/reef-node key inspect --scheme Ed25519 "$$V1_SEED//grandpa" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V1_IMON=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V1_SEED//im_online" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V1_AUDI=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V1_SEED//authority_discovery" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V2_BABE=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V2_SEED//babe" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V2_GRAN=$$(./target/release/reef-node key inspect --scheme Ed25519 "$$V2_SEED//grandpa" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V2_IMON=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V2_SEED//im_online" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		V2_AUDI=$$(./target/release/reef-node key inspect --scheme Sr25519 "$$V2_SEED//authority_discovery" --output-type json 2>/dev/null | grep -o "\"ss58Address\": \"[^\"]*\"" | cut -d"\"" -f4); \
+		echo "V1 BABE: $$V1_BABE, GRAN: $$V1_GRAN, IMON: $$V1_IMON, AUDI: $$V1_AUDI"; \
+		echo "V2 BABE: $$V2_BABE, GRAN: $$V2_GRAN, IMON: $$V2_IMON, AUDI: $$V2_AUDI"; \
+		echo "$$V1_SEED" > /tmp/v1_seed.txt; \
+		echo "$$V2_SEED" > /tmp/v2_seed.txt; \
+		echo "$$V1_ADDR" > /tmp/v1_addr.txt; \
+		echo "$$V2_ADDR" > /tmp/v2_addr.txt; \
+		echo "Updating chain spec..."; \
+		jq ".genesis.runtimeGenesis.patch.balances.balances += [[\"$$V1_ADDR\", 100000000000000000000000000], [\"$$V2_ADDR\", 100000000000000000000000000]]" /tmp/local-chain-spec.json | \
+		jq ".genesis.runtimeGenesis.patch.session.keys = [[\"$$V1_ADDR\", \"$$V1_ADDR\", {\"authority_discovery\": \"$$V1_AUDI\", \"babe\": \"$$V1_BABE\", \"grandpa\": \"$$V1_GRAN\", \"im_online\": \"$$V1_IMON\"}], [\"$$V2_ADDR\", \"$$V2_ADDR\", {\"authority_discovery\": \"$$V2_AUDI\", \"babe\": \"$$V2_BABE\", \"grandpa\": \"$$V2_GRAN\", \"im_online\": \"$$V2_IMON\"}]]" | \
+		jq ".genesis.runtimeGenesis.patch.staking.invulnerables = [\"$$V1_ADDR\", \"$$V2_ADDR\"]" | \
+		jq ".genesis.runtimeGenesis.patch.staking.stakers = [[\"$$V1_ADDR\", \"$$V1_ADDR\", 1000000000000000000000000, \"Validator\"], [\"$$V2_ADDR\", \"$$V2_ADDR\", 1000000000000000000000000, \"Validator\"]]" \
+		> /tmp/local-chain-spec-updated.json \
+	'
+	@./target/release/reef-node build-spec --chain /tmp/local-chain-spec-updated.json --disable-default-bootnode --raw > /tmp/local-chain-spec-raw.json
+	@# Insert keys for Validator 1
+	@echo "\n[5/7] Inserting keys for Validator 1..."
+	@bash -c ' \
+		V1_SEED=$$(cat /tmp/v1_seed.txt); \
+		./target/release/reef-node key insert --base-path /tmp/alice \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V1_SEED//babe" \
+			--key-type babe; \
+		./target/release/reef-node key insert --base-path /tmp/alice \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Ed25519 \
+			--suri "$$V1_SEED//grandpa" \
+			--key-type gran; \
+		./target/release/reef-node key insert --base-path /tmp/alice \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V1_SEED//im_online" \
+			--key-type imon; \
+		./target/release/reef-node key insert --base-path /tmp/alice \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V1_SEED//authority_discovery" \
+			--key-type audi \
+	'
+	@# Insert keys for Validator 2
+	@echo "\n[6/7] Inserting keys for Validator 2..."
+	@bash -c ' \
+		V2_SEED=$$(cat /tmp/v2_seed.txt); \
+		./target/release/reef-node key insert --base-path /tmp/bob \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V2_SEED//babe" \
+			--key-type babe; \
+		./target/release/reef-node key insert --base-path /tmp/bob \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Ed25519 \
+			--suri "$$V2_SEED//grandpa" \
+			--key-type gran; \
+		./target/release/reef-node key insert --base-path /tmp/bob \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V2_SEED//im_online" \
+			--key-type imon; \
+		./target/release/reef-node key insert --base-path /tmp/bob \
+			--chain=/tmp/local-chain-spec-raw.json \
+			--scheme Sr25519 \
+			--suri "$$V2_SEED//authority_discovery" \
+			--key-type audi \
+	'
 	@# Start the validator nodes
-	@echo "\n[6/6] Starting validator nodes..."
-	@echo "\nAlice node will run on:"
-	@echo "  - P2P port: 30333"
-	@echo "  - RPC port: 9944"
-	@echo "  - WebSocket: ws://127.0.0.1:9944"
-	@echo "\nBob node will run on:"
-	@echo "  - P2P port: 30334"
-	@echo "  - RPC port: 9945"
-	@echo "  - WebSocket: ws://127.0.0.1:9945"
+	@echo "\n[7/7] Starting validator nodes..."
+	@bash -c ' \
+		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
+		V2_ADDR=$$(cat /tmp/v2_addr.txt); \
+		echo ""; \
+		echo "Validator 1 ($$V1_ADDR) will run on:"; \
+		echo "  - P2P port: 30333"; \
+		echo "  - RPC port: 9944"; \
+		echo "  - WebSocket: ws://127.0.0.1:9944"; \
+		echo ""; \
+		echo "Validator 2 ($$V2_ADDR) will run on:"; \
+		echo "  - P2P port: 30334"; \
+		echo "  - RPC port: 9945"; \
+		echo "  - WebSocket: ws://127.0.0.1:9945" \
+	'
 	@echo "\n=========================================="
 	@echo "Starting nodes in separate terminals..."
 	@echo "Press Ctrl+C in each terminal to stop"
 	@echo "=========================================="
-	@# Start Alice in a new terminal
+	@# Start Validator 1 in a new terminal
 	@osascript -e 'tell app "Terminal" to do script "cd $(PWD) && ./target/release/reef-node \
 		--base-path /tmp/alice \
 		--chain /tmp/local-chain-spec-raw.json \
-		--alice \
 		--port 30333 \
 		--rpc-port 9944 \
 		--node-key 0000000000000000000000000000000000000000000000000000000000000001 \
@@ -188,13 +233,12 @@ run-local:
 		--rpc-cors all \
 		--rpc-methods Unsafe \
 		--rpc-external \
-		--name AliceNode"' &
+		--name Validator1Node"' &
 	@sleep 2
-	@# Start Bob in a new terminal
+	@# Start Validator 2 in a new terminal
 	@osascript -e 'tell app "Terminal" to do script "cd $(PWD) && ./target/release/reef-node \
 		--base-path /tmp/bob \
 		--chain /tmp/local-chain-spec-raw.json \
-		--bob \
 		--port 30334 \
 		--rpc-port 9945 \
 		--node-key 0000000000000000000000000000000000000000000000000000000000000002 \
@@ -203,8 +247,13 @@ run-local:
 		--rpc-cors all \
 		--rpc-methods Unsafe \
 		--rpc-external \
-		--name BobNode"' &
+		--name Validator2Node"' &
 	@sleep 1
-	@echo "\n✅ Local validator network started!"
-	@echo "Connect to Alice: ws://127.0.0.1:9944"
-	@echo "Connect to Bob: ws://127.0.0.1:9945"
+	@bash -c ' \
+		V1_ADDR=$$(cat /tmp/v1_addr.txt); \
+		V2_ADDR=$$(cat /tmp/v2_addr.txt); \
+		echo ""; \
+		echo "✅ Local validator network started!"; \
+		echo "Validator 1 ($$V1_ADDR): ws://127.0.0.1:9944"; \
+		echo "Validator 2 ($$V2_ADDR): ws://127.0.0.1:9945" \
+	'
