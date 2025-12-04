@@ -150,7 +150,7 @@ pub use runtime_common::{
     GasToWeight, OffchainSolutionWeightLimit, Price, Rate, Ratio, SystemContractsFilter,
 };
 
-pub use primitives::{currency::*, time::*};
+pub use primitives::{currency::*,evm, time::*};
 
 mod assets_api;
 mod weights;
