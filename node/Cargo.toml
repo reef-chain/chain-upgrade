@@ -23,7 +23,7 @@ structopt = '0.3.8'
 clap = { version = "4.2.5", features = ["derive"] }
 serde = { version = "1.0.102", features = ["derive"] }
 serde_json = "1.0.41"
-jsonrpsee = { version = "0.24.3", features = ["server"] }
+jsonrpsee = { version = "0.24.10", features = ["server"] }
 futures = { version = "0.3.21", features = ["thread-pool"]}
 
 # Substrate dependencies
