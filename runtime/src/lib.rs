@@ -419,7 +419,6 @@ impl pallet_revive::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type DepositPerItem = DepositPerItem;
     type DepositPerByte = DepositPerByte;
-    type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
     type Precompiles = (
         ERC20<Self, InlineIdConfig<0x1>, Instance1>,
@@ -435,7 +434,6 @@ impl pallet_revive::Config for Runtime {
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
     type ChainId = ConstU64<13939>;
     type NativeToEthRatio = ConstU32<1>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
-    type EthGasEncoder = ();
     type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
 }
 
@@ -524,7 +522,8 @@ impl pallet_nomination_pools::Config for Runtime {
 
 parameter_types! {
     pub const BagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
-}
+    pub const AutoRebagNumber: u32 = 10;
+}                                                           
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
@@ -534,6 +533,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
     type ScoreProvider = Staking;
     type BagThresholds = BagThresholds;
     type Score = VoteWeight;
+    type MaxAutoRebagPerBlock = AutoRebagNumber;
     type WeightInfo = pallet_bags_list::weights::SubstrateWeight<Runtime>;
 }
 
