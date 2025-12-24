@@ -34,7 +34,7 @@ use frame_support::{
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
-        ConstantMultiplier, IdentityFee, Weight,
+        ConstantMultiplier, Weight,
     },
     BoundedVec, PalletId,
 };

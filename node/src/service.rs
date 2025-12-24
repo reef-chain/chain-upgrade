@@ -6,6 +6,7 @@ use sc_client_api::BlockBackend;
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_consensus_grandpa::FinalityProofProvider;
 use sc_consensus_grandpa::SharedVoterState;
+use sp_consensus_babe::inherents::BabeCreateInherentDataProviders;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
@@ -54,6 +55,8 @@ type PartialResult = Result<
                     FullClient,
                     FullSelectChain,
                 >,
+                BabeCreateInherentDataProviders<Block>,
+				FullSelectChain,
             >,
             sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
             sc_consensus_babe::BabeLink<Block>,
@@ -112,35 +115,36 @@ pub fn new_partial(config: &Configuration) -> PartialResult {
         telemetry.as_ref().map(|x| x.handle()),
     )?;
 
-    let (block_import, babe_link) = sc_consensus_babe::block_import(
-        sc_consensus_babe::configuration(&*client)?,
-        grandpa_block_import.clone(),
-        client.clone(),
-    )?;
+  let babe_config = sc_consensus_babe::configuration(&*client)?;
+	let slot_duration = babe_config.slot_duration();
+    
+   	let (block_import, babe_link) = sc_consensus_babe::block_import(
+		babe_config,
+		grandpa_block_import.clone(),
+		client.clone(),
+		Arc::new(move |_, _| async move {
+			let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+			let slot =
+			sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+				*timestamp,
+				slot_duration,
+			);
+			Ok((slot, timestamp))
+		}) as BabeCreateInherentDataProviders<Block>,
+		select_chain.clone(),
+		OffchainTransactionPoolFactory::new(transaction_pool.clone()),
+	)?;
 
-    let slot_duration = babe_link.config().slot_duration();
     let (import_queue, babe_worker_handler) =
         sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
             link: babe_link.clone(),
             block_import: block_import.clone(),
             justification_import: Some(Box::new(grandpa_block_import)),
             client: client.clone(),
-            select_chain: select_chain.clone(),
-            create_inherent_data_providers: move |_, ()| async move {
-                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-                let slot =
-					sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-						*timestamp,
-						slot_duration,
-					);
-
-                Ok((slot, timestamp))
-            },
+            slot_duration,
             spawner: &task_manager.spawn_essential_handle(),
             registry: config.prometheus_registry(),
-            telemetry: telemetry.as_ref().map(|x| x.handle()),
-            offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
+            telemetry: telemetry.as_ref().map(|x| x.handle())
         })?;
 
     Ok(sc_service::PartialComponents {
@@ -301,6 +305,7 @@ pub fn new_full<
         telemetry: telemetry.as_mut(),
         rpc_builder: rpc_extensions_builder,
         sync_service: sync_service.clone(),
+        tracing_execute_block: None,
     })?;
 
     if role.is_authority() {

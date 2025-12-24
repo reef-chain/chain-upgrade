@@ -1,5 +1,4 @@
 use pallet_revive::is_eth_derived;
-use reef_runtime::ReviveConfig;
 use reef_runtime::{
     get_all_module_accounts, opaque::SessionKeys, AccountId, AuthorityDiscoveryConfig,
     AuthorityDiscoveryId, BabeConfig, CurrencyId, EVMConfig, ImOnlineId,
@@ -433,7 +432,7 @@ fn testnet_genesis(
         "sudo": {
             "key": Some(root_key),
         },
-      "revive": ReviveConfig { mapped_accounts: endowed_accounts.iter().filter(|x| ! is_eth_derived(x)).cloned().collect() },
+      "revive":  { "mappedAccounts": endowed_accounts.iter().filter(|x| ! is_eth_derived(x)).collect::<Vec<_>>() },
     })
 }
 
