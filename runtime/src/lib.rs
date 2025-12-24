@@ -413,28 +413,33 @@ parameter_types! {
 }
 
 impl pallet_revive::Config for Runtime {
-    type Time = Timestamp;
-    type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeCall = RuntimeCall;
-    type DepositPerItem = DepositPerItem;
-    type DepositPerByte = DepositPerByte;
-    type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
-    type Precompiles = (
-        ERC20<Self, InlineIdConfig<0x1>, Instance1>,
-        ERC20<Self, InlineIdConfig<0x2>, Instance2>,
-    );
-    type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
-    type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
-    type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-    type UnsafeUnstableInterface = ConstBool<false>;
-    type UploadOrigin = EnsureSigned<Self::AccountId>;
-    type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-    type RuntimeHoldReason = RuntimeHoldReason;
-    type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-    type ChainId = ConstU64<13939>;
-    type NativeToEthRatio = ConstU32<1>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
-    type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+   type Time = Timestamp;
+	type Balance = Balance;
+	type Currency = Balances;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeOrigin = RuntimeOrigin;
+	type DepositPerItem = DepositPerItem;
+	type DepositPerChildTrieItem = DepositPerChildTrieItem;
+	type DepositPerByte = DepositPerByte;
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type Precompiles =
+		(ERC20<Self, InlineIdConfig<0x1>, Instance1>, ERC20<Self, InlineIdConfig<0x2>, Instance2>);
+	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type UploadOrigin = EnsureSigned<Self::AccountId>;
+	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type ChainId = ConstU64<13939>;
+	type NativeToEthRatio = ConstU32<1>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
+	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+	type AllowEVMBytecode = ConstBool<true>;
+	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
+	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
+	type DebugEnabled = ConstBool<false>;
 }
 
 parameter_types! {
@@ -957,7 +962,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
-    type WeightToFee = IdentityFee<Balance>;
+    type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<1, 1, Self>;
     type LengthToFee = ConstantMultiplier<Balance,TransactionByteFee>;
     type FeeMultiplierUpdate = SubstrateTargetedFeeAdjustment<
         Self,
@@ -1554,6 +1559,7 @@ impl pallet_asset_rewards::Config for Runtime {
     type Balance = Balance;
     type Assets = NativeAndAssets;
     type PalletId = StakingRewardsPalletId;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type CreatePoolOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type AssetsFreezer = NativeAndAssetsFreezer;
