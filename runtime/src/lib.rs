@@ -2083,8 +2083,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllPalletsWithSystem,
-    Migrations,
+    AllPalletsWithSystem   
 >;
 
 impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
