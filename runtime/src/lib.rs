@@ -402,6 +402,8 @@ impl pallet_session::Config for Runtime {
     type SessionHandler = <opaque::SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
     type WeightInfo = ();
+    type Currency = Balances;
+	type KeyDeposit = ();
     type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
@@ -410,6 +412,8 @@ parameter_types! {
     pub const DepositPerByte: Balance = deposit(0, 1);
     pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
     pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+    pub const DepositPerChildTrieItem: Balance = deposit(1, 0) / 100;
+    pub const MaxEthExtrinsicWeight: FixedU128 = FixedU128::from_rational(9, 10);
 }
 
 impl pallet_revive::Config for Runtime {
@@ -960,7 +964,7 @@ parameter_types! {
 #[allow(deprecated)]
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<Balances, ()>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<1, 1, Self>;
     type LengthToFee = ConstantMultiplier<Balance,TransactionByteFee>;
@@ -2018,6 +2022,8 @@ pub type SignedExtra = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     module_transaction_payment::ChargeTransactionPayment<Runtime>,
+    pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+	frame_system::WeightReclaim<Runtime>,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2032,6 +2038,8 @@ pub type TxExtension = (
 		Runtime,
 		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 	>,
+    pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+	frame_system::WeightReclaim<Runtime>,
     module_evm::SetEvmOrigin<Runtime>,
 );
 
@@ -2052,6 +2060,8 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
 				.into(),
+            pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
+			frame_system::WeightReclaim::<Runtime>::new(),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
@@ -2140,6 +2150,8 @@ where
 					tip, None,
 				),
 			),
+            pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
+			frame_system::WeightReclaim::<Runtime>::new(),
             module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)
@@ -2160,8 +2172,9 @@ impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as sp_runtime::traits::Verify>::Signer;
     type Signature = Signature;
 }
-pallet_revive::impl_runtime_apis_plus_revive!(
+pallet_revive::impl_runtime_apis_plus_revive_traits!(
     Runtime,
+    Revive,
     Executive,
     EthExtraImpl,
 
@@ -2170,7 +2183,7 @@ pallet_revive::impl_runtime_apis_plus_revive!(
             VERSION
         }
 
-        fn execute_block(block: Block) {
+        fn execute_block(block: <Block as BlockT>::LazyBlock) {
             Executive::execute_block(block);
         }
 
@@ -2205,7 +2218,7 @@ pallet_revive::impl_runtime_apis_plus_revive!(
         }
 
         fn check_inherents(
-            block: Block,
+            block: <Block as BlockT>::LazyBlock,
             data: sp_inherents::InherentData,
         ) -> sp_inherents::CheckInherentsResult {
             data.check_extrinsics(&block)
