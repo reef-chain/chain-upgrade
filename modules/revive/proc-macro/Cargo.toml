@@ -1,11 +1,8 @@
 [package]
 name = "pallet-revive-proc-macro"
 version = "0.7.0"
-authors.workspace = true
-edition.workspace = true
-license = "Apache-2.0"
-homepage.workspace = true
-repository.workspace = true
+authors = ["Reef Developers"]
+edition = "2021"
 description = "Procedural macros used in pallet_revive"
 
 [lints]
