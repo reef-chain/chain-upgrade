@@ -84,6 +84,7 @@ pallet-election-provider-multi-phase = { workspace = true ,default-features = fa
 pallet-treasury = { workspace = true ,default-features = false }
 pallet-parameters = { workspace = true ,default-features = false }
 pallet-assets = { workspace = true ,default-features = false }
+pallet-assets-precompiles = { workspace = true ,default-features = false }
 pallet-asset-tx-payment = { workspace = true ,default-features = false }
 pallet-asset-rewards = { workspace = true ,default-features = false }
 pallet-asset-rate = { workspace = true ,default-features = false }
@@ -157,6 +158,7 @@ std = [
 	"pallet-skip-feeless-payment/std",
 	"pallet-treasury/std",
 	"pallet-assets/std",
+	"pallet-assets-precompiles/std",
 	"pallet-asset-tx-payment/std",
 	"pallet-asset-rewards/std",
 	"pallet-asset-rate/std",

@@ -73,6 +73,8 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 ] }
 
 [workspace.dependencies]
+docify = { version = "0.2.9" }
+futures-timer = { version = "3.0.2" }
 syn = { version = "2.0.87" }
 quote = { version = "1.0.37" }
 bitflags = { version = "1.3.2" }
@@ -188,6 +190,7 @@ sp-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk", d
 pallet-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2512" }
 frame = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2512",package = "polkadot-sdk-frame"  }
 pallet-assets = { path="modules/assets", default-features = false }
+pallet-assets-precompiles = { path="modules/assets/precompiles", default-features = false }
 pallet-asset-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2512" }
 pallet-asset-rewards = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2512" }
 pallet-asset-rate = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "stable2512" }

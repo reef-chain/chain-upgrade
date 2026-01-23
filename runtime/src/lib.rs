@@ -59,7 +59,7 @@ use frame_election_provider_support::{
 };
 
 // Assets
-use pallet_assets::precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, ERC20};
 
 // Assets Conversion
 use pallet_asset_conversion::{AccountIdConverter, Ascending, Chain, WithFirstAsset};
@@ -444,6 +444,7 @@ impl pallet_revive::Config for Runtime {
 	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
 	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
 	type DebugEnabled = ConstBool<false>;
+    type GasScale = ConstU32<1000>;
 }
 
 parameter_types! {
@@ -966,7 +967,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<Balances, ()>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
-    type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<1, 1, Self>;
+    type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<1, 1, Self, Balance>;
     type LengthToFee = ConstantMultiplier<Balance,TransactionByteFee>;
     type FeeMultiplierUpdate = SubstrateTargetedFeeAdjustment<
         Self,
@@ -1432,6 +1433,7 @@ impl pallet_assets::Config<Instance1> for Runtime {
     type CallbackHandle = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     type RemoveItemsLimit = ConstU32<1000>;
+    type ReserveData = ();  
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -1479,6 +1481,7 @@ impl pallet_assets::Config<Instance2> for Runtime {
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     type RemoveItemsLimit = ConstU32<1000>;
     type CallbackHandle = ();
+    type ReserveData = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
