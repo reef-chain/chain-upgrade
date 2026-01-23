@@ -76,6 +76,7 @@ use frame_support::{
 	weights::WeightMeter,
 	BoundedVec, RuntimeDebugNoBound,
 };
+use frame_support::traits::tokens::Preservation::Preserve;
 use frame_system::{
 	ensure_signed,
 	pallet_prelude::{BlockNumberFor, OriginFor},
@@ -468,6 +469,16 @@ pub mod pallet {
 			/// Number of topics is capped by [`limits::NUM_EVENT_TOPICS`].
 			topics: Vec<H256>,
 		},
+
+		/// transfer occurs from a Substrate account to an Ethereum address.
+        Transfer {
+            /// The Substrate account initiating the transfer.
+            who: T::AccountId,
+            /// The destination Ethereum address (H160 format).
+            dest: H160,
+            /// The amount transferred, denominated in the native balance type.
+            amount: BalanceOf<T>,
+        },
 
 		/// Contract deployed by deployer at the specified address.
 		Instantiated { deployer: H160, contract: H160 },
@@ -1458,6 +1469,7 @@ pub mod pallet {
 				}
 			})
 		}
+		
 
 		/// Upload new `code` without instantiating a contract from it.
 		///
@@ -1558,6 +1570,16 @@ pub mod pallet {
 			T::AddressMapper::unmap(&origin)
 		}
 
+		#[pallet::call_index(13)]
+        #[pallet::weight(Weight::zero())]
+        pub fn transfer(origin: OriginFor<T>, dest: H160, amount:BalanceOf<T>) -> DispatchResult {
+            let origin = ensure_signed(origin)?;
+            let to = T::AddressMapper::to_account_id(&dest);
+            T::Currency::transfer(&origin, &to, amount, Preserve)?;
+            Self::deposit_event(Event::Transfer { who: origin, dest: dest, amount: amount });
+            Ok(()) 
+        }
+
 		/// Dispatch an `call` with the origin set to the callers fallback address.
 		///
 		/// Every `AccountId32` can control its corresponding fallback account. The fallback account
@@ -1582,6 +1604,7 @@ pub mod pallet {
 			call.dispatch(RawOrigin::Signed(unmapped_account).into())
 		}
 	}
+	
 }
 
 /// Create a dispatch result reflecting the amount of consumed weight.
