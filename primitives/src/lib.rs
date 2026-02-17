@@ -44,7 +44,7 @@ pub const MIRRORED_TOKENS_ADDRESS_START: u64 = 0x01000000;
 pub mod currency {
     use super::Balance;
 
-    pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
+    pub const DOLLARS: Balance = 1_000_000_000_000;
     pub const CENTS: Balance = DOLLARS / 100;
 
     pub const REEF: Balance = DOLLARS;

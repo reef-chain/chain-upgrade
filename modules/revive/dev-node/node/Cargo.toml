@@ -4,7 +4,6 @@ description = "A development Substrate-based Substrate node, equipped with palle
 version = "0.1.0"
 authors = ["Reef Developers"]
 edition = "2021"
-publish = false
 build = "build.rs"
 
 [package.metadata.docs.rs]
@@ -27,7 +26,4 @@ polkadot-sdk = { workspace = true, features = ["substrate-build-script-utils"] }
 
 [features]
 default = ["std"]
-std = [
-	"polkadot-sdk/std",
-	"revive-dev-runtime/std",
-]
+std = ["polkadot-sdk/std", "revive-dev-runtime/std"]

@@ -22,15 +22,12 @@ use frame_support::{
     pallet_prelude::{ConstU32, DispatchClass, Get},
     parameter_types,
     traits::{
-        fungible::{
-            HoldConsideration, NativeFromLeft, NativeOrWithId, UnionOf,
-        },
+        fungible::{HoldConsideration, NativeFromLeft, NativeOrWithId, UnionOf},
         schedule::Priority,
         tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, ConstantStoragePrice,
-        EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly,
-        KeyOwnerProofSystem, LinearStoragePrice, Nothing, OriginTrait, VariantCountOf,
-        WithdrawReasons
+        EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, LinearStoragePrice,
+        Nothing, OriginTrait, VariantCountOf, WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -38,6 +35,8 @@ use frame_support::{
     },
     BoundedVec, PalletId,
 };
+use pallet_transaction_payment::FeeDetails;
+use pallet_transaction_payment::RuntimeDispatchInfo;
 
 // FRAME System
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
@@ -150,7 +149,7 @@ pub use runtime_common::{
     GasToWeight, OffchainSolutionWeightLimit, Price, Rate, Ratio, SystemContractsFilter,
 };
 
-pub use primitives::{currency::*,evm, time::*};
+pub use primitives::{currency::*, evm, time::*};
 
 mod assets_api;
 mod weights;
@@ -372,7 +371,7 @@ impl frame_system::Config for Runtime {
     /// The data to be stored in an account.
     type AccountData = pallet_balances::AccountData<Balance>;
     /// Weight information for the extrinsics of this pallet.
-    type SystemWeightInfo = ();
+    type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     /// This is a hook that is use when setCode is called - not require unless using cumulus.
@@ -403,7 +402,7 @@ impl pallet_session::Config for Runtime {
     type Keys = opaque::SessionKeys;
     type WeightInfo = ();
     type Currency = Balances;
-	type KeyDeposit = ();
+    type KeyDeposit = ();
     type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
 }
 
@@ -417,34 +416,36 @@ parameter_types! {
 }
 
 impl pallet_revive::Config for Runtime {
-   type Time = Timestamp;
-	type Balance = Balance;
-	type Currency = Balances;
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeOrigin = RuntimeOrigin;
-	type DepositPerItem = DepositPerItem;
-	type DepositPerChildTrieItem = DepositPerChildTrieItem;
-	type DepositPerByte = DepositPerByte;
-	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
-	type Precompiles =
-		(ERC20<Self, InlineIdConfig<0x1>, Instance1>, ERC20<Self, InlineIdConfig<0x2>, Instance2>);
-	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
-	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
-	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-	type UnsafeUnstableInterface = ConstBool<false>;
-	type UploadOrigin = EnsureSigned<Self::AccountId>;
-	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-	type ChainId = ConstU64<13939>;
-	type NativeToEthRatio = ConstU32<1>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
-	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
-	type AllowEVMBytecode = ConstBool<true>;
-	type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
-	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
-	type DebugEnabled = ConstBool<false>;
-    type GasScale = ConstU32<50000_000>;
+    type Time = Timestamp;
+    type Balance = Balance;
+    type Currency = Balances;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeOrigin = RuntimeOrigin;
+    type DepositPerItem = DepositPerItem;
+    type DepositPerChildTrieItem = DepositPerChildTrieItem;
+    type DepositPerByte = DepositPerByte;
+    type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+    type Precompiles = (
+        ERC20<Self, InlineIdConfig<0x1>, Instance1>,
+        ERC20<Self, InlineIdConfig<0x2>, Instance2>,
+    );
+    type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+    type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+    type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+    type UnsafeUnstableInterface = ConstBool<false>;
+    type UploadOrigin = EnsureSigned<Self::AccountId>;
+    type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+    type ChainId = ConstU64<13939>;
+    type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
+    type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+    type AllowEVMBytecode = ConstBool<true>;
+    type FeeInfo = pallet_revive::evm::fees::Info<Address, Signature, EthExtraImpl>;
+    type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
+    type DebugEnabled = ConstBool<false>;
+    type GasScale = ConstU32<1000>;
 }
 
 parameter_types! {
@@ -457,7 +458,7 @@ parameter_types! {
 impl pallet_session::historical::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type FullIdentification = ();
-	type FullIdentificationOf = pallet_staking::UnitIdentificationOf<Self>;
+    type FullIdentificationOf = pallet_staking::UnitIdentificationOf<Self>;
 }
 
 pallet_staking_reward_curve::build! {
@@ -533,7 +534,7 @@ impl pallet_nomination_pools::Config for Runtime {
 parameter_types! {
     pub const BagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
     pub const AutoRebagNumber: u32 = 10;
-}                                                           
+}
 
 type VoterBagsListInstance = pallet_bags_list::Instance1;
 impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
@@ -572,7 +573,7 @@ const MAX_QUOTA_NOMINATIONS: u32 = 16;
 impl pallet_staking::Config for Runtime {
     type OldCurrency = Balances;
     type Validators = Historical;
-	type ValidatorId = sp_runtime::traits::ConvertInto;
+    type ValidatorId = sp_runtime::traits::ConvertInto;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Currency = Balances;
     type MaxExposurePageSize = ConstU32<256>;
@@ -956,7 +957,7 @@ parameter_types! {
     pub const TransactionByteFee: Balance = 10 * MILLI_REEF;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
-    pub MinimumMultiplier:  Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000 as u128);
+    pub MinimumMultiplier:  Multiplier = Multiplier::saturating_from_rational(1, 10 as u128);
     pub MaximumMultiplier: Multiplier = Bounded::max_value();
     pub const OperationalFeeMultiplier: u8 = 5;
     pub TipPerWeightStep: Balance = 0;
@@ -968,7 +969,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<Balances, ()>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<1, 1, Self, Balance>;
-    type LengthToFee = ConstantMultiplier<Balance,TransactionByteFee>;
+    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type FeeMultiplierUpdate = SubstrateTargetedFeeAdjustment<
         Self,
         TargetBlockFullness,
@@ -1433,7 +1434,7 @@ impl pallet_assets::Config<Instance1> for Runtime {
     type CallbackHandle = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     type RemoveItemsLimit = ConstU32<1000>;
-    type ReserveData = ();  
+    type ReserveData = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -2003,7 +2004,6 @@ mod runtime {
 
     #[runtime::pallet_index(71)]
     pub type AssetConversionTxPayment = pallet_asset_conversion_tx_payment::Pallet<Runtime>;
-
 }
 
 /// The address format for describing accounts.
@@ -2026,11 +2026,13 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     module_transaction_payment::ChargeTransactionPayment<Runtime>,
     pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
-	frame_system::WeightReclaim<Runtime>,
-    module_evm::SetEvmOrigin<Runtime>,
+    frame_system::WeightReclaim<Runtime>,
+    // module_evm::SetEvmOrigin<Runtime>,
 );
 
 pub type TxExtension = (
+    frame_system::AuthorizeCall<Runtime>,
+    frame_system::CheckNonZeroSender<Runtime>,
     frame_system::CheckSpecVersion<Runtime>,
     frame_system::CheckTxVersion<Runtime>,
     frame_system::CheckGenesis<Runtime>,
@@ -2038,12 +2040,12 @@ pub type TxExtension = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     pallet_skip_feeless_payment::SkipCheckIfFeeless<
-		Runtime,
-		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-	>,
+        Runtime,
+        pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+    >,
     pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
-	frame_system::WeightReclaim<Runtime>,
-    module_evm::SetEvmOrigin<Runtime>,
+    frame_system::WeightReclaim<Runtime>,
+    // module_evm::SetEvmOrigin<Runtime>,
 );
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -2055,6 +2057,8 @@ impl EthExtra for EthExtraImpl {
 
     fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
         (
+            frame_system::AuthorizeCall::<Runtime>::new(),
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -2062,10 +2066,10 @@ impl EthExtra for EthExtraImpl {
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None)
-				.into(),
+                .into(),
             pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
-			frame_system::WeightReclaim::<Runtime>::new(),
-            module_evm::SetEvmOrigin::<Runtime>::new(),
+            frame_system::WeightReclaim::<Runtime>::new(),
+            // module_evm::SetEvmOrigin::<Runtime>::new(),
         )
     }
 }
@@ -2086,7 +2090,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllPalletsWithSystem   
+    AllPalletsWithSystem,
 >;
 
 impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
@@ -2141,6 +2145,8 @@ where
             .saturating_sub(1);
         let tip = 0;
         let tx_ext: TxExtension = (
+            frame_system::AuthorizeCall::<Runtime>::new(),
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -2148,13 +2154,13 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_skip_feeless_payment::SkipCheckIfFeeless::from(
-				pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
-					tip, None,
-				),
-			),
+                pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+                    tip, None,
+                ),
+            ),
             pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
-			frame_system::WeightReclaim::<Runtime>::new(),
-            module_evm::SetEvmOrigin::<Runtime>::new(),
+            frame_system::WeightReclaim::<Runtime>::new(),
+            // module_evm::SetEvmOrigin::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, tx_ext)
             .map_err(|e| {
@@ -2174,6 +2180,7 @@ impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as sp_runtime::traits::Verify>::Signer;
     type Signature = Signature;
 }
+
 pallet_revive::impl_runtime_apis_plus_revive_traits!(
     Runtime,
     Revive,
@@ -2423,6 +2430,23 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 
         fn pool_accounts(pool_id: PoolId) -> (AccountId, AccountId) {
             NominationPools::api_pool_accounts(pool_id)
+        }
+    }
+
+    impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentCallApi<Block, Balance, RuntimeCall>
+        for Runtime
+    {
+        fn query_call_info(call: RuntimeCall, len: u32) -> RuntimeDispatchInfo<Balance> {
+            TransactionPayment::query_call_info(call, len)
+        }
+        fn query_call_fee_details(call: RuntimeCall, len: u32) -> FeeDetails<Balance> {
+            TransactionPayment::query_call_fee_details(call, len)
+        }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
         }
     }
 

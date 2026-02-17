@@ -1,9 +1,10 @@
 [package]
 name = "pallet-revive-uapi"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["Reef Developers"]
+description = "Proof of Commitment module"
 edition = "2021"
-description = "Exposes all the host functions that a contract can import."
+
 
 [lints]
 workspace = true

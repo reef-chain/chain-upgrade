@@ -1,9 +1,9 @@
 [package]
 name = "pallet-revive-proc-macro"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Reef Developers"]
+description = "Proof of Commitment module"
 edition = "2021"
-description = "Procedural macros used in pallet_revive"
 
 [lints]
 workspace = true

@@ -11,101 +11,110 @@ version = '4.0.0'
 targets = ['x86_64-unknown-linux-gnu']
 
 [build-dependencies]
-substrate-wasm-builder = { workspace = true, default-features = false}
+substrate-wasm-builder = { workspace = true, default-features = false }
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.7.5", default-features = false, features = [
 	"derive",
 	"max-encoded-len",
 ] }
-scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11.6", default-features = false, features = [
+	"derive",
+] }
 smallvec = "1.11.0"
 hex-literal = { optional = true, version = '0.4.1' }
 log = { workspace = true, default-features = false }
-serde_json = { features = ["alloc", "arbitrary_precision"], version = "1.0.132", default-features = false}
+serde_json = { features = [
+	"alloc",
+	"arbitrary_precision",
+], version = "1.0.132", default-features = false }
 
 # Substrate dependencies
-frame-benchmarking = { workspace = true ,default-features = false, optional = true }
-frame-executive = { workspace = true ,default-features = false }
-frame-support = { workspace = true ,default-features = false }
-frame-system = { workspace = true ,default-features = false }
-frame-metadata-hash-extension = { workspace = true ,default-features = false }
-frame-system-benchmarking = { workspace = true ,default-features = false, optional = true }
-frame-system-rpc-runtime-api = { workspace = true ,default-features = false }
-frame-election-provider-support = { workspace = true ,default-features = false }
-pallet-balances = { workspace = true ,default-features = false }
-pallet-core-fellowship = { workspace = true ,default-features = false }
-pallet-delegated-staking = { workspace = true ,default-features = false }
-pallet-grandpa = { workspace = true ,default-features = false }
-pallet-indices = { workspace = true ,default-features = false }
-pallet-insecure-randomness-collective-flip =  { workspace = true ,default-features = false }
-pallet-scheduler = { workspace = true ,default-features = false }
-pallet-sudo = { workspace = true ,default-features = false }
-pallet-preimage = { workspace = true ,default-features = false }
-pallet-skip-feeless-payment = { workspace = true ,default-features = false }
-pallet-timestamp = { workspace = true ,default-features = false }
-pallet-transaction-payment = { workspace = true ,default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true ,default-features = false }
-pallet-utility = { workspace = true ,default-features = false }
-pallet-multisig = { workspace = true ,default-features = false }
-sp-api = { workspace = true ,default-features = false }
-sp-block-builder = { workspace = true ,default-features = false }
-sp-core = { workspace = true ,default-features = false }
-sp-inherents = { workspace = true ,default-features = false }
-sp-io = { workspace = true ,default-features = false }
-sp-offchain = { workspace = true ,default-features = false }
-sp-runtime = { workspace = true ,default-features = false }
-sp-session = { workspace = true ,default-features = false }
-sp-staking = { workspace = true ,default-features = false }
-sp-std = { workspace = true ,default-features = false }
-sp-transaction-pool = { workspace = true ,default-features = false }
-sp-version = { workspace = true ,default-features = false }
-sp-genesis-builder =  { workspace = true ,default-features = false }
+frame-benchmarking = { workspace = true, default-features = false, optional = true }
+frame-executive = { workspace = true, default-features = false }
+frame-support = { workspace = true, default-features = false }
+frame-system = { workspace = true, default-features = false }
+frame-metadata-hash-extension = { workspace = true, default-features = false }
+frame-system-benchmarking = { workspace = true, default-features = false, optional = true }
+frame-system-rpc-runtime-api = { workspace = true, default-features = false }
+frame-election-provider-support = { workspace = true, default-features = false }
+pallet-balances = { workspace = true, default-features = false }
+pallet-core-fellowship = { workspace = true, default-features = false }
+pallet-delegated-staking = { workspace = true, default-features = false }
+pallet-grandpa = { workspace = true, default-features = false }
+pallet-indices = { workspace = true, default-features = false }
+pallet-insecure-randomness-collective-flip = { workspace = true, default-features = false }
+pallet-scheduler = { workspace = true, default-features = false }
+pallet-sudo = { workspace = true, default-features = false }
+pallet-preimage = { workspace = true, default-features = false }
+pallet-skip-feeless-payment = { workspace = true, default-features = false }
+pallet-timestamp = { workspace = true, default-features = false }
+pallet-transaction-payment = { workspace = true, default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, default-features = false }
+pallet-utility = { workspace = true, default-features = false }
+pallet-multisig = { workspace = true, default-features = false }
+sp-api = { workspace = true, default-features = false }
+sp-block-builder = { workspace = true, default-features = false }
+sp-core = { workspace = true, default-features = false }
+sp-inherents = { workspace = true, default-features = false }
+sp-io = { workspace = true, default-features = false }
+sp-offchain = { workspace = true, default-features = false }
+sp-runtime = { workspace = true, default-features = false }
+sp-session = { workspace = true, default-features = false }
+sp-staking = { workspace = true, default-features = false }
+sp-std = { workspace = true, default-features = false }
+sp-transaction-pool = { workspace = true, default-features = false }
+sp-version = { workspace = true, default-features = false }
+sp-genesis-builder = { workspace = true, default-features = false }
 
 # # NPoS
-pallet-session = { workspace = true ,default-features = false, features = ["historical"] }
-pallet-session-benchmarking = { workspace = true ,default-features = false }
-pallet-staking = { workspace = true ,default-features = false }
-pallet-salary = { workspace = true ,default-features = false }
-pallet-staking-runtime-api = { workspace = true ,default-features = false }
-pallet-staking-reward-curve ={ workspace = true ,default-features = false }
-pallet-authorship = { workspace = true ,default-features = false }
-pallet-babe = { workspace = true ,default-features = false }
-sp-consensus-babe = { workspace = true ,default-features = false }
-pallet-im-online = { workspace = true ,default-features = false }
-pallet-bounties = { workspace = true ,default-features = false }
-pallet-child-bounties = { workspace = true ,default-features = false }
-pallet-offences = { workspace = true ,default-features = false }
-sp-authority-discovery ={ workspace = true ,default-features = false }
-pallet-authority-discovery ={ workspace = true ,default-features = false }
-pallet-identity = { workspace = true ,default-features = false }
-pallet-elections-phragmen = { workspace = true ,default-features = false }
-pallet-election-provider-multi-phase = { workspace = true ,default-features = false }
-pallet-treasury = { workspace = true ,default-features = false }
-pallet-parameters = { workspace = true ,default-features = false }
-pallet-assets = { workspace = true ,default-features = false }
-pallet-assets-precompiles = { workspace = true ,default-features = false }
-pallet-asset-tx-payment = { workspace = true ,default-features = false }
-pallet-asset-rewards = { workspace = true ,default-features = false }
-pallet-asset-rate = { workspace = true ,default-features = false }
-pallet-asset-conversion = { workspace = true ,default-features = false }
-pallet-asset-conversion-ops = { workspace = true ,default-features = false }
-pallet-asset-conversion-tx-payment = { workspace = true ,default-features = false }
-pallet-assets-freezer = { workspace = true ,default-features = false }
-pallet-assets-holder = { workspace = true ,default-features = false }
-pallet-referenda = { workspace = true ,default-features = false }
-pallet-conviction-voting = { workspace = true ,default-features = false }
-pallet-nomination-pools = { workspace = true ,default-features = false }
-pallet-nomination-pools-runtime-api = { workspace = true ,default-features = false }
-pallet-nomination-pools-benchmarking = { workspace = true ,default-features = false }
-pallet-bags-list = { workspace = true ,default-features = false }
-pallet-ranked-collective = { workspace = true ,default-features = false }
-pallet-revive = { workspace = true ,default-features = false }
-pallet-revive-proc-macro = { workspace = true ,default-features = false }
-pallet-revive-uapi = { workspace = true ,default-features = false }
+pallet-session = { workspace = true, default-features = false, features = [
+	"historical",
+] }
+pallet-session-benchmarking = { workspace = true, default-features = false }
+pallet-staking = { workspace = true, default-features = false }
+pallet-salary = { workspace = true, default-features = false }
+pallet-safe-mode = { workspace = true, default-features = false }
+pallet-tx-pause = { workspace = true, default-features = false }
+pallet-staking-runtime-api = { workspace = true, default-features = false }
+pallet-staking-reward-curve = { workspace = true, default-features = false }
+pallet-authorship = { workspace = true, default-features = false }
+pallet-babe = { workspace = true, default-features = false }
+sp-consensus-babe = { workspace = true, default-features = false }
+pallet-im-online = { workspace = true, default-features = false }
+pallet-bounties = { workspace = true, default-features = false }
+pallet-child-bounties = { workspace = true, default-features = false }
+pallet-offences = { workspace = true, default-features = false }
+sp-authority-discovery = { workspace = true, default-features = false }
+pallet-authority-discovery = { workspace = true, default-features = false }
+pallet-identity = { workspace = true, default-features = false }
+pallet-elections-phragmen = { workspace = true, default-features = false }
+pallet-election-provider-multi-phase = { workspace = true, default-features = false }
+pallet-treasury = { workspace = true, default-features = false }
+pallet-parameters = { workspace = true, default-features = false }
+pallet-assets = { workspace = true, default-features = false }
+pallet-assets-precompiles = { workspace = true, default-features = false }
+pallet-asset-tx-payment = { workspace = true, default-features = false }
+pallet-asset-rewards = { workspace = true, default-features = false }
+pallet-asset-rate = { workspace = true, default-features = false }
+pallet-asset-conversion = { workspace = true, default-features = false }
+pallet-asset-conversion-ops = { workspace = true, default-features = false }
+pallet-asset-conversion-tx-payment = { workspace = true, default-features = false }
+pallet-assets-freezer = { workspace = true, default-features = false }
+pallet-assets-holder = { workspace = true, default-features = false }
+pallet-referenda = { workspace = true, default-features = false }
+pallet-conviction-voting = { workspace = true, default-features = false }
+pallet-nomination-pools = { workspace = true, default-features = false }
+pallet-nomination-pools-runtime-api = { workspace = true, default-features = false }
+pallet-nomination-pools-benchmarking = { workspace = true, default-features = false }
+pallet-bags-list = { workspace = true, default-features = false }
+pallet-ranked-collective = { workspace = true, default-features = false }
+pallet-revive = { workspace = true, default-features = false }
+pallet-revive-proc-macro = { workspace = true, default-features = false }
+pallet-revive-uapi = { workspace = true, default-features = false }
 
 # # PoC
-pallet-collective  = { workspace = true ,default-features = false }
+pallet-collective = { workspace = true, default-features = false }
 module-poc = { path = "../modules/poc", default-features = false }
 
 # # local dependencies
@@ -117,7 +126,7 @@ module-currencies = { path = "../modules/currencies", default-features = false }
 module-evm = { path = "../modules/evm", default-features = false }
 module-evm-accounts = { path = "../modules/evm-accounts", default-features = false }
 module-evm-bridge = { path = "../modules/evm-bridge", default-features = false }
-module-evm-rpc-runtime-api = { path = "../modules/evm/rpc/runtime_api",  default-features = false }
+module-evm-rpc-runtime-api = { path = "../modules/evm/rpc/runtime_api", default-features = false }
 module-transaction-payment = { path = "../modules/transaction_payment", default-features = false }
 module-support = { path = "../modules/support", default-features = false }
 
@@ -136,7 +145,7 @@ std = [
 	"scale-info/std",
 	"serde_json/std",
 	"frame-executive/std",
- 	"frame-support/std",
+	"frame-support/std",
 	"frame-metadata-hash-extension/std",
 	"frame-system/std",
 	"frame-system-rpc-runtime-api/std",
@@ -148,7 +157,7 @@ std = [
 	"pallet-delegated-staking/std",
 	"pallet-grandpa/std",
 	"pallet-indices/std",
-    "pallet-insecure-randomness-collective-flip/std",
+	"pallet-insecure-randomness-collective-flip/std",
 	"pallet-sudo/std",
 	"pallet-utility/std",
 	"pallet-multisig/std",
@@ -183,19 +192,21 @@ std = [
 	"pallet-babe/std",
 	"sp-consensus-babe/std",
 	"sp-authority-discovery/std",
- 	"pallet-authority-discovery/std",
+	"pallet-authority-discovery/std",
 	"pallet-im-online/std",
 	"pallet-elections-phragmen/std",
- 	"pallet-election-provider-multi-phase/std",
- 	"pallet-offences/std",
- 	"pallet-identity/std",
+	"pallet-election-provider-multi-phase/std",
+	"pallet-offences/std",
+	"pallet-identity/std",
 	"pallet-ranked-collective/std",
 	"pallet-revive/std",
 	"pallet-nomination-pools/std",
 	"pallet-nomination-pools-runtime-api/std",
 	"pallet-nomination-pools-benchmarking/std",
+	"pallet-tx-pause/std",
+	"pallet-safe-mode/std",
 
-# # Primitives
+	# # Primitives
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-core/std",

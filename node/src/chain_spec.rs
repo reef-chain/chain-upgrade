@@ -2,9 +2,8 @@ use pallet_revive::is_eth_derived;
 use reef_runtime::{
     get_all_module_accounts, opaque::SessionKeys, AccountId, AuthorityDiscoveryConfig,
     AuthorityDiscoveryId, BabeConfig, CurrencyId, EVMConfig, ImOnlineId,
-    MaxNativeTokenExistentialDeposit, SessionConfig,StakerStatus, StakingConfig,
-    SudoConfig, TokenSymbol, TokensConfig, REEF,
-    WASM_BINARY,
+    MaxNativeTokenExistentialDeposit, SessionConfig, StakerStatus, StakingConfig, SudoConfig,
+    TokenSymbol, TokensConfig, REEF, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -543,7 +542,7 @@ fn mainnet_genesis(
 pub fn reef_properties() -> serde_json::map::Map<String, serde_json::Value> {
     serde_json::json!({
         "ss58Format": 42,
-        "tokenDecimals": 18,
+        "tokenDecimals": 12,
         "tokenSymbol": "REEF",
     })
     .as_object()
