@@ -384,7 +384,7 @@ pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
-    pub type Unreleased = pallet_staking::migrations::v2::MigrateToV2<crate::Runtime>;
+    pub type Unreleased = crate::MigrateBalancesTo12Decimals<crate::Runtime>;
 }
 
 pub struct MigrateBalancesTo12Decimals<T>(frame_support::pallet_prelude::PhantomData<T>);
@@ -392,6 +392,7 @@ impl<T: frame_system::Config> OnRuntimeUpgrade for MigrateBalancesTo12Decimals<T
 where
     T::AccountData:
         From<pallet_balances::AccountData<u128>> + Into<pallet_balances::AccountData<u128>>,
+    T: pallet_staking::Config,
 {
     fn on_runtime_upgrade() -> Weight {
         const DECIMAL_CONVERSION: u128 = 1_000_000;
@@ -408,6 +409,9 @@ where
             old_info.data.free /= DECIMAL_CONVERSION;
             old_info.data.reserved /= DECIMAL_CONVERSION;
             old_info.data.frozen /= DECIMAL_CONVERSION;
+            log::info!("New free balance: {:?}", old_info.data.free);
+            log::info!("New reserved balance: {:?}", old_info.data.reserved);
+            log::info!("New frozen balance: {:?}", old_info.data.frozen);
             // flags remain unchanged
 
             migrated_count += 1;
@@ -421,6 +425,18 @@ where
                 data: old_info.data.into(),
             })
         });
+
+        let staking_conversion: pallet_staking::BalanceOf<T> = DECIMAL_CONVERSION.saturated_into();
+        pallet_staking::Ledger::<T>::translate::<pallet_staking::StakingLedger<T>, _>(
+            |_key, mut old_info| {
+                old_info.total /= staking_conversion;
+                old_info.active /= staking_conversion;
+                for chunk in old_info.unlocking.iter_mut() {
+                    chunk.value /= staking_conversion;
+                }
+                Some(old_info)
+            },
+        );
 
         // Migrate total issuance
         pallet_balances::TotalIssuance::<Runtime>::mutate(|issuance| {
@@ -2174,6 +2190,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    Migrations,
 >;
 
 impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
