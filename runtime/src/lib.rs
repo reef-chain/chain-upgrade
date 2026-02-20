@@ -27,7 +27,7 @@ use frame_support::{
         tokens::{imbalance::ResolveAssetTo, pay::PayAssetFromAccount, GetSalary, PayFromAccount},
         AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU64, ConstantStoragePrice,
         EitherOfDiverse, EnsureOrigin, EqualPrivilegeOnly, KeyOwnerProofSystem, LinearStoragePrice,
-        Nothing, OriginTrait, VariantCountOf, WithdrawReasons,
+        Nothing, OnRuntimeUpgrade, OriginTrait, VariantCountOf, WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -385,6 +385,89 @@ pub type Migrations = migrations::Unreleased;
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
     pub type Unreleased = pallet_staking::migrations::v2::MigrateToV2<crate::Runtime>;
+}
+
+pub struct MigrateBalancesTo12Decimals<T>(frame_support::pallet_prelude::PhantomData<T>);
+impl<T: frame_system::Config> OnRuntimeUpgrade for MigrateBalancesTo12Decimals<T>
+where
+    T::AccountData:
+        From<pallet_balances::AccountData<u128>> + Into<pallet_balances::AccountData<u128>>,
+{
+    fn on_runtime_upgrade() -> Weight {
+        const DECIMAL_CONVERSION: u128 = 1_000_000;
+        let mut migrated_count = 0u64;
+
+        log::info!("Starting balance . from 18 to 12 decimals");
+
+        // Use translate to convert AccountInfo with proper type handling
+        frame_system::Account::<T>::translate::<
+            frame_system::AccountInfo<T::Nonce, pallet_balances::AccountData<u128>>,
+            _,
+        >(|_key, mut old_info| {
+            // Divide all balance fields by the conversion factor
+            old_info.data.free /= DECIMAL_CONVERSION;
+            old_info.data.reserved /= DECIMAL_CONVERSION;
+            old_info.data.frozen /= DECIMAL_CONVERSION;
+            // flags remain unchanged
+
+            migrated_count += 1;
+
+            // Convert back to the generic type
+            Some(frame_system::AccountInfo {
+                nonce: old_info.nonce,
+                consumers: old_info.consumers,
+                providers: old_info.providers,
+                sufficients: old_info.sufficients,
+                data: old_info.data.into(),
+            })
+        });
+
+        // Migrate total issuance
+        pallet_balances::TotalIssuance::<Runtime>::mutate(|issuance| {
+            *issuance /= DECIMAL_CONVERSION;
+        });
+
+        log::info!("Migrated {} accounts", migrated_count);
+        T::DbWeight::get().reads_writes(migrated_count + 1, migrated_count + 1)
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+        use codec::Encode;
+
+        let account_count = frame_system::Account::<T>::iter().count() as u32;
+        log::info!("Pre-upgrade: {} accounts to migrate", account_count);
+
+        // Store a sample account balance for verification
+        if let Some((account_id, account_info)) = frame_system::Account::<T>::iter().next() {
+            // Convert to concrete type to access fields
+            let balance_data: pallet_balances::AccountData<u128> = account_info.data.into();
+            let sample = (account_id, balance_data.free);
+            return Ok(sample.encode());
+        }
+
+        Ok(account_count.encode())
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+        use codec::Decode;
+
+        if let Ok((account_id, old_balance)) = <(T::AccountId, u128)>::decode(&mut &state[..]) {
+            let new_account_info = frame_system::Account::<T>::get(&account_id);
+            let balance_data: pallet_balances::AccountData<u128> = new_account_info.data.into();
+            let expected_balance = old_balance / 1_000_000;
+
+            assert_eq!(
+                balance_data.free, expected_balance,
+                "Balance migration failed for sample account"
+            );
+
+            log::info!("Post-upgrade verification passed");
+        }
+
+        Ok(())
+    }
 }
 
 parameter_types! {
