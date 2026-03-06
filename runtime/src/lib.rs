@@ -300,7 +300,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: alloc::borrow::Cow::Borrowed("reef"),
     impl_name: alloc::borrow::Cow::Borrowed("reef"),
     authoring_version: 1,
-    spec_version: 14,
+    spec_version: 15,
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -392,7 +392,7 @@ impl<T: frame_system::Config> OnRuntimeUpgrade for MigrateBalancesTo12Decimals<T
 where
     T::AccountData:
         From<pallet_balances::AccountData<u128>> + Into<pallet_balances::AccountData<u128>>,
-    T: pallet_staking::Config,
+    T: pallet_staking::Config + pallet_balances::Config,
 {
     fn on_runtime_upgrade() -> Weight {
         const DECIMAL_CONVERSION: u128 = 1_000_000;
@@ -435,6 +435,54 @@ where
                     chunk.value /= staking_conversion;
                 }
                 Some(old_info)
+            },
+        );
+
+         let balance_conversion: <T as pallet_balances::Config>::Balance =
+            DECIMAL_CONVERSION.saturated_into();
+        let mut locks_migrated = 0u64;
+
+        pallet_balances::Locks::<T>::translate::<
+            frame_support::WeakBoundedVec<
+                pallet_balances::BalanceLock<<T as pallet_balances::Config>::Balance>,
+                T::MaxLocks,
+            >,
+            _,
+        >(|_key, locks| {
+            let mut inner = locks.into_inner();
+            for lock in inner.iter_mut() {
+                lock.amount /= balance_conversion;
+            }
+            locks_migrated += 1;
+            Some(frame_support::WeakBoundedVec::force_from(inner, None))
+        });
+
+        let mut holds_migrated = 0u64;
+
+        pallet_balances::Holds::<T>::translate::<
+            frame_support::BoundedVec<
+                frame_support::traits::tokens::IdAmount<
+                    <T as pallet_balances::Config>::RuntimeHoldReason,
+                    <T as pallet_balances::Config>::Balance,
+                >,
+                frame_support::traits::VariantCountOf<
+                    <T as pallet_balances::Config>::RuntimeHoldReason,
+                >,
+            >,
+            _,
+        >(|_key, mut holds| {
+            for hold in holds.iter_mut() {
+                hold.amount /= balance_conversion;
+            }
+            holds_migrated += 1;
+            Some(holds)
+        });
+
+
+        pallet_staking::ErasValidatorReward::<T>::translate::<pallet_staking::BalanceOf<T>, _>(
+            |_key, mut reward| {
+                reward /= staking_conversion;
+                Some(reward)
             },
         );
 
