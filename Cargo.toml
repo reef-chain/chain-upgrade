@@ -203,7 +203,7 @@ pallet-assets-holder = { git = "https://github.com/paritytech/polkadot-sdk", def
 pallet-ranked-collective = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 
 pallet-election-phragmen = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2512", default-features = false }
-pallet-election-provider-multi-phase = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2512", default-features = false }
+pallet-election-provider-multi-phase = { path ="modules/election-provider-multi-phase", default-features = false }
 pallet-nomination-pools = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 pallet-nomination-pools-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 pallet-nomination-pools-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }

@@ -300,7 +300,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: alloc::borrow::Cow::Borrowed("reef"),
     impl_name: alloc::borrow::Cow::Borrowed("reef"),
     authoring_version: 1,
-    spec_version: 15,
+    spec_version: 14,
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -400,23 +400,16 @@ where
 
         log::info!("Starting balance . from 18 to 12 decimals");
 
-        // Use translate to convert AccountInfo with proper type handling
         frame_system::Account::<T>::translate::<
             frame_system::AccountInfo<T::Nonce, pallet_balances::AccountData<u128>>,
             _,
         >(|_key, mut old_info| {
-            // Divide all balance fields by the conversion factor
             old_info.data.free /= DECIMAL_CONVERSION;
             old_info.data.reserved /= DECIMAL_CONVERSION;
             old_info.data.frozen /= DECIMAL_CONVERSION;
-            log::info!("New free balance: {:?}", old_info.data.free);
-            log::info!("New reserved balance: {:?}", old_info.data.reserved);
-            log::info!("New frozen balance: {:?}", old_info.data.frozen);
-            // flags remain unchanged
 
             migrated_count += 1;
 
-            // Convert back to the generic type
             Some(frame_system::AccountInfo {
                 nonce: old_info.nonce,
                 consumers: old_info.consumers,
@@ -486,13 +479,21 @@ where
             },
         );
 
-        // Migrate total issuance
+        // Migrate total Issuance
         pallet_balances::TotalIssuance::<Runtime>::mutate(|issuance| {
             *issuance /= DECIMAL_CONVERSION;
         });
 
+        // Migrate Inactive Issuance
+        pallet_balances::InactiveIssuance::<Runtime>::mutate(|issuance| {
+            *issuance /= DECIMAL_CONVERSION;
+        });
+
         log::info!("Migrated {} accounts", migrated_count);
-        T::DbWeight::get().reads_writes(migrated_count + 1, migrated_count + 1)
+        T::DbWeight::get().reads_writes(
+            migrated_count + locks_migrated + holds_migrated + 2,
+            migrated_count + locks_migrated + holds_migrated + 2,
+        )
     }
 
     #[cfg(feature = "try-runtime")]
