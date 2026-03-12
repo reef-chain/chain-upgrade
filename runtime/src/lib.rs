@@ -39,11 +39,11 @@ use pallet_transaction_payment::FeeDetails;
 use pallet_transaction_payment::RuntimeDispatchInfo;
 
 // FRAME System
+use frame_support::pallet_prelude::StorageVersion;
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_system::{
     ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned, EnsureWithSuccess,
 };
-use frame_support::pallet_prelude::StorageVersion;
 
 // Substrate Transaction Payment
 #[allow(deprecated)]
@@ -388,6 +388,11 @@ pub mod migrations {
     pub type Unreleased = crate::MigrateBalancesTo12Decimals<crate::Runtime>;
 }
 
+/// Storage version before this migration
+const STORAGE_VERSION_PRE: u16 = 0;
+/// Storage version after this migration
+const STORAGE_VERSION_POST: u16 = 1;
+
 pub struct MigrateBalancesTo12Decimals<T>(frame_support::pallet_prelude::PhantomData<T>);
 impl<T: frame_system::Config> OnRuntimeUpgrade for MigrateBalancesTo12Decimals<T>
 where
@@ -397,10 +402,29 @@ where
 {
     fn on_runtime_upgrade() -> Weight {
         const DECIMAL_CONVERSION: u128 = 1_000_000;
-        let mut migrated_count = 0u64;
 
         let onchain_version = StorageVersion::get::<pallet_balances::Pallet<T>>();
+        if onchain_version != STORAGE_VERSION_PRE {
+            log::warn!(
+                target: "runtime::migration",
+                "Skipping MigrateBalancesTo12Decimals: already at storage version {:?}. Expected {:?}.",
+                onchain_version,
+                STORAGE_VERSION_PRE,
+            );
+            // Charge only for the version read
+            return T::DbWeight::get().reads(1);
+        }
         log::info!("Starting balance . from 18 to 12 decimals");
+
+        let mut freezes_migrated = 0u64;
+        let mut locks_migrated = 0u64;
+        let mut ledgers_migrated = 0u64;
+        let mut holds_migrated = 0u64;
+        let mut accounts_migrated = 0u64;
+
+        let balance_conversion: <T as pallet_balances::Config>::Balance =
+            DECIMAL_CONVERSION.saturated_into();
+        let staking_conversion: pallet_staking::BalanceOf<T> = DECIMAL_CONVERSION.saturated_into();
 
         frame_system::Account::<T>::translate::<
             frame_system::AccountInfo<T::Nonce, pallet_balances::AccountData<u128>>,
@@ -410,7 +434,7 @@ where
             old_info.data.reserved /= DECIMAL_CONVERSION;
             old_info.data.frozen /= DECIMAL_CONVERSION;
 
-            migrated_count += 1;
+            accounts_migrated += 1;
 
             Some(frame_system::AccountInfo {
                 nonce: old_info.nonce,
@@ -421,7 +445,6 @@ where
             })
         });
 
-        let staking_conversion: pallet_staking::BalanceOf<T> = DECIMAL_CONVERSION.saturated_into();
         pallet_staking::Ledger::<T>::translate::<pallet_staking::StakingLedger<T>, _>(
             |_key, mut old_info| {
                 old_info.total /= staking_conversion;
@@ -429,13 +452,10 @@ where
                 for chunk in old_info.unlocking.iter_mut() {
                     chunk.value /= staking_conversion;
                 }
+                ledgers_migrated += 1;
                 Some(old_info)
             },
         );
-
-         let balance_conversion: <T as pallet_balances::Config>::Balance =
-            DECIMAL_CONVERSION.saturated_into();
-        let mut locks_migrated = 0u64;
 
         pallet_balances::Locks::<T>::translate::<
             frame_support::WeakBoundedVec<
@@ -451,8 +471,6 @@ where
             locks_migrated += 1;
             Some(frame_support::WeakBoundedVec::force_from(inner, None))
         });
-
-        let mut holds_migrated = 0u64;
 
         pallet_balances::Holds::<T>::translate::<
             frame_support::BoundedVec<
@@ -473,6 +491,22 @@ where
             Some(holds)
         });
 
+        pallet_balances::Freezes::<T>::translate::<
+            frame_support::BoundedVec<
+                frame_support::traits::tokens::IdAmount<
+                    <T as pallet_balances::Config>::FreezeIdentifier,
+                    <T as pallet_balances::Config>::Balance,
+                >,
+                <T as pallet_balances::Config>::MaxFreezes,
+            >,
+            _,
+        >(|_key, mut freezes| {
+            for freeze in freezes.iter_mut() {
+                freeze.amount /= balance_conversion;
+            }
+            freezes_migrated += 1;
+            Some(freezes)
+        });
 
         pallet_staking::ErasValidatorReward::<T>::translate::<pallet_staking::BalanceOf<T>, _>(
             |_key, mut reward| {
@@ -494,10 +528,12 @@ where
         pallet_staking::MinNominatorBond::<T>::mutate(|v| *v /= staking_conversion);
         pallet_staking::MinValidatorBond::<T>::mutate(|v| *v /= staking_conversion);
 
-        log::info!("Migrated {} accounts", migrated_count);
+        StorageVersion::new(STORAGE_VERSION_POST).put::<pallet_balances::Pallet<T>>();
+
+        log::info!("Migrated {} accounts", accounts_migrated);
         T::DbWeight::get().reads_writes(
-            migrated_count + locks_migrated + holds_migrated + 2,
-            migrated_count + locks_migrated + holds_migrated + 2,
+            accounts_migrated + locks_migrated + holds_migrated + 2,
+            accounts_migrated + locks_migrated + holds_migrated + 2,
         )
     }
 
@@ -505,18 +541,25 @@ where
     fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
         use codec::Encode;
 
-        let account_count = frame_system::Account::<T>::iter().count() as u32;
-        log::info!("Pre-upgrade: {} accounts to migrate", account_count);
+        // Guard check
+        let onchain_version = StorageVersion::get::<pallet_balances::Pallet<T>>();
+        ensure!(
+            onchain_version == STORAGE_VERSION_PRE,
+            "pre_upgrade: storage version is not at expected pre-migration version"
+        );
 
-        // Store a sample account balance for verification
-        if let Some((account_id, account_info)) = frame_system::Account::<T>::iter().next() {
-            // Convert to concrete type to access fields
-            let balance_data: pallet_balances::AccountData<u128> = account_info.data.into();
-            let sample = (account_id, balance_data.free);
-            return Ok(sample.encode());
-        }
+        // Snapshot values we want to verify after migration
+        let total_issuance = pallet_balances::TotalIssuance::<T>::get();
+        let inactive_issuance = pallet_balances::InactiveIssuance::<T>::get();
+        let account_count = frame_system::Account::<T>::iter().count() as u64;
 
-        Ok(account_count.encode())
+        log::info!(
+            target: "runtime::migration",
+            "pre_upgrade: total_issuance={:?}, inactive={:?}, accounts={}",
+            total_issuance, inactive_issuance, account_count,
+        );
+
+        Ok((total_issuance, inactive_issuance, account_count).encode())
     }
 
     #[cfg(feature = "try-runtime")]
