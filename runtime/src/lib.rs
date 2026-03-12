@@ -421,6 +421,7 @@ where
         let mut ledgers_migrated = 0u64;
         let mut holds_migrated = 0u64;
         let mut accounts_migrated = 0u64;
+        let mut eras_rewards_migrated = 0u64;
 
         let balance_conversion: <T as pallet_balances::Config>::Balance =
             DECIMAL_CONVERSION.saturated_into();
@@ -511,6 +512,7 @@ where
         pallet_staking::ErasValidatorReward::<T>::translate::<pallet_staking::BalanceOf<T>, _>(
             |_key, mut reward| {
                 reward /= staking_conversion;
+                eras_rewards_migrated += 1;
                 Some(reward)
             },
         );
@@ -531,10 +533,18 @@ where
         StorageVersion::new(STORAGE_VERSION_POST).put::<pallet_balances::Pallet<T>>();
 
         log::info!("Migrated {} accounts", accounts_migrated);
-        T::DbWeight::get().reads_writes(
-            accounts_migrated + locks_migrated + holds_migrated + 2,
-            accounts_migrated + locks_migrated + holds_migrated + 2,
-        )
+
+        let rw = accounts_migrated
+            + locks_migrated
+            + holds_migrated
+            + freezes_migrated
+            + ledgers_migrated
+            + eras_rewards_migrated
+            // + (eras_stakers_migrated * 2) // ErasStakers + ErasStakersClipped
+            + 4  // TotalIssuance, InactiveIssuance, MinNominatorBond, MinValidatorBond
+            + 1; // StorageVersion write
+
+        T::DbWeight::get().reads_writes(rw + 1, rw)
     }
 
     #[cfg(feature = "try-runtime")]
@@ -566,18 +576,51 @@ where
     fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
         use codec::Decode;
 
-        if let Ok((account_id, old_balance)) = <(T::AccountId, u128)>::decode(&mut &state[..]) {
-            let new_account_info = frame_system::Account::<T>::get(&account_id);
-            let balance_data: pallet_balances::AccountData<u128> = new_account_info.data.into();
-            let expected_balance = old_balance / 1_000_000;
+        type Balance = <T as pallet_balances::Config>::Balance;
 
-            assert_eq!(
-                balance_data.free, expected_balance,
-                "Balance migration failed for sample account"
-            );
+        let (pre_total, pre_inactive, pre_account_count): (Balance, Balance, u64) =
+            Decode::decode(&mut &state[..])
+                .map_err(|_| "post_upgrade: failed to decode pre-upgrade state")?;
 
-            log::info!("Post-upgrade verification passed");
-        }
+        let balance_conversion: Balance = DECIMAL_CONVERSION.saturated_into();
+
+        // ---- Total issuance check ----
+        let post_total = pallet_balances::TotalIssuance::<T>::get();
+        let expected = pre_total / balance_conversion;
+        // Allow up to `account_count` dust difference from integer division
+        ensure!(
+            post_total <= expected && expected - post_total <= pre_account_count.saturated_into(),
+            "post_upgrade: TotalIssuance mismatch after migration"
+        );
+
+        // ---- Inactive issuance check ----
+        let post_inactive = pallet_balances::InactiveIssuance::<T>::get();
+        let expected_inactive = pre_inactive / balance_conversion;
+        ensure!(
+            post_inactive <= expected_inactive,
+            "post_upgrade: InactiveIssuance mismatch after migration"
+        );
+
+        // ---- Account count must be unchanged ----
+        let post_account_count = frame_system::Account::<T>::iter().count() as u64;
+        ensure!(
+            pre_account_count == post_account_count,
+            "post_upgrade: account count changed during migration"
+        );
+
+        // ---- Storage version must have bumped ----
+        let onchain_version = StorageVersion::get::<pallet_balances::Pallet<T>>();
+        ensure!(
+            onchain_version == STORAGE_VERSION_POST,
+            "post_upgrade: storage version was not bumped"
+        );
+
+        log::info!(
+            target: "runtime::migration",
+            "post_upgrade: all checks passed. \
+             total_issuance={:?}, inactive={:?}, accounts={}",
+            post_total, post_inactive, post_account_count,
+        );
 
         Ok(())
     }
