@@ -5579,7 +5579,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "num-format",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "sp-staking",
 ]
 
@@ -10440,7 +10440,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-delegated-staking",
  "pallet-nomination-pools",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -10489,7 +10489,7 @@ dependencies = [
  "pallet-im-online",
  "pallet-offences",
  "pallet-session",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -10923,7 +10923,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -11031,7 +11031,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "parity-scale-codec",
  "rand 0.8.5",
  "sp-runtime",
@@ -11065,36 +11065,6 @@ dependencies = [
  "sp-arithmetic",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-staking"
-version = "41.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-election-provider-support",
- "frame-support",
- "frame-system",
- "log",
- "pallet-authorship",
- "pallet-bags-list",
- "pallet-balances",
- "pallet-session",
- "pallet-staking-reward-curve",
- "pallet-timestamp",
- "parity-scale-codec",
- "rand_chacha 0.3.1",
- "scale-info",
- "serde",
- "sp-application-crypto",
- "sp-core",
- "sp-io",
- "sp-npos-elections",
- "sp-runtime",
- "sp-staking",
- "sp-std",
- "sp-tracing",
- "substrate-test-utils",
 ]
 
 [[package]]
@@ -12911,7 +12881,7 @@ dependencies = [
  "pallet-fast-unstake",
  "pallet-identity",
  "pallet-session",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "pallet-staking-reward-fn",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -12972,7 +12942,7 @@ dependencies = [
  "pallet-message-queue",
  "pallet-mmr",
  "pallet-session",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "pallet-timestamp",
  "parity-scale-codec",
  "polkadot-core-primitives",
@@ -13166,7 +13136,7 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-skip-feeless-payment",
  "pallet-society",
- "pallet-staking 45.0.0",
+ "pallet-staking",
  "pallet-staking-async",
  "pallet-staking-async-ah-client",
  "pallet-staking-async-rc-client",
@@ -14640,7 +14610,7 @@ dependencies = [
 
 [[package]]
 name = "reef-node"
-version = "7.0.0"
+version = "8.0.0"
 dependencies = [
  "array-bytes",
  "clap 4.5.13",
@@ -14793,7 +14763,7 @@ dependencies = [
  "pallet-session",
  "pallet-session-benchmarking",
  "pallet-skip-feeless-payment",
- "pallet-staking 41.0.0",
+ "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-staking-runtime-api",
  "pallet-sudo",
@@ -19276,11 +19246,6 @@ dependencies = [
  "sp-trie",
  "trie-db",
 ]
-
-[[package]]
-name = "substrate-test-utils"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff6c6f83434a950fc732d72c6adc26a61e070"
 
 [[package]]
 name = "substrate-wasm-builder"

@@ -301,7 +301,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: alloc::borrow::Cow::Borrowed("reef"),
     impl_name: alloc::borrow::Cow::Borrowed("reef"),
     authoring_version: 1,
-    spec_version: 14,
+    spec_version: 15,
     impl_version: 11,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -403,7 +403,7 @@ where
     fn on_runtime_upgrade() -> Weight {
         const DECIMAL_CONVERSION: u128 = 1_000_000;
 
-        let onchain_version = StorageVersion::get::<pallet_balances::Pallet<T>>();
+        let onchain_version = StorageVersion::get::<frame_system::Pallet<T>>();
         if onchain_version != STORAGE_VERSION_PRE {
             log::warn!(
                 target: "runtime::migration",
@@ -530,7 +530,7 @@ where
         pallet_staking::MinNominatorBond::<T>::mutate(|v| *v /= staking_conversion);
         pallet_staking::MinValidatorBond::<T>::mutate(|v| *v /= staking_conversion);
 
-        StorageVersion::new(STORAGE_VERSION_POST).put::<pallet_balances::Pallet<T>>();
+        StorageVersion::new(STORAGE_VERSION_POST).put::<frame_system::Pallet<T>>();
 
         log::info!("Migrated {} accounts", accounts_migrated);
 
@@ -811,8 +811,6 @@ const MAX_QUOTA_NOMINATIONS: u32 = 16;
 
 impl pallet_staking::Config for Runtime {
     type OldCurrency = Balances;
-    type Validators = Historical;
-    type ValidatorId = sp_runtime::traits::ConvertInto;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Currency = Balances;
     type MaxExposurePageSize = ConstU32<256>;
