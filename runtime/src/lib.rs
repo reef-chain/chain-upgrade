@@ -43,6 +43,7 @@ use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_system::{
     ensure_root, EnsureRoot, EnsureRootWithSuccess, EnsureSigned, EnsureWithSuccess,
 };
+use frame_support::pallet_prelude::StorageVersion;
 
 // Substrate Transaction Payment
 #[allow(deprecated)]
@@ -398,6 +399,7 @@ where
         const DECIMAL_CONVERSION: u128 = 1_000_000;
         let mut migrated_count = 0u64;
 
+        let onchain_version = StorageVersion::get::<pallet_balances::Pallet<T>>();
         log::info!("Starting balance . from 18 to 12 decimals");
 
         frame_system::Account::<T>::translate::<
@@ -488,6 +490,9 @@ where
         pallet_balances::InactiveIssuance::<Runtime>::mutate(|issuance| {
             *issuance /= DECIMAL_CONVERSION;
         });
+
+        pallet_staking::MinNominatorBond::<T>::mutate(|v| *v /= staking_conversion);
+        pallet_staking::MinValidatorBond::<T>::mutate(|v| *v /= staking_conversion);
 
         log::info!("Migrated {} accounts", migrated_count);
         T::DbWeight::get().reads_writes(
