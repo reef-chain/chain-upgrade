@@ -158,6 +158,8 @@ mod weights;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod revive_migration;
+
 //
 // formerly authority.rs
 //
@@ -385,7 +387,10 @@ pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
-    pub type Unreleased = crate::MigrateBalancesTo12Decimals<crate::Runtime>;
+     pub type Unreleased = (
+        crate::MigrateBalancesTo12Decimals<crate::Runtime>,
+        crate::revive_migration::ReviveMigrations,
+    );
 }
 
 /// Storage version before this migration
