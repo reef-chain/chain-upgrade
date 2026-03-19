@@ -428,6 +428,7 @@ where
         let mut accounts_migrated = 0u64;
         let mut eras_overview_migrated = 0u64;
         let mut eras_rewards_migrated = 0u64;
+        let mut eras_total_stake_migrated = 0u64;
         let mut eras_stakers_paged_migrated = 0u64;
 
         let balance_conversion: <T as pallet_balances::Config>::Balance =
@@ -560,6 +561,14 @@ where
             *issuance /= DECIMAL_CONVERSION;
         });
 
+        pallet_staking::ErasTotalStake::<T>::translate::<pallet_staking::BalanceOf<T>, _>(
+            |_era, mut total| {
+                total /= staking_conversion;
+                eras_total_stake_migrated += 1;
+                Some(total)
+            },
+        );
+
         pallet_staking::MinNominatorBond::<T>::mutate(|v| *v /= staking_conversion);
         pallet_staking::MinValidatorBond::<T>::mutate(|v| *v /= staking_conversion);
 
@@ -573,6 +582,7 @@ where
             + freezes_migrated
             + ledgers_migrated
             + eras_rewards_migrated
+            + eras_overview_migrated
             // + (eras_stakers_migrated * 2) // ErasStakers + ErasStakersClipped
             + 4  // TotalIssuance, InactiveIssuance, MinNominatorBond, MinValidatorBond
             + 1; // StorageVersion write
