@@ -387,7 +387,7 @@ pub type Migrations = migrations::Unreleased;
 
 pub mod migrations {
     /// Unreleased migrations. Add new ones here:
-     pub type Unreleased = (
+    pub type Unreleased = (
         crate::MigrateBalancesTo12Decimals<crate::Runtime>,
         crate::revive_migration::ReviveMigrations,
     );
@@ -426,7 +426,9 @@ where
         let mut ledgers_migrated = 0u64;
         let mut holds_migrated = 0u64;
         let mut accounts_migrated = 0u64;
+        let mut eras_overview_migrated = 0u64;
         let mut eras_rewards_migrated = 0u64;
+        let mut eras_stakers_paged_migrated = 0u64;
 
         let balance_conversion: <T as pallet_balances::Config>::Balance =
             DECIMAL_CONVERSION.saturated_into();
@@ -512,6 +514,32 @@ where
             }
             freezes_migrated += 1;
             Some(freezes)
+        });
+
+        pallet_staking::ErasStakersOverview::<T>::translate::<
+            sp_staking::PagedExposureMetadata<pallet_staking::BalanceOf<T>>,
+            _,
+        >(|_era, _validator, mut meta| {
+            meta.own /= staking_conversion;
+            meta.total /= staking_conversion;
+            // page_count and nominator_count are counts, not balances — do NOT divide
+            eras_overview_migrated += 1;
+            Some(meta)
+        });
+
+        pallet_staking::ErasStakersPaged::<T>::translate::<
+            sp_staking::ExposurePage<
+                <T as frame_system::Config>::AccountId,
+                pallet_staking::BalanceOf<T>,
+            >,
+            _,
+        >(|(_era, _validator, _page), mut page| {
+            page.page_total /= staking_conversion;
+            for nominator in page.others.iter_mut() {
+                nominator.value /= staking_conversion;
+            }
+            eras_stakers_paged_migrated += 1;
+            Some(page)
         });
 
         pallet_staking::ErasValidatorReward::<T>::translate::<pallet_staking::BalanceOf<T>, _>(
