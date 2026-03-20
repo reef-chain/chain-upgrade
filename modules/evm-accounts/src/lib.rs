@@ -251,18 +251,21 @@ impl<T: Config> Pallet<T> {
         EvmAddress::from_slice(&keccak_256(&Self::eth_public(secret).serialize()[1..65])[12..])
     }
 
-    //  #[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
-    // pub fn eth_sign(
-    //     secret: &secp256k1::SecretKey,
-    //      who: &T::AccountId
-    // ) -> Eip712Signature {
-    //    let msg = keccak_256(&Self::eip712_signable_message(who));
-    //     let (sig, recovery_id) = secp256k1::sign(&secp256k1::Message::parse(&msg), secret);
-    //     let mut r = [0u8; 65];
-    //     r[0..64].copy_from_slice(&sig.serialize()[..]);
-    //     r[64] = recovery_id.serialize();
-    //    r
-    // }
+    pub fn eth_sign(
+        secret: &secp256k1::SecretKey,
+        what: &[u8],
+        extra: &[u8],
+    ) -> Result<EcdsaSignature, DispatchError> {
+        let msg = keccak_256(&Self::ethereum_signable_message(
+            &Self::convert_to_ascii_hex(what)?[..],
+            extra,
+        )?);
+        let (sig, recovery_id) = secp256k1::sign(&secp256k1::Message::parse(&msg), secret);
+        let mut r = [0u8; 65];
+        r[0..64].copy_from_slice(&sig.serialize()[..]);
+        r[64] = recovery_id.serialize();
+        Ok(EcdsaSignature::from_raw(r))
+    }
 
     /// Converts the given binary data into ASCII-encoded hex. It will be twice
     /// the length.
