@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate as module_poc;
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, derive_impl, parameter_types};
 pub use primitives::{currency::*, time::*, BlockNumber};
 use sp_runtime::Perbill;
 
@@ -11,18 +11,14 @@ type TechCouncilInstance = pallet_collective::Instance1;
 parameter_types!(
     pub const BlockHashCount: u32 = 250;
 );
+
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Runtime {
     type BaseCallFilter = frame_support::traits::Everything;
-    type Origin = Origin;
-    type Index = u64;
-    type BlockNumber = u64;
-    type Call = Call;
     type Hash = sp_runtime::testing::H256;
     type Hashing = sp_runtime::traits::BlakeTwo256;
     type AccountId = u64;
     type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
-    type Header = sp_runtime::testing::Header;
-    type Event = Event;
     type BlockHashCount = BlockHashCount;
     type BlockWeights = ();
     type BlockLength = ();
@@ -35,6 +31,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type Block = Block;
 }
 
 parameter_types! {
@@ -45,13 +42,18 @@ parameter_types! {
 impl pallet_balances::Config for Runtime {
     type MaxLocks = MaxLocks;
     type Balance = u64;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
+    type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -59,17 +61,26 @@ parameter_types! {
     pub const TechCouncilMaxProposals: u32 = 100;
     pub const TechCouncilMaxMembers: u32 = 3;
     pub const TechCouncilMaxCandidates: u32 = 100;
+    pub MaxCollectivesProposalWeight: frame_support::weights::Weight = frame_support::weights::Weight::from_parts(
+        frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND,
+        u64::MAX,
+    );
 }
 
 impl pallet_collective::Config<TechCouncilInstance> for Runtime {
-    type Origin = Origin;
-    type Proposal = Call;
-    type Event = Event;
+    type RuntimeOrigin = RuntimeOrigin;
+    type Proposal = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type MotionDuration = TechCouncilMotionDuration;
     type MaxProposals = TechCouncilMaxProposals;
     type MaxMembers = TechCouncilMaxMembers;
     type DefaultVote = pallet_collective::MoreThanMajorityThenPrimeDefaultVote;
     type WeightInfo = ();
+    type SetMembersOrigin = frame_system::EnsureRoot<u64>;
+    type MaxProposalWeight = MaxCollectivesProposalWeight;
+    type DisapproveOrigin = frame_system::EnsureRoot<u64>;
+    type KillOrigin = frame_system::EnsureRoot<u64>;
+    type Consideration = ();
 }
 
 parameter_types! {
@@ -82,7 +93,7 @@ parameter_types! {
 }
 
 impl module_poc::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EraDuration = EraDuration;
     type NominatorAPY = NominatorAPY;
@@ -96,25 +107,20 @@ impl module_poc::Config for Runtime {
     type WeightInfo = ();
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        TechCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-        Poc: module_poc::{Pallet, Call, Storage, Event<T>},
+    pub enum Runtime {
+        System: frame_system,
+        Balances: pallet_balances,
+        TechCouncil: pallet_collective::<Instance1>,
+        Poc: module_poc,
     }
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
-        .build_storage::<Runtime>()
+    let mut t = frame_system::GenesisConfig::<Runtime>::default()
+        .build_storage()
         .unwrap();
 
     // inject test balances

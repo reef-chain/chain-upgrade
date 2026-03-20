@@ -159,7 +159,7 @@ pub mod module {
         #[pallet::weight(T::WeightInfo::transfer_non_native_currency())]
         pub fn transfer(
             origin: OriginFor<T>,
-            dest: <T::Lookup as StaticLookup>::Source,
+            dest: <<T as frame_system::Config>::Lookup as StaticLookup>::Source,
             currency_id: CurrencyIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {

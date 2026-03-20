@@ -4,22 +4,30 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{alice, bob, Event, EvmAccountsModule, ExtBuilder, Origin, Runtime, System, ALICE, BOB};
+use mock::{
+    alice, bob, EvmAccountsModule, ExtBuilder, Runtime, RuntimeEvent as Event,
+    RuntimeOrigin as Origin, System, ALICE, BOB,
+};
 use std::str::FromStr;
 
 #[test]
 fn claim_account_work() {
     ExtBuilder::default().build().execute_with(|| {
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
         assert_ok!(EvmAccountsModule::claim_account(
             Origin::signed(ALICE),
             EvmAccountsModule::eth_address(&alice()),
-            EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+            EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
         ));
-        let event = Event::EvmAccountsModule(crate::Event::ClaimAccount(
-            ALICE,
-            EvmAccountsModule::eth_address(&alice()),
-        ));
-        assert!(System::events().iter().any(|record| record.event == event));
+        let event = crate::Event::ClaimAccount {
+            account_id: ALICE,
+            evm_address: EvmAccountsModule::eth_address(&alice()),
+        };
+        assert!(System::events()
+            .iter()
+            .any(|record| record.event == mock::RuntimeEvent::EvmAccountsModule(event.clone())));
         assert!(
             Accounts::<Runtime>::contains_key(EvmAccountsModule::eth_address(&alice()))
                 && EvmAddresses::<Runtime>::contains_key(ALICE)
@@ -30,11 +38,21 @@ fn claim_account_work() {
 #[test]
 fn claim_account_should_not_work() {
     ExtBuilder::default().build().execute_with(|| {
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
+        let bob_encoded = BOB
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
+        let one_encoded = vec![1]
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
+
         assert_noop!(
             EvmAccountsModule::claim_account(
                 Origin::signed(ALICE),
                 EvmAccountsModule::eth_address(&bob()),
-                EvmAccountsModule::eth_sign(&bob(), &ALICE.encode(), &vec![1][..]).unwrap()
+                EvmAccountsModule::eth_sign(&bob(), &alice_encoded, &vec![1][..]).unwrap()
             ),
             Error::<Runtime>::InvalidSignature
         );
@@ -42,7 +60,7 @@ fn claim_account_should_not_work() {
             EvmAccountsModule::claim_account(
                 Origin::signed(ALICE),
                 EvmAccountsModule::eth_address(&bob()),
-                EvmAccountsModule::eth_sign(&bob(), &BOB.encode(), &[][..]).unwrap()
+                EvmAccountsModule::eth_sign(&bob(), &bob_encoded, &[][..]).unwrap()
             ),
             Error::<Runtime>::InvalidSignature
         );
@@ -50,14 +68,14 @@ fn claim_account_should_not_work() {
             EvmAccountsModule::claim_account(
                 Origin::signed(ALICE),
                 EvmAccountsModule::eth_address(&bob()),
-                EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+                EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
             ),
             Error::<Runtime>::InvalidSignature
         );
         assert_ok!(EvmAccountsModule::claim_account(
             Origin::signed(ALICE),
             EvmAccountsModule::eth_address(&alice()),
-            EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+            EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
         ));
         assert_noop!(
             EvmAccountsModule::claim_account(
@@ -67,11 +85,17 @@ fn claim_account_should_not_work() {
             ),
             Error::<Runtime>::AccountIdHasMapped
         );
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
+        let bob_encoded = BOB
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
         assert_noop!(
             EvmAccountsModule::claim_account(
                 Origin::signed(BOB),
                 EvmAccountsModule::eth_address(&alice()),
-                EvmAccountsModule::eth_sign(&alice(), &BOB.encode(), &[][..]).unwrap()
+                EvmAccountsModule::eth_sign(&alice(), &bob_encoded, &[][..]).unwrap()
             ),
             Error::<Runtime>::EthAddressHasMapped
         );
@@ -92,10 +116,13 @@ fn evm_get_account_id() {
             evm_account_to_default
         );
 
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
         assert_ok!(EvmAccountsModule::claim_account(
             Origin::signed(ALICE),
             EvmAccountsModule::eth_address(&alice()),
-            EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+            EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
         ));
 
         assert_eq!(
@@ -127,10 +154,13 @@ fn account_to_evm() {
 
         let alice_evm_account = EvmAccountsModule::eth_address(&alice());
 
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
         assert_ok!(EvmAccountsModule::claim_account(
             Origin::signed(ALICE),
             alice_evm_account,
-            EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+            EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
         ));
 
         assert_eq!(
@@ -184,11 +214,14 @@ fn account_to_evm_with_create_default() {
 
         let alice_evm_account = EvmAccountsModule::eth_address(&alice());
 
+        let alice_encoded = ALICE
+            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
+            .unwrap();
         assert_noop!(
             EvmAccountsModule::claim_account(
                 Origin::signed(ALICE),
                 alice_evm_account,
-                EvmAccountsModule::eth_sign(&alice(), &ALICE.encode(), &[][..]).unwrap()
+                EvmAccountsModule::eth_sign(&alice(), &alice_encoded, &[][..]).unwrap()
             ),
             Error::<Runtime>::AccountIdHasMapped
         );

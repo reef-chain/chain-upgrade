@@ -1,17 +1,17 @@
 #![cfg(test)]
 
-use crate::{AllPrecompiles, BlockWeights, SystemContractsFilter, Weight};
+use crate::{AllPrecompiles, BlockWeights, SystemContractsFilter};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
-    assert_ok, ord_parameter_types, parameter_types,
-    traits::{GenesisBuild, InstanceFilter, OnFinalize, OnInitialize},
+    assert_ok, derive_impl, ord_parameter_types, parameter_types,
+    traits::InstanceFilter,
     weights::IdentityFee,
     RuntimeDebug,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 pub use primitives::{
-    evm::AddressMapping, mocks::MockAddressMapping, Amount, BlockNumber, CurrencyId, Header, Nonce,
+    evm::AddressMapping, mocks::MockAddressMapping, Amount, CurrencyId,
     TokenSymbol,
 };
 use sp_core::{bytes::from_hex, crypto::AccountId32, Bytes, H160, H256};
@@ -19,28 +19,28 @@ use sp_runtime::{
     traits::{BlakeTwo256, Convert, IdentityLookup},
     Perbill,
 };
+use frame_support::weights::Weight;
 use sp_std::{collections::btree_map::BTreeMap, str::FromStr};
 
 pub type AccountId = AccountId32;
 type Balance = u128;
 
 parameter_types! {
-    pub const BlockHashCount: u32 = 250;
+    pub const BlockHashCount: u64 = 250;
 }
-impl frame_system::Config for Test {
+
+type Block = frame_system::mocking::MockBlock<Runtime>;
+
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
+impl frame_system::Config for Runtime {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = BlockWeights;
     type BlockLength = ();
-    type Origin = Origin;
-    type Call = Call;
-    type Index = u64;
-    type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = ();
     type Version = ();
@@ -51,9 +51,10 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type Block = Block;
 }
 
-impl pallet_timestamp::Config for Test {
+impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = ();
@@ -66,16 +67,18 @@ parameter_type_with_key! {
     };
 }
 
-impl orml_tokens::Config for Test {
-    type Event = Event;
+impl orml_tokens::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Amount = Amount;
     type CurrencyId = CurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = ();
-    type MaxLocks = MaxLocks;
+    type CurrencyHooks = ();
     type DustRemovalWhitelist = ();
+    type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = [u8; 8];
 }
 
 parameter_types! {
@@ -84,16 +87,21 @@ parameter_types! {
     pub const MaxReserves: u32 = 50;
 }
 
-impl pallet_balances::Config for Test {
+impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
+    type DoneSlashHandler = ();
 }
 
 pub const REEF: CurrencyId = CurrencyId::Token(TokenSymbol::REEF);
@@ -103,8 +111,8 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = REEF;
 }
 
-impl module_currencies::Config for Test {
-    type Event = Event;
+impl module_currencies::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type MultiCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
     type WeightInfo = ();
@@ -112,7 +120,7 @@ impl module_currencies::Config for Test {
     type EVMBridge = EVMBridge;
 }
 
-impl module_evm_bridge::Config for Test {
+impl module_evm_bridge::Config for Runtime {
     type EVM = ModuleEVM;
 }
 
@@ -122,7 +130,7 @@ parameter_types! {
     pub AllNonNativeCurrencyIds: Vec<CurrencyId> = vec![CurrencyId::Token(TokenSymbol::RUSD)];
 }
 
-impl module_transaction_payment::Config for Test {
+impl module_transaction_payment::Config for Runtime {
     type AllNonNativeCurrencyIds = AllNonNativeCurrencyIds;
     type NativeCurrencyId = GetNativeCurrencyId;
     type StableCurrencyId = GetStableCurrencyId;
@@ -131,10 +139,11 @@ impl module_transaction_payment::Config for Test {
     type OnTransactionPayment = ();
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
+    type LengthToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ();
     type WeightInfo = ();
 }
-pub type ChargeTransactionPayment = module_transaction_payment::ChargeTransactionPayment<Test>;
+pub type ChargeTransactionPayment = module_transaction_payment::ChargeTransactionPayment<Runtime>;
 
 parameter_types! {
     pub const ProxyDepositBase: u64 = 1;
@@ -147,6 +156,7 @@ parameter_types! {
 
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+    scale_info::TypeInfo,
 )]
 pub enum ProxyType {
     Any,
@@ -158,14 +168,14 @@ impl Default for ProxyType {
         Self::Any
     }
 }
-impl InstanceFilter<Call> for ProxyType {
-    fn filter(&self, c: &Call) -> bool {
+impl InstanceFilter<RuntimeCall> for ProxyType {
+    fn filter(&self, c: &RuntimeCall) -> bool {
         match self {
             ProxyType::Any => true,
             ProxyType::JustTransfer => {
-                matches!(c, Call::Balances(pallet_balances::Call::transfer(..)))
+                matches!(c, RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death { .. }))
             }
-            ProxyType::JustUtility => matches!(c, Call::Utility(..)),
+            ProxyType::JustUtility => matches!(c, RuntimeCall::Utility(..)),
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
@@ -173,9 +183,9 @@ impl InstanceFilter<Call> for ProxyType {
     }
 }
 
-impl pallet_proxy::Config for Test {
-    type Event = Event;
-    type Call = Call;
+impl pallet_proxy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type Currency = Balances;
     type ProxyType = ProxyType;
     type ProxyDepositBase = ProxyDepositBase;
@@ -188,9 +198,10 @@ impl pallet_proxy::Config for Test {
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
-impl pallet_utility::Config for Test {
-    type Event = Event;
-    type Call = Call;
+impl pallet_utility::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PalletsOrigin = OriginCaller;
     type WeightInfo = ();
 }
 
@@ -199,19 +210,22 @@ parameter_types! {
     pub const MaxScheduledPerBlock: u32 = 50;
 }
 
-impl pallet_scheduler::Config for Test {
-    type Event = Event;
-    type Origin = Origin;
+impl pallet_scheduler::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type PalletsOrigin = OriginCaller;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type MaximumWeight = MaximumSchedulerWeight;
     type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = ();
+    type OriginPrivilegeCmp = frame_support::traits::EqualPrivilegeOnly;
+    type Preimages = ();
 }
 
 pub type AdaptedBasicCurrency =
-    module_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
+    module_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, u64>;
 
 pub type MultiCurrencyPrecompile =
     crate::MultiCurrencyPrecompile<AccountId, MockAddressMapping, Currencies>;
@@ -222,10 +236,10 @@ pub type ScheduleCallPrecompile = crate::ScheduleCallPrecompile<
     MockAddressMapping,
     Scheduler,
     ChargeTransactionPayment,
-    Call,
-    Origin,
+    RuntimeCall,
+    RuntimeOrigin,
     OriginCaller,
-    Test,
+    Runtime,
 >;
 
 parameter_types! {
@@ -245,19 +259,19 @@ ord_parameter_types! {
 
 pub struct GasToWeight;
 impl Convert<u64, Weight> for GasToWeight {
-    fn convert(a: u64) -> u64 {
-        a as Weight
+    fn convert(a: u64) -> Weight {
+        Weight::from_parts(a, 0)
     }
 }
 
-impl module_evm::Config for Test {
+impl module_evm::Config for Runtime {
     type AddressMapping = MockAddressMapping;
     type Currency = Balances;
     type TransferAll = Currencies;
     type NewContractExtraBytes = NewContractExtraBytes;
     type StorageDepositPerByte = StorageDepositPerByte;
     type MaxCodeSize = MaxCodeSize;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Precompiles = AllPrecompiles<
         SystemContractsFilter,
         MultiCurrencyPrecompile,
@@ -309,34 +323,27 @@ pub fn evm_genesis() -> BTreeMap<H160, module_evm::GenesisAccount<Balance, u64>>
 pub const INITIAL_BALANCE: Balance = 1_000_000_000_000;
 pub const REEF_ERC20_ADDRESS: &str = "0x0000000000000000000000000000000001000000";
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
-
 frame_support::construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Currencies: module_currencies::{Pallet, Call, Event<T>},
-        EVMBridge: module_evm_bridge::{Pallet},
-        TransactionPayment: module_transaction_payment::{Pallet, Call, Storage},
-        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
-        Utility: pallet_utility::{Pallet, Call, Event},
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-        ModuleEVM: module_evm::{Pallet, Config<T>, Call, Storage, Event<T>},
+    pub enum Runtime {
+        System: frame_system,
+        Timestamp: pallet_timestamp,
+        Tokens: orml_tokens,
+        Balances: pallet_balances,
+        Currencies: module_currencies,
+        EVMBridge: module_evm_bridge,
+        TransactionPayment: module_transaction_payment,
+        Proxy: pallet_proxy,
+        Utility: pallet_utility,
+        Scheduler: pallet_scheduler,
+        ModuleEVM: module_evm,
     }
 );
 
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut storage = frame_system::GenesisConfig::default()
-        .build_storage::<Test>()
+    let mut storage = frame_system::GenesisConfig::<Runtime>::default()
+        .build_storage()
         .unwrap();
 
     let mut accounts = BTreeMap::new();
@@ -362,10 +369,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         },
     );
 
-    pallet_balances::GenesisConfig::<Test>::default()
+    pallet_balances::GenesisConfig::<Runtime>::default()
         .assimilate_storage(&mut storage)
         .unwrap();
-    module_evm::GenesisConfig::<Test> { accounts }
+    module_evm::GenesisConfig::<Runtime> { accounts }
         .assimilate_storage(&mut storage)
         .unwrap();
 
@@ -375,20 +382,20 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Timestamp::set_timestamp(1);
 
         assert_ok!(Currencies::update_balance(
-            Origin::root(),
+            RuntimeOrigin::root(),
             ALICE,
             REEF,
             1_000_000_000_000
         ));
         assert_ok!(Currencies::update_balance(
-            Origin::root(),
+            RuntimeOrigin::root(),
             ALICE,
             RUSD,
             1_000_000_000
         ));
 
         assert_ok!(Currencies::update_balance(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAddressMapping::get_account_id(&alice()),
             RUSD,
             1_000
@@ -398,6 +405,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 pub fn run_to_block(n: u32) {
+    use frame_support::traits::{OnFinalize, OnInitialize};
     while System::block_number() < n {
         Scheduler::on_finalize(System::block_number());
         System::set_block_number(System::block_number() + 1);

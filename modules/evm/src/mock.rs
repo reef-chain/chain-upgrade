@@ -2,18 +2,18 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
+use frame_support::{construct_runtime, derive_impl, ord_parameter_types, parameter_types};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use primitives::mocks::MockAddressMapping;
-use primitives::{Amount, BlockNumber, CurrencyId, TokenSymbol};
+use primitives::{Amount, CurrencyId, TokenSymbol};
 use sp_core::{H160, H256};
 use sp_runtime::{
-    testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    AccountId32,
+    AccountId32, BuildStorage,
 };
 use std::{collections::BTreeMap, str::FromStr};
+use frame_support::weights::Weight;
 
 mod evm_mod {
     pub use super::super::*;
@@ -23,20 +23,18 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
 
-impl frame_system::Config for Test {
+type Block = frame_system::mocking::MockBlock<Runtime>;
+
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
+impl frame_system::Config for Runtime {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
     type BlockLength = ();
-    type Origin = Origin;
-    type Call = Call;
-    type Index = u64;
-    type BlockNumber = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId32;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = ();
     type Version = ();
@@ -47,6 +45,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type Block = Block;
 }
 
 parameter_types! {
@@ -54,22 +53,27 @@ parameter_types! {
     pub const MaxLocks: u32 = 50;
     pub const MaxReserves: u32 = 50;
 }
-impl pallet_balances::Config for Test {
+impl pallet_balances::Config for Runtime {
     type Balance = u64;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = primitives::ReserveIdentifier;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
+    type DoneSlashHandler = ();
 }
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 1000;
 }
-impl pallet_timestamp::Config for Test {
+impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -82,37 +86,40 @@ parameter_type_with_key! {
     };
 }
 
-impl orml_tokens::Config for Test {
-    type Event = Event;
+impl orml_tokens::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type Balance = u64;
     type Amount = Amount;
     type CurrencyId = CurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = ();
+    type CurrencyHooks = ();
     type DustRemovalWhitelist = ();
     type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = primitives::ReserveIdentifier;
 }
 
 parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::REEF);
 }
 
-impl orml_currencies::Config for Test {
-    type Event = Event;
+impl module_currencies::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type MultiCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
+    type AddressMapping = MockAddressMapping;
+    type EVMBridge = ();
 }
 pub type AdaptedBasicCurrency =
-    orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
+    module_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, u64>;
 
 pub struct GasToWeight;
 
-impl Convert<u64, u64> for GasToWeight {
-    fn convert(a: u64) -> u64 {
-        a
+impl Convert<u64, Weight> for GasToWeight {
+    fn convert(a: u64) -> Weight {
+        Weight::from_parts(a, 0)
     }
 }
 
@@ -131,7 +138,7 @@ ord_parameter_types! {
     pub const ChainId: u64 = 1;
 }
 
-impl Config for Test {
+impl Config for Runtime {
     type AddressMapping = MockAddressMapping;
     type Currency = Balances;
     type TransferAll = Currencies;
@@ -139,7 +146,7 @@ impl Config for Test {
     type StorageDepositPerByte = StorageDepositPerByte;
     type MaxCodeSize = MaxCodeSize;
 
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Precompiles = ();
     type ChainId = ChainId;
     type GasToWeight = GasToWeight;
@@ -154,20 +161,13 @@ impl Config for Test {
     type WeightInfo = ();
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
-
 construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        EVM: evm_mod::{Pallet, Config<T>, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+    pub enum Runtime {
+        System: frame_system,
+        EVM: evm_mod,
+        Tokens: orml_tokens,
+        Balances: pallet_balances,
+        Currencies: module_currencies,
     }
 );
 
@@ -194,8 +194,8 @@ pub fn charlie() -> H160 {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
-        .build_storage::<Test>()
+    let mut t = frame_system::GenesisConfig::<Runtime>::default()
+        .build_storage()
         .unwrap();
 
     let mut accounts = BTreeMap::new();
@@ -242,10 +242,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         },
     );
 
-    pallet_balances::GenesisConfig::<Test>::default()
+    pallet_balances::GenesisConfig::<Runtime>::default()
         .assimilate_storage(&mut t)
         .unwrap();
-    evm_mod::GenesisConfig::<Test> { accounts }
+    evm_mod::GenesisConfig::<Runtime> { accounts }
         .assimilate_storage(&mut t)
         .unwrap();
 
@@ -255,15 +255,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 pub fn balance(address: H160) -> u64 {
-    let account_id = <Test as Config>::AddressMapping::get_account_id(&address);
+    let account_id = <Runtime as Config>::AddressMapping::get_account_id(&address);
     Balances::free_balance(account_id)
 }
 
 pub fn reserved_balance(address: H160) -> u64 {
-    let account_id = <Test as Config>::AddressMapping::get_account_id(&address);
+    let account_id = <Runtime as Config>::AddressMapping::get_account_id(&address);
     Balances::reserved_balance(account_id)
 }
 
 pub fn deploy_free(contract: H160) {
-    let _ = EVM::deploy_free(Origin::signed(CouncilAccount::get()), contract);
+    let _ = EVM::deploy_free(RuntimeOrigin::signed(CouncilAccount::get()), contract);
 }

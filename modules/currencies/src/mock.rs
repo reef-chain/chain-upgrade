@@ -2,14 +2,13 @@
 
 #![cfg(test)]
 
-use frame_support::{ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId};
+use frame_support::{derive_impl, ord_parameter_types, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
 use primitives::{evm::AddressMapping, mocks::MockAddressMapping, CurrencyId, TokenSymbol};
 use sp_core::H256;
 use sp_runtime::{
-    testing::Header,
-    traits::{AccountIdConversion, IdentityLookup},
-    AccountId32, Perbill,
+    traits::{IdentityLookup, AccountIdConversion},
+    AccountId32, BuildStorage,
 };
 
 use super::*;
@@ -25,21 +24,16 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const MaximumBlockWeight: u32 = 1024;
     pub const MaximumBlockLength: u32 = 2 * 1024;
-    pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 pub type AccountId = AccountId32;
+
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Runtime {
-    type Origin = Origin;
-    type Call = Call;
-    type Index = u64;
-    type BlockNumber = u64;
     type Hash = H256;
     type Hashing = sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type BlockWeights = ();
     type BlockLength = ();
@@ -53,6 +47,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type Block = Block;
 }
 
 type Balance = u128;
@@ -64,20 +59,22 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+    pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account_truncating();
     pub const MaxLocks: u32 = 50;
 }
 
-impl tokens::Config for Runtime {
+impl orml_tokens::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Amount = i64;
     type CurrencyId = CurrencyId;
     type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = tokens::TransferDust<Runtime, DustAccount>;
+    type CurrencyHooks = ();
     type WeightInfo = ();
     type DustRemovalWhitelist = ();
     type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = primitives::ReserveIdentifier;
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = CurrencyId::Token(TokenSymbol::REEF);
@@ -101,7 +98,12 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = primitives::ReserveIdentifier;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
+    type DoneSlashHandler = ();
 }
 
 pub type PalletBalances = pallet_balances::Pallet<Runtime>;
@@ -171,21 +173,16 @@ pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, i6
 
 pub type SignedExtra = module_evm::SetEvmOrigin<Runtime>;
 
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, SignedExtra>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
 
 frame_support::construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Tokens: tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Currencies: currencies::{Pallet, Call, Event<T>},
-        EVM: module_evm::{Pallet, Config<T>, Call, Storage, Event<T>},
-        EVMBridge: module_evm_bridge::{Pallet},
+    pub enum Runtime {
+        System: frame_system,
+        Balances: pallet_balances,
+        Tokens: orml_tokens,
+        Currencies: currencies,
+        EVM: module_evm,
+        EVMBridge: module_evm_bridge,
     }
 );
 
@@ -238,8 +235,8 @@ impl ExtBuilder {
     }
 
     pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
+        let mut t = frame_system::GenesisConfig::<Runtime>::default()
+            .build_storage()
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
@@ -250,11 +247,12 @@ impl ExtBuilder {
                 .filter(|(_, currency_id, _)| *currency_id == NATIVE_CURRENCY_ID)
                 .map(|(account_id, _, initial_balance)| (account_id, initial_balance))
                 .collect::<Vec<_>>(),
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .unwrap();
 
-        tokens::GenesisConfig::<Runtime> {
+        orml_tokens::GenesisConfig::<Runtime> {
             balances: self
                 .endowed_accounts
                 .into_iter()

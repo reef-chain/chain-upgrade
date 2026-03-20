@@ -24,8 +24,8 @@ module-support = { path = "../support", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { workspace = true ,default-features = false }
-orml-currencies = { path = "../../orml/currencies" }
-orml-tokens = { path = "../../orml/tokens" }
+orml-currencies = { path = "../../orml/currencies", default-features = false }
+orml-tokens = { path = "../../orml/tokens", default-features = false }
 
 [features]
 default = ["std"]
@@ -43,4 +43,7 @@ std = [
 	"primitives/std",
 	"orml-traits/std",
 	"module-support/std",
+	"pallet-balances/std",
+	"orml-currencies/std",
+	"orml-tokens/std",
 ]

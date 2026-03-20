@@ -3,14 +3,14 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::ExistenceRequirement};
 use mock::{
-    alice, bob, AccountId, AdaptedBasicCurrency, Currencies, Event, ExtBuilder, NativeCurrency,
-    Origin, PalletBalances, Runtime, System, Tokens, ALICE, BOB, ERC20, EVA, EVM, ID_1,
+    alice, bob, AccountId, AdaptedBasicCurrency, Currencies, RuntimeEvent as Event, ExtBuilder, NativeCurrency,
+    RuntimeOrigin as Origin, PalletBalances, Runtime, System, Tokens, ALICE, BOB, ERC20, EVA, EVM, ID_1,
     NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
 use sp_core::H160;
-use sp_runtime::traits::BadOrigin;
+use sp_runtime::{traits::BadOrigin, MultiAddress};
 use support::EVM as EVMTrait;
 
 #[test]
@@ -139,7 +139,7 @@ fn native_currency_should_work() {
             assert_eq!(NativeCurrency::free_balance(&ALICE), 50);
             assert_eq!(NativeCurrency::free_balance(&BOB), 150);
 
-            assert_ok!(NativeCurrency::transfer(&ALICE, &BOB, 10));
+            assert_ok!(NativeCurrency::transfer(&ALICE, &BOB, 10, ExistenceRequirement::AllowDeath));
             assert_eq!(NativeCurrency::free_balance(&ALICE), 40);
             assert_eq!(NativeCurrency::free_balance(&BOB), 160);
 
@@ -175,12 +175,12 @@ fn basic_currency_adapting_pallet_balances_transfer() {
         .one_hundred_for_alice_n_bob()
         .build()
         .execute_with(|| {
-            assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &BOB, 50));
+            assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &BOB, 50, ExistenceRequirement::AllowDeath));
             assert_eq!(PalletBalances::total_balance(&ALICE), 50);
             assert_eq!(PalletBalances::total_balance(&BOB), 150);
 
             // creation fee
-            assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &EVA, 10));
+            assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &EVA, 10, ExistenceRequirement::AllowDeath));
             assert_eq!(PalletBalances::total_balance(&ALICE), 40);
             assert_eq!(PalletBalances::total_balance(&EVA), 10);
         });
@@ -204,7 +204,7 @@ fn basic_currency_adapting_pallet_balances_withdraw() {
         .one_hundred_for_alice_n_bob()
         .build()
         .execute_with(|| {
-            assert_ok!(AdaptedBasicCurrency::withdraw(&ALICE, 100));
+            assert_ok!(AdaptedBasicCurrency::withdraw(&ALICE, 100, ExistenceRequirement::AllowDeath));
             assert_eq!(PalletBalances::total_balance(&ALICE), 0);
             assert_eq!(PalletBalances::total_issuance(), 100);
         });
@@ -290,7 +290,7 @@ fn call_event_should_work() {
                 .any(|record| record.event == transferred_event));
 
             assert_ok!(<Currencies as MultiCurrency<AccountId>>::transfer(
-                X_TOKEN_ID, &ALICE, &BOB, 10
+                X_TOKEN_ID, &ALICE, &BOB, 10, ExistenceRequirement::AllowDeath
             ));
             assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 40);
             assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 160);
@@ -313,7 +313,7 @@ fn call_event_should_work() {
                 .any(|record| record.event == transferred_event));
 
             assert_ok!(<Currencies as MultiCurrency<AccountId>>::withdraw(
-                X_TOKEN_ID, &ALICE, 20
+                X_TOKEN_ID, &ALICE, 20, ExistenceRequirement::AllowDeath
             ));
             assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 120);
 
@@ -644,7 +644,7 @@ fn erc20_invalid_operation() {
             Error::<Runtime>::ERC20InvalidOperation
         );
         assert_noop!(
-            Currencies::withdraw(ERC20, &alice(), 1),
+            Currencies::withdraw(ERC20, &alice(), 1, ExistenceRequirement::AllowDeath),
             Error::<Runtime>::ERC20InvalidOperation
         );
         assert_noop!(

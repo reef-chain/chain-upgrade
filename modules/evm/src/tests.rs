@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use mock::{Event, *};
+use mock::{Runtime as Test, RuntimeEvent as Event, RuntimeOrigin as Origin, *};
 
 use crate::runner::handler::Handler;
 use frame_support::{assert_noop, assert_ok};
@@ -104,8 +104,8 @@ fn should_create_and_call_contract() {
 			<Test as Config>::config(),
 		).unwrap();
 		assert_eq!(
-			U256::from(from_hex("0x06").unwrap().as_slice()),
-			U256::from(result.output.as_slice())
+			U256::from(6),
+			U256::from_big_endian(result.output.as_slice())
 		);
 
 		assert_eq!(Pallet::<Test>::account_basic(&caller).nonce, U256::from_str("03").unwrap());
@@ -830,14 +830,14 @@ fn create_extrinisic_should_deposit_create_event() {
             1000000,
             1000000
         ));
-        let event = mock::Event::from(crate::Event::Created(
+        let event = crate::Event::Created(
             alice(),
             H160::from_str("0x5f8bd49cd9f0cb2bd5bb9d4320dfe9b61023249d").unwrap(),
             (61183, 284),
-        ));
+        );
         assert!(<frame_system::Pallet<Test>>::events()
             .iter()
-            .any(|x| x.event == event));
+            .any(|x| x.event == mock::RuntimeEvent::EVM(event.clone())));
     });
 }
 
@@ -863,14 +863,14 @@ fn create2_extrinisic_should_deposit_create_event() {
             1000000,
             1000000
         ));
-        let event = mock::Event::from(crate::Event::Created(
+        let event = crate::Event::Created(
             alice(),
             H160::from_str("0x182f69c8cd38252a33d1a38c48c6fcf8a1742086").unwrap(),
             (61183, 284),
-        ));
+        );
         assert!(<frame_system::Pallet<Test>>::events()
             .iter()
-            .any(|x| x.event == event));
+            .any(|x| x.event == mock::RuntimeEvent::EVM(event.clone())));
     });
 }
 

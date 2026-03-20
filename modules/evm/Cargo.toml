@@ -40,6 +40,8 @@ primitives = { package = "reef-primitives", path = "../../primitives", default-f
 
 [dev-dependencies]
 env_logger = "0.7"
+orml-tokens = { path = "../../orml/tokens", default-features = false }
+module-currencies = { path = "../currencies", default-features = false }
 
 [features]
 default = ["std"]
@@ -66,6 +68,8 @@ std = [
 	"evm-gasometer/std",
 	"orml-traits/std",
 	"support/std",
-	"log/std"
+	"log/std",
+	"orml-tokens/std",
+	"module-currencies/std",
 ]
 with-ethereum-compatibility = []
