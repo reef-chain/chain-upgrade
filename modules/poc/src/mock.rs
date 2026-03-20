@@ -31,7 +31,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
-    type Block = Block;
+    type Block = frame_system::mocking::MockBlock<Runtime>;
 }
 
 parameter_types! {
@@ -107,7 +107,7 @@ impl module_poc::Config for Runtime {
     type WeightInfo = ();
 }
 
-type Block = frame_system::mocking::MockBlock<Runtime>;
+// type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
     pub enum Runtime {
@@ -118,25 +118,33 @@ construct_runtime!(
     }
 );
 
+pub type Origin = RuntimeOrigin;
+pub type Call = RuntimeCall;
+
 pub fn new_test_ext() -> sp_io::TestExternalities {
+    use sp_runtime::BuildStorage;
     let mut t = frame_system::GenesisConfig::<Runtime>::default()
         .build_storage()
         .unwrap();
 
     // inject test balances
-    pallet_balances::GenesisConfig::<Runtime> {
+    let balances_config = pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (0, 1_000_000), // alice
             (1, 1_000_000), // bob
             (2, 1_000_000), // charlie
             (3, 1_000_000), // eve
         ],
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
+        dev_accounts: None,
+    };
+    balances_config.assimilate_storage(&mut t).unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| System::set_block_number(1));
 
     ext
+}
+
+pub fn tech_council_members() -> Vec<u64> {
+    pallet_collective::Members::<Runtime, TechCouncilInstance>::get()
 }

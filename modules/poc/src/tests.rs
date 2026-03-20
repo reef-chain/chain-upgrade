@@ -12,7 +12,7 @@ fn test_setup() {
         assert_eq!(balance, 1_000_000 as u64);
 
         // TechCouncil membership is empty
-        assert!(TechCouncil::members().is_empty());
+        assert!(tech_council_members().is_empty());
 
         // we start at era 0
         assert!(Poc::current_era().index == 0);
@@ -48,7 +48,7 @@ fn commits() {
             crate::LockDuration::OneYear,
             bob,
         ));
-        assert!(Poc::commitments(alice).state == crate::LockState::Committed);
+        assert!(Poc::commitments(alice).unwrap().state == crate::LockState::Committed);
 
         // cannot commit again
         assert_err!(
@@ -63,7 +63,7 @@ fn commits() {
 
         // we can however add more funds
         assert_ok!(Poc::add_funds(Origin::signed(alice), (1_000 as u64).into(),));
-        let balance = Poc::commitments(alice).amount;
+        let balance = Poc::commitments(alice).unwrap().amount;
         assert!(balance as u64 == 101_000 as u64);
         assert_eq!(Poc::locked_amount(), 101_000 as u64);
     });
@@ -92,7 +92,7 @@ fn withdrawals() {
         assert_ok!(Poc::unbond(Origin::signed(alice)));
 
         // her voting power is now 0
-        assert_eq!(Poc::voting_weight(&Poc::commitments(&alice)), 0);
+        assert_eq!(Poc::voting_weight(&Poc::commitments(&alice).unwrap()), 0);
 
         // still to early to withdraw
         assert_err!(
@@ -110,7 +110,7 @@ fn withdrawals() {
 
         // storage checks
         assert_eq!(Poc::locked_amount(), 0 as u64);
-        assert_eq!(Poc::commitments(&alice).amount, 0 as u64);
+        assert!(Poc::commitments(&alice).is_none());
 
         // alice can make a new commitment
         assert_ok!(Poc::commit(
@@ -119,7 +119,7 @@ fn withdrawals() {
             crate::LockDuration::OneMonth,
             bob,
         ));
-        assert_eq!(Poc::commitments(&alice).amount, 100_000 as u64);
+        assert_eq!(Poc::commitments(&alice).unwrap().amount, 100_000 as u64);
         let balance = Balances::free_balance(&alice);
         assert_eq!(balance, 900_000 as u64);
     });
@@ -247,7 +247,7 @@ fn elections() {
             alice,
         ));
         // she gets 1x voting power
-        assert_eq!(Poc::voting_weight(&Poc::commitments(&alice)), 100_000,);
+        assert_eq!(Poc::voting_weight(&Poc::commitments(&alice).unwrap()), 100_000,);
 
         // bob commits for a year
         assert_ok!(Poc::commit(
@@ -257,7 +257,7 @@ fn elections() {
             bob,
         ));
         // he gets 10x voting power
-        assert_eq!(Poc::voting_weight(&Poc::commitments(&bob)), 10 * 100_000,);
+        assert_eq!(Poc::voting_weight(&Poc::commitments(&bob).unwrap()), 10 * 100_000,);
 
         // charlie commits for 10 years
         assert_ok!(Poc::commit(
@@ -268,7 +268,7 @@ fn elections() {
         ));
         // he gets 100x voting power
         assert_eq!(
-            Poc::voting_weight(&Poc::commitments(&charlie)),
+            Poc::voting_weight(&Poc::commitments(&charlie).unwrap()),
             100 * 100_000,
         );
 
@@ -279,7 +279,7 @@ fn elections() {
             crate::LockDuration::TenYears,
             nobody,
         ));
-        assert_eq!(Poc::voting_weight(&Poc::commitments(&eve)), 100 * 200_000,);
+        assert_eq!(Poc::voting_weight(&Poc::commitments(&eve).unwrap()), 100 * 200_000,);
 
         // check current supply for rewards = 4m - 500k committed
         let total_supply = Balances::total_issuance();
@@ -290,7 +290,7 @@ fn elections() {
 
         // winners (non-candidate not included)
         assert_eq!(Poc::members(), vec![alice, bob, charlie]);
-        assert_eq!(TechCouncil::members(), vec![alice, bob, charlie]);
+        assert_eq!(tech_council_members(), vec![alice, bob, charlie]);
 
         // check rewards
         // In [1]: (7/(24*365)) * (3_500_000 * 0.01)
@@ -313,7 +313,7 @@ fn elections() {
 
         // winners (alice falls out)
         assert_eq!(Poc::members(), vec![bob, charlie, eve]);
-        assert_eq!(TechCouncil::members(), vec![bob, charlie, eve]);
+        assert_eq!(tech_council_members(), vec![bob, charlie, eve]);
 
         // rewards
         assert_eq!(Balances::free_balance(&alice), 650_009 as u64);
