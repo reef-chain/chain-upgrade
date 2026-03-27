@@ -59,7 +59,7 @@ use frame_election_provider_support::{
 };
 
 // Assets
-use pallet_assets_precompiles::{InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, NativeERC20,ERC20};
 
 // Assets Conversion
 use pallet_asset_conversion::{AccountIdConverter, Ascending, Chain, WithFirstAsset};
@@ -708,7 +708,8 @@ impl pallet_revive::Config for Runtime {
     type DepositPerChildTrieItem = DepositPerChildTrieItem;
     type DepositPerByte = DepositPerByte;
     type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
-    type Precompiles = (
+     type Precompiles = (
+        NativeERC20<Self>, // 0x0000000000000000000000000000000001000000
         ERC20<Self, InlineIdConfig<0x1>, Instance1>,
         ERC20<Self, InlineIdConfig<0x2>, Instance2>,
     );

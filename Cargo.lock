@@ -1160,7 +1160,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-asset-conversion",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-session",
@@ -1190,7 +1190,7 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples 0.2.3",
  "pallet-asset-conversion",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-revive 0.12.0",
  "pallet-revive-uapi 0.10.0",
  "pallet-xcm",
@@ -4344,7 +4344,7 @@ dependencies = [
  "frame-system",
  "hex-literal 0.4.1",
  "pallet-asset-conversion",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-balances",
  "pallet-bridge-messages",
  "pallet-message-queue",
@@ -9356,6 +9356,22 @@ dependencies = [
 [[package]]
 name = "pallet-assets"
 version = "48.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff6c6f83434a950fc732d72c6adc26a61e070"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples 0.2.3",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-assets"
+version = "48.1.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9371,27 +9387,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-assets"
-version = "48.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff6c6f83434a950fc732d72c6adc26a61e070"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "impl-trait-for-tuples 0.2.3",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "pallet-assets-freezer"
 version = "0.8.0"
 dependencies = [
  "log",
- "pallet-assets 48.0.0",
+ "pallet-assets 48.1.0",
  "pallet-balances",
  "parity-scale-codec",
  "polkadot-sdk-frame",
@@ -9404,7 +9404,7 @@ version = "0.13.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff6c6f83434a950fc732d72c6adc26a61e070"
 dependencies = [
  "log",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "scale-info",
@@ -9419,26 +9419,9 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime",
-]
-
-[[package]]
-name = "pallet-assets-precompiles"
-version = "0.4.0"
-dependencies = [
- "ethereum-standards",
- "frame-support",
- "frame-system",
  "pallet-assets 48.0.0",
- "pallet-balances",
- "pallet-revive 0.12.2",
  "parity-scale-codec",
  "scale-info",
- "sp-core",
- "sp-io",
  "sp-runtime",
 ]
 
@@ -9449,8 +9432,26 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff
 dependencies = [
  "ethereum-standards",
  "frame-support",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-revive 0.12.0",
+]
+
+[[package]]
+name = "pallet-assets-precompiles"
+version = "0.4.1"
+dependencies = [
+ "ethereum-standards",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-assets 48.1.0",
+ "pallet-balances",
+ "pallet-revive 0.12.2",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -9832,7 +9833,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff
 dependencies = [
  "frame-support",
  "frame-system",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-balances",
  "pallet-contracts",
  "pallet-contracts-uapi",
@@ -10359,7 +10360,7 @@ version = "29.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2512#2a1ff6c6f83434a950fc732d72c6adc26a61e070"
 dependencies = [
  "log",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-nfts",
  "parity-scale-codec",
  "polkadot-sdk-frame",
@@ -11554,7 +11555,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-asset-tx-payment",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
@@ -13054,10 +13055,10 @@ dependencies = [
  "pallet-asset-rate",
  "pallet-asset-rewards",
  "pallet-asset-tx-payment",
- "pallet-assets 48.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets 48.0.0",
  "pallet-assets-freezer 0.13.0",
  "pallet-assets-holder",
- "pallet-assets-precompiles 0.4.0 (git+https://github.com/paritytech/polkadot-sdk?branch=stable2512)",
+ "pallet-assets-precompiles 0.4.0",
  "pallet-atomic-swap",
  "pallet-aura",
  "pallet-authority-discovery",
@@ -14726,10 +14727,10 @@ dependencies = [
  "pallet-asset-rate",
  "pallet-asset-rewards",
  "pallet-asset-tx-payment",
- "pallet-assets 48.0.0",
+ "pallet-assets 48.1.0",
  "pallet-assets-freezer 0.8.0",
  "pallet-assets-holder",
- "pallet-assets-precompiles 0.4.0",
+ "pallet-assets-precompiles 0.4.1",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-babe",
