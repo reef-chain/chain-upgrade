@@ -25,7 +25,6 @@
 //! in on-chain storage under a deterministic prefix, using [`sp_io::storage`].
 
 use alloc::vec::Vec;
-use codec::{Decode, Encode};
 use core::{marker::PhantomData, num::NonZero};
 use ethereum_standards::IERC20::{self, IERC20Calls, IERC20Events};
 use frame_support::traits::{
@@ -58,32 +57,6 @@ pub const NATIVE_ERC20_ADDRESS: [u8; 20] = {
     addr
 };
 
-/// Storage prefix for allowances: `NativeERC20Allowances`
-const ALLOWANCE_PREFIX: &[u8] = b"NativeERC20Allowances";
-
-/// Returns the storage key for `allowances[owner][spender]`.
-fn allowance_key(owner: &[u8; 20], spender: &[u8; 20]) -> Vec<u8> {
-    let mut key = Vec::with_capacity(ALLOWANCE_PREFIX.len() + 40);
-    key.extend_from_slice(ALLOWANCE_PREFIX);
-    key.extend_from_slice(owner);
-    key.extend_from_slice(spender);
-    key
-}
-
-/// Read the stored allowance of `spender` for `owner`.
-fn get_allowance(owner: &[u8; 20], spender: &[u8; 20]) -> u128 {
-    let key = allowance_key(owner, spender);
-    sp_io::storage::get(&key)
-        .and_then(|bytes| u128::decode(&mut &bytes[..]).ok())
-        .unwrap_or_default()
-}
-
-/// Write the allowance of `spender` for `owner`.
-fn set_allowance(owner: &[u8; 20], spender: &[u8; 20], amount: u128) {
-    let key = allowance_key(owner, spender);
-    sp_io::storage::set(&key, &amount.encode());
-}
-
 /// An ERC20 precompile for the native REEF token.
 ///
 /// Forwards ERC20 calls to `pallet_balances` (via `T::Currency`).
@@ -91,9 +64,9 @@ pub struct NativeERC20<T>(PhantomData<T>);
 
 impl<T> Precompile for NativeERC20<T>
 where
-    T: pallet_revive::Config,
-    u128: TryInto<T::Balance>,
-    T::Balance: Into<u128>,
+    T: pallet_revive::Config<ReviveBalance = u128>,
+    u128: TryInto<T::ReviveBalance>,
+    T::ReviveBalance: Into<u128>,
 {
     type T = T;
     type Interface = IERC20::IERC20Calls;
@@ -138,9 +111,9 @@ const ERR_INSUFFICIENT_ALLOWANCE: &str = "Insufficient allowance";
 
 impl<T> NativeERC20<T>
 where
-    T: pallet_revive::Config,
-    u128: TryInto<T::Balance>,
-    T::Balance: Into<u128>,
+    T: pallet_revive::Config<ReviveBalance = u128>,
+    u128: TryInto<T::ReviveBalance>,
+    T::ReviveBalance: Into<u128>,
 {
     /// Return the caller's Ethereum address.
     fn caller_address(env: &mut impl Ext<T = T>) -> Result<H160, Error> {
@@ -155,7 +128,7 @@ where
     }
 
     /// Convert an alloy `U256` value to `T::Balance` (via u128).
-    fn to_balance(value: AlloyU256) -> Result<T::Balance, Error> {
+    fn to_balance(value: AlloyU256) -> Result<T::ReviveBalance, Error> {
         // Clamp to u128::MAX and convert via u128 — T::Balance is u128 in Reef runtime.
         let as_u128 = u128::try_from(value).map_err(|_| {
             Error::Revert(Revert {
@@ -170,7 +143,7 @@ where
     }
 
     /// Convert `T::Balance` (u128) to alloy `U256`.
-    fn to_alloy_u256(balance: T::Balance) -> AlloyU256 {
+    fn to_alloy_u256(balance: T::ReviveBalance) -> AlloyU256 {
         let as_u128: u128 = balance.into();
         AlloyU256::from(as_u128)
     }
@@ -193,7 +166,7 @@ where
     /// `totalSupply()` → `T::Currency::total_issuance()`.
     fn total_supply(env: &mut impl Ext<T = T>) -> Result<Vec<u8>, Error> {
         env.charge(frame_support::weights::Weight::from_parts(100_000, 0))?;
-        let total = <T as pallet_revive::Config>::Currency::total_issuance();
+        let total = pallet_revive::TotalReviveIssuance::<T>::get();
         let value = Self::to_alloy_u256(total);
         Ok(IERC20::totalSupplyCall::abi_encode_returns(&value))
     }
@@ -246,10 +219,10 @@ where
         env: &mut impl Ext<T = T>,
     ) -> Result<Vec<u8>, Error> {
         env.charge(frame_support::weights::Weight::from_parts(50_000, 0))?;
-        let owner: [u8; 20] = call.owner.into_array();
-        let spender: [u8; 20] = call.spender.into_array();
-        let amount: u128 = get_allowance(&owner, &spender);
-        let value = AlloyU256::from(amount);
+        let owner: H160 = call.owner.into_array().into();
+        let spender: H160 = call.spender.into_array().into();
+        let balance = pallet_revive::NativeERC20Allowances::<T>::get(owner, spender);
+        let value = Self::to_alloy_u256(balance);
         Ok(IERC20::allowanceCall::abi_encode_returns(&value))
     }
 
@@ -257,16 +230,9 @@ where
     fn approve(call: &IERC20::approveCall, env: &mut impl Ext<T = T>) -> Result<Vec<u8>, Error> {
         env.charge(frame_support::weights::Weight::from_parts(150_000, 0))?;
         let owner_addr = Self::caller_address(env)?;
-        let owner: [u8; 20] = owner_addr.0;
-        let spender: [u8; 20] = call.spender.into_array();
-
-        // Convert alloy U256 to u128 for storage
-        let amount = u128::try_from(call.value).map_err(|_| {
-            Error::Revert(Revert {
-                reason: ERR_BALANCE_CONVERSION.into(),
-            })
-        })?;
-        set_allowance(&owner, &spender, amount);
+        let spender: H160 = call.spender.into_array().into();
+        let amount = Self::to_balance(call.value)?;
+        pallet_revive::NativeERC20Allowances::<T>::insert(owner_addr, spender, amount);
 
         Self::deposit_event(
             env,
@@ -287,32 +253,27 @@ where
     ) -> Result<Vec<u8>, Error> {
         env.charge(frame_support::weights::Weight::from_parts(600_000, 0))?;
         let spender_addr = Self::caller_address(env)?;
-        let spender: [u8; 20] = spender_addr.0;
 
         let from_addr: H160 = call.from.into_array().into();
-        let from: [u8; 20] = from_addr.0;
         let to_h160: H160 = call.to.into_array().into();
-
-        // Convert call.value (alloy U256) → u128 for allowance comparison
-        let value_u128 = u128::try_from(call.value).map_err(|_| {
-            Error::Revert(Revert {
-                reason: ERR_BALANCE_CONVERSION.into(),
-            })
-        })?;
+        let amount = Self::to_balance(call.value)?;
 
         // Check and decrement allowance
-        let current = get_allowance(&from, &spender);
-        if current < value_u128 {
+        let current = pallet_revive::NativeERC20Allowances::<T>::get(from_addr, spender_addr);
+        if current < amount {
             return Err(Error::Revert(Revert {
                 reason: ERR_INSUFFICIENT_ALLOWANCE.into(),
             }));
         }
-        set_allowance(&from, &spender, current.saturating_sub(value_u128));
+        pallet_revive::NativeERC20Allowances::<T>::insert(
+            from_addr,
+            spender_addr,
+            current.saturating_sub(amount),
+        );
 
         // Execute transfer
         let from_account = <T as pallet_revive::Config>::AddressMapper::to_account_id(&from_addr);
         let to_account = <T as pallet_revive::Config>::AddressMapper::to_account_id(&to_h160);
-        let amount = Self::to_balance(call.value)?;
 
         <T as pallet_revive::Config>::Currency::transfer(
             &from_account,

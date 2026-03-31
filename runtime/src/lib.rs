@@ -59,7 +59,7 @@ use frame_election_provider_support::{
 };
 
 // Assets
-use pallet_assets_precompiles::{InlineIdConfig, NativeERC20,ERC20};
+use pallet_assets_precompiles::{InlineIdConfig, NativeERC20, ERC20};
 
 // Assets Conversion
 use pallet_asset_conversion::{AccountIdConverter, Ascending, Chain, WithFirstAsset};
@@ -699,7 +699,7 @@ parameter_types! {
 
 impl pallet_revive::Config for Runtime {
     type Time = Timestamp;
-    type Balance = Balance;
+    type ReviveBalance = Balance;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
@@ -707,8 +707,8 @@ impl pallet_revive::Config for Runtime {
     type DepositPerItem = DepositPerItem;
     type DepositPerChildTrieItem = DepositPerChildTrieItem;
     type DepositPerByte = DepositPerByte;
-    type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
-     type Precompiles = (
+    type ReviveWeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+    type Precompiles = (
         NativeERC20<Self>, // 0x0000000000000000000000000000000001000000
         ERC20<Self, InlineIdConfig<0x1>, Instance1>,
         ERC20<Self, InlineIdConfig<0x2>, Instance2>,
@@ -719,7 +719,7 @@ impl pallet_revive::Config for Runtime {
     type UnsafeUnstableInterface = ConstBool<false>;
     type UploadOrigin = EnsureSigned<Self::AccountId>;
     type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-    type RuntimeHoldReason = RuntimeHoldReason;
+    type ReviveRuntimeHoldReason = RuntimeHoldReason;
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
     type ChainId = ConstU64<13939>;
     type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.

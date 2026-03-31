@@ -70,7 +70,7 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use core::marker::PhantomData;
 
 /// Weight functions needed for `pallet_revive`.
-pub trait WeightInfo {
+pub trait ReviveWeightInfo {
 	fn on_process_deletion_queue_batch() -> Weight;
 	fn on_initialize_per_trie_key(k: u32, ) -> Weight;
 	fn call_with_pvm_code_per_byte(c: u32, ) -> Weight;
@@ -175,7 +175,7 @@ pub trait WeightInfo {
 
 /// Weights for `pallet_revive` using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+impl<T: frame_system::Config> ReviveWeightInfo for SubstrateWeight<T> {
 	/// Storage: `Revive::DeletionQueueCounter` (r:1 w:0)
 	/// Proof: `Revive::DeletionQueueCounter` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `Measured`)
 	fn on_process_deletion_queue_batch() -> Weight {
@@ -1464,7 +1464,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 }
 
 // For backwards compatibility and tests.
-impl WeightInfo for () {
+impl ReviveWeightInfo for () {
 	/// Storage: `Revive::DeletionQueueCounter` (r:1 w:0)
 	/// Proof: `Revive::DeletionQueueCounter` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `Measured`)
 	fn on_process_deletion_queue_batch() -> Weight {

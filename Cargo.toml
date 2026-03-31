@@ -137,7 +137,7 @@ frame-system = { git = "https://github.com/paritytech/polkadot-sdk", default-fea
 frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 frame-election-provider-support = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
-pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
+pallet-balances = { path = "modules/balances", default-features = false }
 pallet-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 pallet-child-bounties = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "stable2512" }
 pallet-core-fellowship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2512", default-features = false }

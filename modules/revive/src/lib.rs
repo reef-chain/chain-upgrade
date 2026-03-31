@@ -82,6 +82,7 @@ use frame_system::{
     pallet_prelude::{BlockNumberFor, OriginFor},
     Pallet as System,
 };
+use scale_info::prelude::fmt::Debug;
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{
@@ -115,12 +116,12 @@ pub use frame_system::{self, limits::BlockWeights};
 pub use primitives::*;
 pub use sp_core::{keccak_256, H160, H256, U256};
 pub use sp_runtime;
-pub use weights::WeightInfo;
+pub use weights::ReviveWeightInfo;
 
 #[cfg(doc)]
 pub use crate::vm::pvm::SyscallDoc;
 
-pub type BalanceOf<T> = <T as Config>::Balance;
+pub type BalanceOf<T> = <T as Config>::ReviveBalance;
 type TrieId = BoundedVec<u8, ConstU32<128>>;
 type ImmutableData = BoundedVec<u8, ConstU32<{ limits::IMMUTABLE_BYTES }>>;
 type CallOf<T> = <T as Config>::RuntimeCall;
@@ -156,7 +157,7 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config(with_default)]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_balances::Config {
         /// The time implementation used to supply timestamps to contracts through `seal_now`.
         type Time: Time<Moment: Into<U256>>;
 
@@ -164,19 +165,26 @@ pub mod pallet {
         ///
         /// Just added here to add additional trait bounds.
         #[pallet::no_default]
-        type Balance: Balance
+        type ReviveBalance: Balance
             + TryFrom<U256>
             + Into<U256>
+            + From<u128>
             + Bounded
             + UniqueSaturatedInto<u64>
             + UniqueSaturatedFrom<u64>
-            + UniqueSaturatedInto<u128>;
+            + UniqueSaturatedInto<u128>
+            + Default
+            + Copy
+            + MaybeSerializeDeserialize
+            + Debug
+            + MaxEncodedLen
+            + TypeInfo;
 
         /// The fungible in which fees are paid and contract balances are held.
         #[pallet::no_default]
-        type Currency: Inspect<Self::AccountId, Balance = Self::Balance>
+        type Currency: Inspect<Self::AccountId, Balance = Self::ReviveBalance>
             + Mutate<Self::AccountId>
-            + MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
+            + MutateHold<Self::AccountId, Reason = Self::ReviveRuntimeHoldReason>
             + Balanced<Self::AccountId>;
 
         /// The overarching event type.
@@ -204,11 +212,11 @@ pub mod pallet {
 
         /// Overarching hold reason.
         #[pallet::no_default_bounds]
-        type RuntimeHoldReason: From<HoldReason>;
+        type ReviveRuntimeHoldReason: From<HoldReason>;
 
         /// Describes the weights of the dispatchables of this module and is also used to
         /// construct a default cost schedule.
-        type WeightInfo: WeightInfo;
+        type ReviveWeightInfo: ReviveWeightInfo;
 
         /// Type that allows the runtime authors to add new host functions for a contract to call.
         ///
@@ -424,8 +432,8 @@ pub mod pallet {
             #[inject_runtime_type]
             type RuntimeEvent = ();
 
-            #[inject_runtime_type]
-            type RuntimeHoldReason = ();
+            // #[inject_runtime_type]
+            type ReviveRuntimeHoldReason = ();
 
             #[inject_runtime_type]
             type RuntimeCall = ();
@@ -443,7 +451,7 @@ pub mod pallet {
             type AllowEVMBytecode = ConstBool<true>;
             type UploadOrigin = EnsureSigned<Self::AccountId>;
             type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-            type WeightInfo = ();
+            type ReviveWeightInfo = ();
             type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
             type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
             type ChainId = ConstU64<42>;
@@ -735,6 +743,17 @@ pub mod pallet {
     pub(crate) type EthBlockBuilderIR<T: Config> =
         StorageValue<_, EthereumBlockBuilderIR<T>, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::unbounded]
+    pub type TotalReviveIssuance<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    /// Allowances for the native ERC20 token fallback.
+    ///
+    /// Stores allowance[owner][spender] = amount.
+    #[pallet::storage]
+    pub type NativeERC20Allowances<T: Config> =
+        StorageDoubleMap<_, Identity, H160, Identity, H160, BalanceOf<T>, ValueQuery>;
+
     /// The first transaction and receipt of the ethereum block.
     ///
     /// These values are moved out of the `EthBlockBuilderIR` to avoid serializing and
@@ -815,6 +834,8 @@ pub mod pallet {
             }
 
             let owner = Pallet::<T>::account_id();
+            // let number = 10000u128;
+            // TotalReviveIssuance::<T>::set(number);
 
             for genesis::Account {
                 address,
@@ -919,10 +940,12 @@ pub mod pallet {
             // Warm up the pallet account.
             System::<T>::account_exists(&Pallet::<T>::account_id());
             // Account for the fixed part of the costs incurred in `on_finalize`.
-            <T as Config>::WeightInfo::on_finalize_block_fixed()
+            <T as Config>::ReviveWeightInfo::on_finalize_block_fixed()
         }
 
         fn on_finalize(block_number: BlockNumberFor<T>) {
+            let total_issuance = pallet_balances::TotalIssuance::<T>::get();
+            TotalReviveIssuance::<T>::put(total_issuance.into());
             // Build the ethereum block and place it in storage.
             block_storage::on_finalize_build_eth_block::<T>(block_number);
         }
@@ -1118,7 +1141,7 @@ pub mod pallet {
         /// * If no account exists and the call value is not less than `existential_deposit`,
         /// a regular account will be created and any value will be transferred.
         #[pallet::call_index(1)]
-        #[pallet::weight(<T as Config>::WeightInfo::call().saturating_add(*weight_limit))]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::call().saturating_add(*weight_limit))]
         pub fn call(
             origin: OriginFor<T>,
             dest: H160,
@@ -1148,7 +1171,7 @@ pub mod pallet {
             dispatch_result(
                 output.result,
                 output.weight_consumed,
-                <T as Config>::WeightInfo::call(),
+                <T as Config>::ReviveWeightInfo::call(),
             )
         }
 
@@ -1159,7 +1182,7 @@ pub mod pallet {
         /// must be supplied.
         #[pallet::call_index(2)]
         #[pallet::weight(
-			<T as Config>::WeightInfo::instantiate(data.len() as u32).saturating_add(*weight_limit)
+			<T as Config>::ReviveWeightInfo::instantiate(data.len() as u32).saturating_add(*weight_limit)
 		)]
         pub fn instantiate(
             origin: OriginFor<T>,
@@ -1192,7 +1215,7 @@ pub mod pallet {
             dispatch_result(
                 output.result.map(|result| result.result),
                 output.weight_consumed,
-                <T as Config>::WeightInfo::instantiate(data_len),
+                <T as Config>::ReviveWeightInfo::instantiate(data_len),
             )
         }
 
@@ -1225,7 +1248,7 @@ pub mod pallet {
         /// - The `deploy` function is executed in the context of the newly-created account.
         #[pallet::call_index(3)]
         #[pallet::weight(
-			<T as Config>::WeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32)
+			<T as Config>::ReviveWeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32)
 			.saturating_add(*weight_limit)
 		)]
         pub fn instantiate_with_code(
@@ -1260,7 +1283,7 @@ pub mod pallet {
             dispatch_result(
                 output.result.map(|result| result.result),
                 output.weight_consumed,
-                <T as Config>::WeightInfo::instantiate_with_code(code_len, data_len),
+                <T as Config>::ReviveWeightInfo::instantiate_with_code(code_len, data_len),
             )
         }
 
@@ -1287,7 +1310,7 @@ pub mod pallet {
         /// times within a batch call transaction.
         #[pallet::call_index(10)]
         #[pallet::weight(
-			<T as Config>::WeightInfo::eth_instantiate_with_code(code.len() as u32, data.len() as u32, Pallet::<T>::has_dust(*value).into())
+			<T as Config>::ReviveWeightInfo::eth_instantiate_with_code(code.len() as u32, data.len() as u32, Pallet::<T>::has_dust(*value).into())
 			.saturating_add(*weight_limit)
 		)]
         pub fn eth_instantiate_with_code(
@@ -1364,9 +1387,9 @@ pub mod pallet {
         /// * encoded len: the byte code size of the `eth_transact` extrinsic
         #[pallet::call_index(11)]
         #[pallet::weight(
-			T::WeightInfo::eth_call(Pallet::<T>::has_dust(*value).into())
+			T::ReviveWeightInfo::eth_call(Pallet::<T>::has_dust(*value).into())
 			.saturating_add(*weight_limit)
-			.saturating_add(T::WeightInfo::on_finalize_block_per_tx(transaction_encoded.len() as u32))
+			.saturating_add(T::ReviveWeightInfo::on_finalize_block_per_tx(transaction_encoded.len() as u32))
 		)]
         pub fn eth_call(
             origin: OriginFor<T>,
@@ -1435,7 +1458,7 @@ pub mod pallet {
         /// * `call`: The Substrate runtime call to execute.
         /// * `transaction_encoded`: The RLP encoding of the Ethereum transaction,
         #[pallet::call_index(12)]
-        #[pallet::weight(T::WeightInfo::eth_substrate_call(transaction_encoded.len() as u32).saturating_add(call.get_dispatch_info().call_weight))]
+        #[pallet::weight(T::ReviveWeightInfo::eth_substrate_call(transaction_encoded.len() as u32).saturating_add(call.get_dispatch_info().call_weight))]
         pub fn eth_substrate_call(
             origin: OriginFor<T>,
             call: Box<<T as Config>::RuntimeCall>,
@@ -1445,7 +1468,7 @@ pub mod pallet {
             // re-enter `eth_substrate_call` (which requires `Origin::EthTransaction`).
             let signer = Self::ensure_eth_signed(origin)?;
             let weight_overhead =
-                T::WeightInfo::eth_substrate_call(transaction_encoded.len() as u32);
+                T::ReviveWeightInfo::eth_substrate_call(transaction_encoded.len() as u32);
 
             block_storage::with_ethereum_context::<T>(transaction_encoded, || {
                 let call_weight = call.get_dispatch_info().call_weight;
@@ -1497,7 +1520,7 @@ pub mod pallet {
         /// If the refcount of the code reaches zero after terminating the last contract that
         /// references this code, the code will be removed automatically.
         #[pallet::call_index(4)]
-        #[pallet::weight(<T as Config>::WeightInfo::upload_code(code.len() as u32))]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::upload_code(code.len() as u32))]
         pub fn upload_code(
             origin: OriginFor<T>,
             code: Vec<u8>,
@@ -1512,7 +1535,7 @@ pub mod pallet {
         /// A code can only be removed by its original uploader (its owner) and only if it is
         /// not used by any contract.
         #[pallet::call_index(5)]
-        #[pallet::weight(<T as Config>::WeightInfo::remove_code())]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::remove_code())]
         pub fn remove_code(
             origin: OriginFor<T>,
             code_hash: sp_core::H256,
@@ -1534,7 +1557,7 @@ pub mod pallet {
         /// that the contract address is no longer derived from its code hash after calling
         /// this dispatchable.
         #[pallet::call_index(6)]
-        #[pallet::weight(<T as Config>::WeightInfo::set_code())]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::set_code())]
         pub fn set_code(
             origin: OriginFor<T>,
             dest: H160,
@@ -1563,7 +1586,7 @@ pub mod pallet {
         /// This will error if the origin is already mapped or is a eth native `Address20`. It will
         /// take a deposit that can be released by calling [`Self::unmap_account`].
         #[pallet::call_index(7)]
-        #[pallet::weight(<T as Config>::WeightInfo::map_account())]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::map_account())]
         pub fn map_account(origin: OriginFor<T>) -> DispatchResult {
             Self::ensure_non_contract_if_signed(&origin)?;
             let origin = ensure_signed(origin)?;
@@ -1575,7 +1598,7 @@ pub mod pallet {
         /// There is no reason to ever call this function other than freeing up the deposit.
         /// This is only useful when the account should no longer be used.
         #[pallet::call_index(8)]
-        #[pallet::weight(<T as Config>::WeightInfo::unmap_account())]
+        #[pallet::weight(<T as Config>::ReviveWeightInfo::unmap_account())]
         pub fn unmap_account(origin: OriginFor<T>) -> DispatchResult {
             let origin = ensure_signed(origin)?;
             T::AddressMapper::unmap(&origin)
@@ -1590,7 +1613,7 @@ pub mod pallet {
         #[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
 			(
-				<T as Config>::WeightInfo::dispatch_as_fallback_account().saturating_add(dispatch_info.call_weight),
+				<T as Config>::ReviveWeightInfo::dispatch_as_fallback_account().saturating_add(dispatch_info.call_weight),
 				dispatch_info.class
 			)
 		})]

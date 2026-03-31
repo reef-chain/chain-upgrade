@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::{
-	debug::DebugSettings,
-	precompiles::Token,
-	vm::{evm::instructions::exec_instruction, BytecodeType, ExecResult, Ext},
-	weights::WeightInfo,
-	AccountIdOf, CodeInfo, Config, ContractBlob, DispatchError, Error, Weight, H256, LOG_TARGET,
+    debug::DebugSettings,
+    precompiles::Token,
+    vm::{evm::instructions::exec_instruction, BytecodeType, ExecResult, Ext},
+    weights::ReviveWeightInfo,
+    AccountIdOf, CodeInfo, Config, ContractBlob, DispatchError, Error, Weight, H256, LOG_TARGET,
 };
 use alloc::vec::Vec;
 use core::{convert::Infallible, ops::ControlFlow};
@@ -53,90 +53,99 @@ pub(crate) const DIFFICULTY: u64 = 2500000000000000_u64;
 pub struct EVMGas(pub u64);
 
 impl<T: Config> Token<T> for EVMGas {
-	fn weight(&self) -> Weight {
-		let base_cost = T::WeightInfo::evm_opcode(1).saturating_sub(T::WeightInfo::evm_opcode(0));
-		base_cost.saturating_mul(self.0)
-	}
+    fn weight(&self) -> Weight {
+        let base_cost =
+            T::ReviveWeightInfo::evm_opcode(1).saturating_sub(T::ReviveWeightInfo::evm_opcode(0));
+        base_cost.saturating_mul(self.0)
+    }
 }
 
 impl<T: Config> ContractBlob<T> {
-	/// Create a new contract from EVM init code.
-	pub fn from_evm_init_code(code: Vec<u8>, owner: AccountIdOf<T>) -> Result<Self, DispatchError> {
-		if code.len() > revm::primitives::eip3860::MAX_INITCODE_SIZE &&
-			!DebugSettings::is_unlimited_contract_size_allowed::<T>()
-		{
-			return Err(<Error<T>>::BlobTooLarge.into());
-		}
+    /// Create a new contract from EVM init code.
+    pub fn from_evm_init_code(code: Vec<u8>, owner: AccountIdOf<T>) -> Result<Self, DispatchError> {
+        if code.len() > revm::primitives::eip3860::MAX_INITCODE_SIZE
+            && !DebugSettings::is_unlimited_contract_size_allowed::<T>()
+        {
+            return Err(<Error<T>>::BlobTooLarge.into());
+        }
 
-		// EIP-3541: Reject new contract code starting with the 0xEF byte
-		if code.first() == Some(&0xEF) {
-			return Err(<Error<T>>::CodeRejected.into());
-		}
+        // EIP-3541: Reject new contract code starting with the 0xEF byte
+        if code.first() == Some(&0xEF) {
+            return Err(<Error<T>>::CodeRejected.into());
+        }
 
-		let code_len = code.len() as u32;
-		let code_info = CodeInfo {
-			owner,
-			deposit: Default::default(),
-			refcount: 0,
-			code_len,
-			code_type: BytecodeType::Evm,
-			behaviour_version: Default::default(),
-		};
+        let code_len = code.len() as u32;
+        let code_info = CodeInfo {
+            owner,
+            deposit: Default::default(),
+            refcount: 0,
+            code_len,
+            code_type: BytecodeType::Evm,
+            behaviour_version: Default::default(),
+        };
 
-		Bytecode::new_raw_checked(Bytes::from(code.to_vec())).map_err(|err| {
+        Bytecode::new_raw_checked(Bytes::from(code.to_vec())).map_err(|err| {
 			log::debug!(target: LOG_TARGET, "failed to create evm bytecode from init code: {err:?}" );
 			<Error<T>>::CodeRejected
 		})?;
 
-		// Code hash is not relevant for init code, since it is not stored on-chain.
-		let code_hash = H256::default();
-		Ok(ContractBlob { code, code_info, code_hash })
-	}
+        // Code hash is not relevant for init code, since it is not stored on-chain.
+        let code_hash = H256::default();
+        Ok(ContractBlob {
+            code,
+            code_info,
+            code_hash,
+        })
+    }
 
-	/// Create a new contract from EVM runtime code.
-	pub fn from_evm_runtime_code(
-		code: Vec<u8>,
-		owner: AccountIdOf<T>,
-	) -> Result<Self, DispatchError> {
-		if code.len() > revm::primitives::eip170::MAX_CODE_SIZE &&
-			!DebugSettings::is_unlimited_contract_size_allowed::<T>()
-		{
-			return Err(<Error<T>>::BlobTooLarge.into());
-		}
+    /// Create a new contract from EVM runtime code.
+    pub fn from_evm_runtime_code(
+        code: Vec<u8>,
+        owner: AccountIdOf<T>,
+    ) -> Result<Self, DispatchError> {
+        if code.len() > revm::primitives::eip170::MAX_CODE_SIZE
+            && !DebugSettings::is_unlimited_contract_size_allowed::<T>()
+        {
+            return Err(<Error<T>>::BlobTooLarge.into());
+        }
 
-		let code_len = code.len() as u32;
-		let deposit = super::calculate_code_deposit::<T>(code_len);
+        let code_len = code.len() as u32;
+        let deposit = super::calculate_code_deposit::<T>(code_len);
 
-		let code_info = CodeInfo {
-			owner,
-			deposit,
-			refcount: 0,
-			code_len,
-			code_type: BytecodeType::Evm,
-			behaviour_version: Default::default(),
-		};
+        let code_info = CodeInfo {
+            owner,
+            deposit,
+            refcount: 0,
+            code_len,
+            code_type: BytecodeType::Evm,
+            behaviour_version: Default::default(),
+        };
 
-		Bytecode::new_raw_checked(Bytes::from(code.to_vec())).map_err(|err| {
-			log::debug!(target: LOG_TARGET, "failed to create evm bytecode from code: {err:?}" );
-			<Error<T>>::CodeRejected
-		})?;
+        Bytecode::new_raw_checked(Bytes::from(code.to_vec())).map_err(|err| {
+            log::debug!(target: LOG_TARGET, "failed to create evm bytecode from code: {err:?}" );
+            <Error<T>>::CodeRejected
+        })?;
 
-		let code_hash = H256(sp_io::hashing::keccak_256(&code));
-		Ok(ContractBlob { code, code_info, code_hash })
-	}
+        let code_hash = H256(sp_io::hashing::keccak_256(&code));
+        Ok(ContractBlob {
+            code,
+            code_info,
+            code_hash,
+        })
+    }
 }
 
 /// Calls the EVM interpreter with the provided bytecode and inputs.
 pub fn call<E: Ext>(bytecode: Bytecode, ext: &mut E, input: Vec<u8>) -> ExecResult {
-	let mut interpreter = Interpreter::new(ExtBytecode::new(bytecode), input, ext);
-	let ControlFlow::Break(halt) = run_plain(&mut interpreter);
-	halt.into()
+    let mut interpreter = Interpreter::new(ExtBytecode::new(bytecode), input, ext);
+    let ControlFlow::Break(halt) = run_plain(&mut interpreter);
+    halt.into()
 }
 
 fn run_plain<E: Ext>(interpreter: &mut Interpreter<E>) -> ControlFlow<Halt, Infallible> {
-	loop {
-		let opcode = interpreter.bytecode.opcode();
-		interpreter.bytecode.relative_jump(1);
-		exec_instruction(interpreter, opcode)?;
-	}
+    loop {
+        let opcode = interpreter.bytecode.opcode();
+        interpreter.bytecode.relative_jump(1);
+        exec_instruction(interpreter, opcode)?;
+    }
 }
