@@ -64,9 +64,9 @@ pub struct NativeERC20<T>(PhantomData<T>);
 
 impl<T> Precompile for NativeERC20<T>
 where
-    T: pallet_revive::Config<ReviveBalance = u128>,
-    u128: TryInto<T::ReviveBalance>,
-    T::ReviveBalance: Into<u128>,
+    T: pallet_revive::Config<Balance = u128>,
+    u128: TryInto<T::Balance>,
+    T::Balance: Into<u128>,
 {
     type T = T;
     type Interface = IERC20::IERC20Calls;
@@ -111,9 +111,9 @@ const ERR_INSUFFICIENT_ALLOWANCE: &str = "Insufficient allowance";
 
 impl<T> NativeERC20<T>
 where
-    T: pallet_revive::Config<ReviveBalance = u128>,
-    u128: TryInto<T::ReviveBalance>,
-    T::ReviveBalance: Into<u128>,
+    T: pallet_revive::Config<Balance = u128>,
+    u128: TryInto<T::Balance>,
+    T::Balance: Into<u128>,
 {
     /// Return the caller's Ethereum address.
     fn caller_address(env: &mut impl Ext<T = T>) -> Result<H160, Error> {
@@ -128,7 +128,7 @@ where
     }
 
     /// Convert an alloy `U256` value to `T::Balance` (via u128).
-    fn to_balance(value: AlloyU256) -> Result<T::ReviveBalance, Error> {
+    fn to_balance(value: AlloyU256) -> Result<T::Balance, Error> {
         // Clamp to u128::MAX and convert via u128 — T::Balance is u128 in Reef runtime.
         let as_u128 = u128::try_from(value).map_err(|_| {
             Error::Revert(Revert {
@@ -143,7 +143,7 @@ where
     }
 
     /// Convert `T::Balance` (u128) to alloy `U256`.
-    fn to_alloy_u256(balance: T::ReviveBalance) -> AlloyU256 {
+    fn to_alloy_u256(balance: T::Balance) -> AlloyU256 {
         let as_u128: u128 = balance.into();
         AlloyU256::from(as_u128)
     }

@@ -40,7 +40,7 @@ use crate::{
 		System, Test, UploadAccount, DEPOSIT_PER_BYTE, *,
 	},
 	tracing::trace,
-	weights::WeightInfo,
+	weights::ReviveWeightInfo,
 	AccountInfo, AccountInfoOf, BalanceWithDust, Code, Config, ContractInfo, DebugSettings,
 	DeletionQueueCounter, Error, ExecConfig, HoldReason, Origin, Pallet, StorageDeposit,
 };
@@ -263,7 +263,7 @@ fn instantiate_and_call_and_deposit_event() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Balances(pallet_balances::Event::TransferAndHold {
-						reason: <Test as Config>::RuntimeHoldReason::Contracts(
+						reason: <Test as Config>::ReviveRuntimeHoldReason::Contracts(
 							HoldReason::StorageDepositReserve,
 						),
 						source: ALICE,
@@ -400,7 +400,7 @@ fn gas_syncs_work() {
 		let result = builder::bare_call(contract.addr).data(1u32.encode()).build();
 		assert_ok!(result.result);
 		let weight_consumed_once = result.weight_consumed.ref_time();
-		let host_consumed_once = <Test as Config>::WeightInfo::seal_gas_price().ref_time();
+		let host_consumed_once = <Test as Config>::ReviveRuntimeHoldReason::seal_gas_price().ref_time();
 		let engine_consumed_once = weight_consumed_once - host_consumed_once - engine_consumed_noop;
 
 		let result = builder::bare_call(contract.addr).data(2u32.encode()).build();
@@ -674,7 +674,7 @@ fn deploy_and_call_other_contract() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Balances(pallet_balances::Event::TransferAndHold {
-						reason: <Test as Config>::RuntimeHoldReason::Contracts(
+						reason: <Test as Config>::ReviveRuntimeHoldReason::Contracts(
 							HoldReason::StorageDepositReserve,
 						),
 						source: ALICE,

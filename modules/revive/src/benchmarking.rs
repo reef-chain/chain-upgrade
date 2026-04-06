@@ -2641,7 +2641,7 @@ mod benchmarks {
 		assert_eq!(AccountInfo::<T>::load_contract(&addr).unwrap(), contract_info);
 
 		// uses twice the weight once for migration and then for checking if there is another key.
-		assert_eq!(meter.consumed(), <T as Config>::WeightInfo::v1_migration_step() * 2);
+		assert_eq!(meter.consumed(), <T as Config>::ReviveWeightInfo::v1_migration_step() * 2);
 	}
 
 	#[benchmark]
@@ -2666,7 +2666,7 @@ mod benchmarks {
 		v2::Migration::<T>::assert_migrated_code_info(code_hash, &old_code_info);
 
 		// uses twice the weight once for migration and then for checking if there is another key.
-		assert_eq!(meter.consumed(), <T as Config>::WeightInfo::v2_migration_step() * 2);
+		assert_eq!(meter.consumed(), <T as Config>::ReviveWeightInfo::v2_migration_step() * 2);
 	}
 
 	/// Helper function to create a test signer for finalize_block benchmark

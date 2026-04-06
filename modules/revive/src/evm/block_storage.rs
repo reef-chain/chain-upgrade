@@ -23,7 +23,7 @@ use crate::{
     },
     limits,
     sp_runtime::traits::{One, Zero},
-    weights::ReviveWeightInfo,
+    weights::WeightInfo,
     AccountIdOf, BalanceOf, BalanceWithDust, BlockHash, BlockNumberFor, Config, ContractResult,
     Error, EthBlockBuilderIR, EthereumBlock, Event, ExecReturnValue, Pallet, ReceiptGasInfo,
     ReceiptInfoData, StorageDeposit, Weight, H160, H256, LOG_TARGET,
@@ -87,7 +87,7 @@ impl EthereumCallResult {
         if output.result.is_ok() {
             output
                 .weight_consumed
-                .saturating_reduce(T::ReviveWeightInfo::deposit_eth_extrinsic_revert_event())
+                .saturating_reduce(T::WeightInfo::deposit_eth_extrinsic_revert_event())
         }
 
         let result = dispatch_result(output.result, output.weight_consumed, base_call_weight);

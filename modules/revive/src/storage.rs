@@ -22,7 +22,7 @@ use crate::{
     exec::{AccountIdOf, Key},
     metering::FrameMeter,
     tracing::if_tracing,
-    weights::ReviveWeightInfo,
+    weights::WeightInfo,
     AccountInfoOf, BalanceOf, BalanceWithDust, Config, DeletionQueue, DeletionQueueCounter, Error,
     TrieId, SENTINEL,
 };
@@ -417,9 +417,9 @@ impl<T: Config> ContractInfo<T> {
     /// Calculates the weight that is necessary to remove one key from the trie and how many
     /// of those keys can be deleted from the deletion queue given the supplied weight limit.
     pub fn deletion_budget(meter: &WeightMeter) -> (Weight, u32) {
-        let base_weight = T::ReviveWeightInfo::on_process_deletion_queue_batch();
-        let weight_per_key = T::ReviveWeightInfo::on_initialize_per_trie_key(1)
-            - T::ReviveWeightInfo::on_initialize_per_trie_key(0);
+        let base_weight = T::WeightInfo::on_process_deletion_queue_batch();
+        let weight_per_key = T::WeightInfo::on_initialize_per_trie_key(1)
+            - T::WeightInfo::on_initialize_per_trie_key(0);
 
         // `weight_per_key` being zero makes no sense and would constitute a failure to
         // benchmark properly. We opt for not removing any keys at all in this case.
@@ -435,7 +435,7 @@ impl<T: Config> ContractInfo<T> {
     /// Delete as many items from the deletion queue possible within the supplied weight limit.
     pub fn process_deletion_queue_batch(meter: &mut WeightMeter) {
         if meter
-            .try_consume(T::ReviveWeightInfo::on_process_deletion_queue_batch())
+            .try_consume(T::WeightInfo::on_process_deletion_queue_batch())
             .is_err()
         {
             return;

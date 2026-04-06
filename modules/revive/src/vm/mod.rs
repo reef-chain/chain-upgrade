@@ -28,7 +28,7 @@ use crate::{
     exec::{ExecResult, Executable, ExportedFunction, Ext},
     frame_support::{ensure, error::BadOrigin},
     metering::{ResourceMeter, State, Token},
-    weights::ReviveWeightInfo,
+    weights::WeightInfo,
     AccountIdOf, BalanceOf, CodeInfoOf, CodeRemoved, Config, Error, ExecConfig, ExecError,
     HoldReason, Pallet, PristineCode, StorageDeposit, Weight, LOG_TARGET,
 };
@@ -140,15 +140,15 @@ impl<T: Config> Token<T> for CodeLoadToken {
             // the proof size impact is accounted for in the `call_with_pvm_code_per_byte`
             // strictly speaking we are double charging for the first BASIC_BLOCK_SIZE
             // instructions here. Let's consider this as a safety margin.
-            BytecodeType::Pvm => T::ReviveWeightInfo::call_with_pvm_code_per_byte(self.code_len)
-                .saturating_sub(T::ReviveWeightInfo::call_with_pvm_code_per_byte(0))
+            BytecodeType::Pvm => T::WeightInfo::call_with_pvm_code_per_byte(self.code_len)
+                .saturating_sub(T::WeightInfo::call_with_pvm_code_per_byte(0))
                 .saturating_add(
-                    T::ReviveWeightInfo::basic_block_compilation(1)
-                        .saturating_sub(T::ReviveWeightInfo::basic_block_compilation(0))
+                    T::WeightInfo::basic_block_compilation(1)
+                        .saturating_sub(T::WeightInfo::basic_block_compilation(0))
                         .set_proof_size(0),
                 ),
-            BytecodeType::Evm => T::ReviveWeightInfo::call_with_evm_code_per_byte(self.code_len)
-                .saturating_sub(T::ReviveWeightInfo::call_with_evm_code_per_byte(0)),
+            BytecodeType::Evm => T::WeightInfo::call_with_evm_code_per_byte(self.code_len)
+                .saturating_sub(T::WeightInfo::call_with_evm_code_per_byte(0)),
         }
     }
 }

@@ -566,7 +566,7 @@ fn eth_substrate_call_requires_eth_origin() {
 
 #[test]
 fn eth_substrate_call_tracks_weight_correctly() {
-	use crate::weights::WeightInfo;
+	use crate::weights::ReviveWeightInfo;
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = <Test as Config>::Currency::set_balance(&ALICE, 1000);
 

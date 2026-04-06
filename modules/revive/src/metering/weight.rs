@@ -18,7 +18,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{vm::evm::Halt, weights::ReviveWeightInfo, Config, Error};
+use crate::{vm::evm::Halt, weights::WeightInfo, Config, Error};
 use core::{marker::PhantomData, ops::ControlFlow};
 use frame_support::{weights::Weight, DefaultNoBound};
 use sp_runtime::DispatchError;
@@ -71,11 +71,11 @@ impl<T: Config> EngineMeter<T> {
 
     /// How much ref time does each PolkaVM gas correspond to.
     fn ref_time_per_fuel() -> u64 {
-        let loop_iteration = T::ReviveWeightInfo::instr(1)
-            .saturating_sub(T::ReviveWeightInfo::instr(0))
+        let loop_iteration = T::WeightInfo::instr(1)
+            .saturating_sub(T::WeightInfo::instr(0))
             .ref_time();
-        let empty_loop_iteration = T::ReviveWeightInfo::instr_empty_loop(1)
-            .saturating_sub(T::ReviveWeightInfo::instr_empty_loop(0))
+        let empty_loop_iteration = T::WeightInfo::instr_empty_loop(1)
+            .saturating_sub(T::WeightInfo::instr_empty_loop(0))
             .ref_time();
         loop_iteration.saturating_sub(empty_loop_iteration)
     }

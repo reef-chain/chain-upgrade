@@ -18,7 +18,7 @@ use crate::{
     debug::DebugSettings,
     precompiles::Token,
     vm::{evm::instructions::exec_instruction, BytecodeType, ExecResult, Ext},
-    weights::ReviveWeightInfo,
+    weights::WeightInfo,
     AccountIdOf, CodeInfo, Config, ContractBlob, DispatchError, Error, Weight, H256, LOG_TARGET,
 };
 use alloc::vec::Vec;
@@ -55,7 +55,7 @@ pub struct EVMGas(pub u64);
 impl<T: Config> Token<T> for EVMGas {
     fn weight(&self) -> Weight {
         let base_cost =
-            T::ReviveWeightInfo::evm_opcode(1).saturating_sub(T::ReviveWeightInfo::evm_opcode(0));
+            T::WeightInfo::evm_opcode(1).saturating_sub(T::WeightInfo::evm_opcode(0));
         base_cost.saturating_mul(self.0)
     }
 }

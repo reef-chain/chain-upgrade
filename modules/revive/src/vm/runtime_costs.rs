@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use crate::{
-    limits, metering::Token, weightinfo_extension::OnFinalizeBlockParts, weights::ReviveWeightInfo,
+    limits, metering::Token, weightinfo_extension::OnFinalizeBlockParts, weights::WeightInfo,
     Config,
 };
 use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
@@ -194,39 +194,39 @@ pub enum RuntimeCosts {
 /// the rollback weight is added to reflect the worst-case scenario for this operation.
 macro_rules! cost_storage {
     (write_transient, $name:ident $(, $arg:expr )*) => {
-        T::ReviveWeightInfo::$name($( $arg ),*)
-            .saturating_add(T::ReviveWeightInfo::rollback_transient_storage())
-            .saturating_add(T::ReviveWeightInfo::set_transient_storage_full()
-            .saturating_sub(T::ReviveWeightInfo::set_transient_storage_empty()))
+        T::WeightInfo::$name($( $arg ),*)
+            .saturating_add(T::WeightInfo::rollback_transient_storage())
+            .saturating_add(T::WeightInfo::set_transient_storage_full()
+            .saturating_sub(T::WeightInfo::set_transient_storage_empty()))
     };
 
     (read_transient, $name:ident $(, $arg:expr )*) => {
-        T::ReviveWeightInfo::$name($( $arg ),*)
-            .saturating_add(T::ReviveWeightInfo::get_transient_storage_full()
-            .saturating_sub(T::ReviveWeightInfo::get_transient_storage_empty()))
+        T::WeightInfo::$name($( $arg ),*)
+            .saturating_add(T::WeightInfo::get_transient_storage_full()
+            .saturating_sub(T::WeightInfo::get_transient_storage_empty()))
     };
 
     (write, $name:ident $(, $arg:expr )*) => {
-        T::ReviveWeightInfo::$name($( $arg ),*)
-            .saturating_add(T::ReviveWeightInfo::set_storage_full()
-            .saturating_sub(T::ReviveWeightInfo::set_storage_empty()))
+        T::WeightInfo::$name($( $arg ),*)
+            .saturating_add(T::WeightInfo::set_storage_full()
+            .saturating_sub(T::WeightInfo::set_storage_empty()))
     };
 
     (read, $name:ident $(, $arg:expr )*) => {
-        T::ReviveWeightInfo::$name($( $arg ),*)
-            .saturating_add(T::ReviveWeightInfo::get_storage_full()
-            .saturating_sub(T::ReviveWeightInfo::get_storage_empty()))
+        T::WeightInfo::$name($( $arg ),*)
+            .saturating_add(T::WeightInfo::get_storage_full()
+            .saturating_sub(T::WeightInfo::get_storage_empty()))
     };
 }
 
 macro_rules! cost_args {
-	// cost_args!(name, a, b, c) -> T::ReviveWeightInfo::name(a, b, c).saturating_sub(T::ReviveWeightInfo::name(0, 0, 0))
+	// cost_args!(name, a, b, c) -> T::WeightInfo::name(a, b, c).saturating_sub(T::WeightInfo::name(0, 0, 0))
 	($name:ident, $( $arg: expr ),+) => {
-		(T::ReviveWeightInfo::$name($( $arg ),+).saturating_sub(cost_args!(@call_zero $name, $( $arg ),+)))
+		(T::WeightInfo::$name($( $arg ),+).saturating_sub(cost_args!(@call_zero $name, $( $arg ),+)))
 	};
-	// Transform T::ReviveWeightInfo::name(a, b, c) into T::ReviveWeightInfo::name(0, 0, 0)
+	// Transform T::WeightInfo::name(a, b, c) into T::WeightInfo::name(0, 0, 0)
 	(@call_zero $name:ident, $( $arg:expr ),*) => {
-		T::ReviveWeightInfo::$name($( cost_args!(@replace_token $arg) ),*)
+		T::WeightInfo::$name($( cost_args!(@replace_token $arg) ),*)
 	};
 	// Replace the token with 0.
 	(@replace_token $_in:tt) => { 0 };
@@ -241,47 +241,47 @@ impl<T: Config> Token<T> for RuntimeCosts {
         use self::RuntimeCosts::*;
         match *self {
             HostFn => cost_args!(noop_host_fn, 1),
-            ExtCodeCopy(len) => T::ReviveWeightInfo::extcodecopy(len),
-            CopyToContract(len) => T::ReviveWeightInfo::seal_copy_to_contract(len),
-            CopyFromContract(len) => T::ReviveWeightInfo::seal_return(len),
-            CallDataSize => T::ReviveWeightInfo::seal_call_data_size(),
-            ReturnDataSize => T::ReviveWeightInfo::seal_return_data_size(),
-            CallDataLoad => T::ReviveWeightInfo::seal_call_data_load(),
-            CallDataCopy(len) => T::ReviveWeightInfo::seal_call_data_copy(len),
-            Caller => T::ReviveWeightInfo::seal_caller(),
-            Origin => T::ReviveWeightInfo::seal_origin(),
-            ToAccountId => T::ReviveWeightInfo::to_account_id(),
-            CodeHash => T::ReviveWeightInfo::seal_code_hash(),
-            CodeSize => T::ReviveWeightInfo::seal_code_size(),
-            OwnCodeHash => T::ReviveWeightInfo::own_code_hash(),
-            CallerIsOrigin => T::ReviveWeightInfo::caller_is_origin(),
-            CallerIsRoot => T::ReviveWeightInfo::caller_is_root(),
-            Address => T::ReviveWeightInfo::seal_address(),
-            RefTimeLeft => T::ReviveWeightInfo::seal_ref_time_left(),
-            WeightLeft => T::ReviveWeightInfo::weight_left(),
-            Balance => T::ReviveWeightInfo::seal_balance(),
-            BalanceOf => T::ReviveWeightInfo::seal_balance_of(),
-            ValueTransferred => T::ReviveWeightInfo::seal_value_transferred(),
-            MinimumBalance => T::ReviveWeightInfo::minimum_balance(),
-            BlockNumber => T::ReviveWeightInfo::seal_block_number(),
-            BlockHash => T::ReviveWeightInfo::seal_block_hash(),
-            BlockAuthor => T::ReviveWeightInfo::seal_block_author(),
-            GasPrice => T::ReviveWeightInfo::seal_gas_price(),
-            BaseFee => T::ReviveWeightInfo::seal_base_fee(),
-            Now => T::ReviveWeightInfo::seal_now(),
-            GasLimit => T::ReviveWeightInfo::seal_gas_limit(),
+            ExtCodeCopy(len) => T::WeightInfo::extcodecopy(len),
+            CopyToContract(len) => T::WeightInfo::seal_copy_to_contract(len),
+            CopyFromContract(len) => T::WeightInfo::seal_return(len),
+            CallDataSize => T::WeightInfo::seal_call_data_size(),
+            ReturnDataSize => T::WeightInfo::seal_return_data_size(),
+            CallDataLoad => T::WeightInfo::seal_call_data_load(),
+            CallDataCopy(len) => T::WeightInfo::seal_call_data_copy(len),
+            Caller => T::WeightInfo::seal_caller(),
+            Origin => T::WeightInfo::seal_origin(),
+            ToAccountId => T::WeightInfo::to_account_id(),
+            CodeHash => T::WeightInfo::seal_code_hash(),
+            CodeSize => T::WeightInfo::seal_code_size(),
+            OwnCodeHash => T::WeightInfo::own_code_hash(),
+            CallerIsOrigin => T::WeightInfo::caller_is_origin(),
+            CallerIsRoot => T::WeightInfo::caller_is_root(),
+            Address => T::WeightInfo::seal_address(),
+            RefTimeLeft => T::WeightInfo::seal_ref_time_left(),
+            WeightLeft => T::WeightInfo::weight_left(),
+            Balance => T::WeightInfo::seal_balance(),
+            BalanceOf => T::WeightInfo::seal_balance_of(),
+            ValueTransferred => T::WeightInfo::seal_value_transferred(),
+            MinimumBalance => T::WeightInfo::minimum_balance(),
+            BlockNumber => T::WeightInfo::seal_block_number(),
+            BlockHash => T::WeightInfo::seal_block_hash(),
+            BlockAuthor => T::WeightInfo::seal_block_author(),
+            GasPrice => T::WeightInfo::seal_gas_price(),
+            BaseFee => T::WeightInfo::seal_base_fee(),
+            Now => T::WeightInfo::seal_now(),
+            GasLimit => T::WeightInfo::seal_gas_limit(),
             Terminate { code_removed } => {
                 // logic only runs if code is removed
                 if code_removed {
-                    T::ReviveWeightInfo::seal_terminate(code_removed.into())
-                        .saturating_add(T::ReviveWeightInfo::seal_terminate_logic())
+                    T::WeightInfo::seal_terminate(code_removed.into())
+                        .saturating_add(T::WeightInfo::seal_terminate_logic())
                 } else {
-                    T::ReviveWeightInfo::seal_terminate(code_removed.into())
+                    T::WeightInfo::seal_terminate(code_removed.into())
                 }
             }
             DepositEvent { num_topic, len } => {
-                T::ReviveWeightInfo::seal_deposit_event(num_topic, len)
-                    .saturating_add(T::ReviveWeightInfo::on_finalize_block_per_event(len))
+                T::WeightInfo::seal_deposit_event(num_topic, len)
+                    .saturating_add(T::WeightInfo::on_finalize_block_per_event(len))
                     .saturating_add(Weight::from_parts(
                         limits::EXTRA_EVENT_CHARGE_PER_BYTE
                             .saturating_mul(len.into())
@@ -322,10 +322,10 @@ impl<T: Config> Token<T> for RuntimeCosts {
             TakeTransientStorage(len) => {
                 cost_storage!(write_transient, seal_take_transient_storage, len)
             }
-            CallBase => T::ReviveWeightInfo::seal_call(0, 0, 0),
-            DelegateCallBase => T::ReviveWeightInfo::seal_delegate_call(),
-            PrecompileBase => T::ReviveWeightInfo::seal_call_precompile(0, 0),
-            PrecompileWithInfoBase => T::ReviveWeightInfo::seal_call_precompile(1, 0),
+            CallBase => T::WeightInfo::seal_call(0, 0, 0),
+            DelegateCallBase => T::WeightInfo::seal_delegate_call(),
+            PrecompileBase => T::WeightInfo::seal_call_precompile(0, 0),
+            PrecompileWithInfoBase => T::WeightInfo::seal_call_precompile(1, 0),
             PrecompileDecode(len) => cost_args!(seal_call_precompile, 0, len),
             CallTransferSurcharge { dust_transfer } => {
                 cost_args!(seal_call, 1, dust_transfer.into(), 0)
@@ -335,7 +335,7 @@ impl<T: Config> Token<T> for RuntimeCosts {
                 input_data_len,
                 balance_transfer,
                 dust_transfer,
-            } => T::ReviveWeightInfo::seal_instantiate(
+            } => T::WeightInfo::seal_instantiate(
                 balance_transfer.into(),
                 dust_transfer.into(),
                 input_data_len,
@@ -344,28 +344,28 @@ impl<T: Config> Token<T> for RuntimeCosts {
                 init_code_len,
                 balance_transfer,
                 dust_transfer,
-            } => T::ReviveWeightInfo::evm_instantiate(
+            } => T::WeightInfo::evm_instantiate(
                 balance_transfer.into(),
                 dust_transfer.into(),
                 init_code_len,
             ),
-            HashSha256(len) => T::ReviveWeightInfo::sha2_256(len),
-            Ripemd160(len) => T::ReviveWeightInfo::ripemd_160(len),
-            HashKeccak256(len) => T::ReviveWeightInfo::seal_hash_keccak_256(len),
-            HashBlake256(len) => T::ReviveWeightInfo::hash_blake2_256(len),
-            HashBlake128(len) => T::ReviveWeightInfo::hash_blake2_128(len),
-            EcdsaRecovery => T::ReviveWeightInfo::ecdsa_recover(),
-            P256Verify => T::ReviveWeightInfo::p256_verify(),
-            Sr25519Verify(len) => T::ReviveWeightInfo::seal_sr25519_verify(len),
+            HashSha256(len) => T::WeightInfo::sha2_256(len),
+            Ripemd160(len) => T::WeightInfo::ripemd_160(len),
+            HashKeccak256(len) => T::WeightInfo::seal_hash_keccak_256(len),
+            HashBlake256(len) => T::WeightInfo::hash_blake2_256(len),
+            HashBlake128(len) => T::WeightInfo::hash_blake2_128(len),
+            EcdsaRecovery => T::WeightInfo::ecdsa_recover(),
+            P256Verify => T::WeightInfo::p256_verify(),
+            Sr25519Verify(len) => T::WeightInfo::seal_sr25519_verify(len),
             Precompile(weight) => weight,
-            EcdsaToEthAddress => T::ReviveWeightInfo::seal_ecdsa_to_eth_address(),
-            GetImmutableData(len) => T::ReviveWeightInfo::seal_get_immutable_data(len),
-            SetImmutableData(len) => T::ReviveWeightInfo::seal_set_immutable_data(len),
-            Bn128Add => T::ReviveWeightInfo::bn128_add(),
-            Bn128Mul => T::ReviveWeightInfo::bn128_mul(),
-            Bn128Pairing(len) => T::ReviveWeightInfo::bn128_pairing(len),
-            Identity(len) => T::ReviveWeightInfo::identity(len),
-            Blake2F(rounds) => T::ReviveWeightInfo::blake2f(rounds),
+            EcdsaToEthAddress => T::WeightInfo::seal_ecdsa_to_eth_address(),
+            GetImmutableData(len) => T::WeightInfo::seal_get_immutable_data(len),
+            SetImmutableData(len) => T::WeightInfo::seal_set_immutable_data(len),
+            Bn128Add => T::WeightInfo::bn128_add(),
+            Bn128Mul => T::WeightInfo::bn128_mul(),
+            Bn128Pairing(len) => T::WeightInfo::bn128_pairing(len),
+            Identity(len) => T::WeightInfo::identity(len),
+            Blake2F(rounds) => T::WeightInfo::blake2f(rounds),
             Modexp(gas) => Weight::from_parts(gas.saturating_mul(WEIGHT_PER_GAS), 0),
         }
     }

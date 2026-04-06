@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{
-    alice, bob, EvmAccountsModule, ExtBuilder, Runtime, RuntimeEvent as Event,
+    alice, bob, EvmAccountsModule, ExtBuilder, Runtime,
     RuntimeOrigin as Origin, System, ALICE, BOB,
 };
 use std::str::FromStr;
@@ -132,10 +132,6 @@ fn account_to_evm() {
         assert_eq!(EvmAddressMapping::<Runtime>::get_evm_address(&ALICE), None);
 
         let alice_evm_account = EvmAccountsModule::eth_address(&alice());
-
-        let alice_encoded = ALICE
-            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
-            .unwrap();
         assert_ok!(EvmAccountsModule::claim_account(
             Origin::signed(ALICE),
             alice_evm_account,
@@ -193,9 +189,6 @@ fn account_to_evm_with_create_default() {
 
         let alice_evm_account = EvmAccountsModule::eth_address(&alice());
 
-        let alice_encoded = ALICE
-            .using_encoded(EvmAccountsModule::convert_to_ascii_hex)
-            .unwrap();
         assert_noop!(
             EvmAccountsModule::claim_account(
                 Origin::signed(ALICE),

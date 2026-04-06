@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::ReviveWeightInfo;
+use crate::WeightInfo;
 use frame_support::weights::Weight;
 
 pub trait OnFinalizeBlockParts {
@@ -75,7 +75,7 @@ pub trait OnFinalizeBlockParts {
 /// - Per-byte cost: `on_finalize_per_transaction_data(1) - on_finalize_per_transaction_data(0)`
 ///
 /// Uses differential calculation to isolate marginal costs from benchmark measurements.
-impl<W: ReviveWeightInfo> OnFinalizeBlockParts for W {
+impl<W: WeightInfo> OnFinalizeBlockParts for W {
     fn on_finalize_block_fixed() -> Weight {
         // Fixed cost: baseline finalization cost with zero transactions
         // Uses the transaction count benchmark at n=0 to capture setup overhead

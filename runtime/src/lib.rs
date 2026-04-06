@@ -699,7 +699,7 @@ parameter_types! {
 
 impl pallet_revive::Config for Runtime {
     type Time = Timestamp;
-    type ReviveBalance = Balance;
+    type Balance = Balance;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
@@ -707,7 +707,7 @@ impl pallet_revive::Config for Runtime {
     type DepositPerItem = DepositPerItem;
     type DepositPerChildTrieItem = DepositPerChildTrieItem;
     type DepositPerByte = DepositPerByte;
-    type ReviveWeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+    type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
     type Precompiles = (
         NativeERC20<Self>, // 0x0000000000000000000000000000000001000000
         ERC20<Self, InlineIdConfig<0x1>, Instance1>,
@@ -719,7 +719,7 @@ impl pallet_revive::Config for Runtime {
     type UnsafeUnstableInterface = ConstBool<false>;
     type UploadOrigin = EnsureSigned<Self::AccountId>;
     type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-    type ReviveRuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
     type ChainId = ConstU64<13939>;
     type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
@@ -729,6 +729,7 @@ impl pallet_revive::Config for Runtime {
     type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
     type DebugEnabled = ConstBool<false>;
     type GasScale = ConstU32<1000>;
+    type Issuance = Balances;
 }
 
 parameter_types! {
@@ -1540,6 +1541,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
     }
 }
 
+// 28
+//  6 13 28
+
 impl pallet_referenda::Config for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
     type RuntimeCall = RuntimeCall;
@@ -1560,6 +1564,10 @@ impl pallet_referenda::Config for Runtime {
     type Tracks = TracksInfo;
     type Preimages = Preimage;
 }
+
+//
+
+// 840 168 42 14 7 ?
 
 impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;

@@ -1534,3 +1534,13 @@ pub mod pallet {
         }
     }
 }
+
+pub trait GetTotalIssuance{
+    fn total_issuance() -> u128;
+}
+
+impl<T:Config> GetTotalIssuance for Pallet<T>{
+    fn total_issuance() -> u128 {
+        TotalIssuance::<T>::get().into()
+    }
+}

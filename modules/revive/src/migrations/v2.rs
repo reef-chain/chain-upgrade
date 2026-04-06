@@ -23,7 +23,7 @@
 
 extern crate alloc;
 use super::PALLET_MIGRATIONS_ID;
-use crate::{vm::BytecodeType, weights::ReviveWeightInfo, Config, Pallet, H256, LOG_TARGET};
+use crate::{vm::BytecodeType, weights::WeightInfo, Config, Pallet, H256, LOG_TARGET};
 use frame_support::{
     migrations::{MigrationId, SteppedMigration, SteppedMigrationError},
     pallet_prelude::PhantomData,
@@ -106,7 +106,7 @@ impl<T: Config> SteppedMigration for Migration<T> {
         mut cursor: Option<Self::Cursor>,
         meter: &mut WeightMeter,
     ) -> Result<Option<Self::Cursor>, SteppedMigrationError> {
-        let required = <T as Config>::ReviveWeightInfo::v2_migration_step();
+        let required = <T as Config>::WeightInfo::v2_migration_step();
         if meter.remaining().any_lt(required) {
             return Err(SteppedMigrationError::InsufficientWeight { required });
         }
